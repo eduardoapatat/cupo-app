@@ -207,7 +207,7 @@ Discreet and firm: compact, unadorned, clear.
 
 ### Navigation
 
-- **Style:** the starter sidebar on a chalk background, label-weight items with lucide icons, a mist fill for the active item, mist hover. On mobile the sidebar becomes a sheet. The menu changes by role (owner, front desk, instructor, student) and items not built yet show dimmed with a «Pronto» badge.
+- **Style:** the starter sidebar on a chalk background, label-weight items with lucide icons, a mist fill for the active item, mist hover. On mobile the sidebar becomes a sheet. The menu changes by role (owner, front desk, instructor, student) and items not built yet show dimmed with a «Pronto» badge. The header bar shows, at its right, the current studio in pencil gray and the member's role in an outline badge; on phones only the badge stays.
 
 ## Do's and Don'ts
 

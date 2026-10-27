@@ -100,10 +100,7 @@ export default function StudioHome() {
             <Head title="Inicio" />
 
             <div className="flex flex-col gap-4 px-4 py-6">
-                <Heading
-                    title="Inicio"
-                    description={`${studio.name} · ${studio.roleLabel}`}
-                />
+                <Heading title="Inicio" />
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {BLOCKS[studio.role].map((block) => (

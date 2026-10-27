@@ -180,6 +180,7 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 - **Siempre hay un estudio actual:** el de la página o, fuera de un estudio (por ejemplo en Configuración), el último que la persona abrió. Lo guarda en la sesión el middleware `RememberCurrentStudio`. Si ya no pertenece a ese estudio, se usa el primero por nombre. El selector para quien pertenece a más de uno llega en la Fase 1.
 - **Props:** `HandleInertiaRequests` comparte `studio` (nombre, slug, rol y menú). Nunca comparte un estudio al que la persona no pertenece, ni siquiera en el 404 de uno ajeno, y las membresías no viajan dentro de `auth.user`.
 - **El menú lo arma el servidor:** `StudioRole::menu()` da los ítems y su orden, y `MenuItem` su etiqueta y su ruta. El frontend (`studio-nav.tsx`) solo elige el ícono de cada ítem. Los ítems sin ruta se ven atenuados con «Pronto».
+- **El rol se ve arriba a la derecha:** la barra de los breadcrumbs (`app-sidebar-header.tsx`) muestra el estudio actual y el rol de la persona en una insignia, en todas las páginas. En el celular queda solo la insignia.
 
 ### Usuarios demo
 
