@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Enums\StudioPermission;
+use App\Models\Studio;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -27,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureAuthorization();
         $this->configureRoutes();
         $this->configureErrorPages();
     }
@@ -51,6 +56,22 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * One Gate per row of the permission matrix, checked against the user's
+     * role in the given studio: Gate::allows('plans.manage', $studio). There
+     * is no super admin, so no Gate::before. Access to a studio itself goes
+     * through StudioPolicy, which answers 404 to non-members.
+     */
+    protected function configureAuthorization(): void
+    {
+        foreach (StudioPermission::cases() as $permission) {
+            Gate::define(
+                $permission->value,
+                fn (User $user, Studio $studio): bool => $user->roleIn($studio)?->allows($permission) ?? false,
+            );
+        }
     }
 
     /**
