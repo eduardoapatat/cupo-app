@@ -46,5 +46,6 @@
     "You already invited that email. Resend the invitation from the list.": "Ya invitaste a ese correo. Reenvía la invitación desde la lista.",
     "We sent the invitation to :email.": "Enviamos la invitación a :email.",
     "We sent the invitation to :email again.": "Volvimos a enviar la invitación a :email.",
-    "We cancelled the invitation to :email.": "Cancelamos la invitación a :email."
+    "We cancelled the invitation to :email.": "Cancelamos la invitación a :email.",
+    ":name is no longer part of the team.": ":name ya no es parte del equipo."
 }

@@ -6,6 +6,7 @@ import {
     store as storeInvitation,
 } from '@/actions/App/Http/Controllers/Studio/TeamInvitationController';
 import { index as teamIndex } from '@/actions/App/Http/Controllers/Studio/TeamController';
+import { destroy as removeMember } from '@/actions/App/Http/Controllers/Studio/TeamMemberController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -121,6 +122,44 @@ function InviteForm({ slug, roles }: { slug: string; roles: Option[] }) {
     );
 }
 
+function MemberRow({ slug, member }: { slug: string; member: Member }) {
+    const [confirming, setConfirming] = useState(false);
+
+    return (
+        <TableRow>
+            <TableCell className="font-medium">{member.name}</TableCell>
+            <TableCell
+                className="max-w-64 truncate text-muted-foreground"
+                title={member.email ?? undefined}
+            >
+                {member.email}
+            </TableCell>
+            <TableCell>{member.role}</TableCell>
+            <TableCell className="text-right">
+                {member.removable && (
+                    <ConfirmDialog
+                        open={confirming}
+                        onOpenChange={setConfirming}
+                        trigger={
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Quitar a ${member.name} del equipo`}
+                            >
+                                Quitar
+                            </Button>
+                        }
+                        title={`¿Quitar a ${member.name} del equipo?`}
+                        description="Pierde el acceso al estudio de inmediato. Para que vuelva, envíale una invitación nueva."
+                        action={removeMember.form([slug, member.id])}
+                        confirmLabel="Quitar del equipo"
+                    />
+                )}
+            </TableCell>
+        </TableRow>
+    );
+}
+
 function InvitationRow({
     slug,
     invitation,
@@ -222,19 +261,20 @@ export default function Team({ members, invitations, roles }: Props) {
                                     <TableHead>Nombre</TableHead>
                                     <TableHead>Correo</TableHead>
                                     <TableHead>Rol</TableHead>
+                                    <TableHead className="text-right">
+                                        <span className="sr-only">
+                                            Acciones
+                                        </span>
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {members.map((member) => (
-                                    <TableRow key={member.id}>
-                                        <TableCell className="font-medium">
-                                            {member.name}
-                                        </TableCell>
-                                        <TableCell className="max-w-64 truncate text-muted-foreground">
-                                            {member.email}
-                                        </TableCell>
-                                        <TableCell>{member.role}</TableCell>
-                                    </TableRow>
+                                    <MemberRow
+                                        key={member.id}
+                                        slug={studio.slug}
+                                        member={member}
+                                    />
                                 ))}
                             </TableBody>
                         </Table>
