@@ -31,6 +31,9 @@ yarn-error.log
 /.amp
 /.claude/*
 !/.claude/skills/
+/.claude/skills/impeccable/
+/.impeccable/*.local.json
+/.impeccable/hook.cache.json
 /.codex
 /.cursor
 /.factory

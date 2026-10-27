@@ -48,6 +48,7 @@ A fictional app (portfolio project) for small group-class studios for adults (pi
 - Only the starter kit's shadcn/ui components, as they are. Add missing ones with the shadcn CLI, unmodified; if the CLI writes `import { cn } from "cn"`, change it to `@/lib/utils` and do not accept the `cn` dependency it adds.
 - Achromatic system ("The Club Ledger" in `DESIGN.md`): no blue, red only for destructive actions and errors.
 - Every menu item of every role exists; items not built yet are dimmed with «Pronto».
+- The Impeccable skill (`/impeccable shape`, `harden`, `audit`) is used for UX, not for restyling. It is not versioned: install it per machine with `npx impeccable install --providers=claude --scope=project`. Its skill folder, agents and hooks stay out of git.
 
 ## Working rules
 
