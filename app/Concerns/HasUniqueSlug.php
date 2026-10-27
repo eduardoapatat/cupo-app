@@ -25,10 +25,26 @@ trait HasUniqueSlug
         $base = Str::slug($this->getAttribute('name'));
         $slug = $base;
 
-        for ($suffix = 2; static::query()->where('slug', $slug)->exists(); $suffix++) {
+        for ($suffix = 2; $this->slugIsTaken($slug); $suffix++) {
             $slug = "{$base}-{$suffix}";
         }
 
         return $slug;
+    }
+
+    protected function slugIsTaken(string $slug): bool
+    {
+        return in_array($slug, $this->reservedSlugs(), true)
+            || static::query()->where('slug', $slug)->exists();
+    }
+
+    /**
+     * Slugs that would clash with a fixed URL, such as /estudios/crear.
+     *
+     * @return list<string>
+     */
+    protected function reservedSlugs(): array
+    {
+        return [];
     }
 }

@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
+import { create as createStudio } from '@/actions/App/Http/Controllers/StudioController';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -12,8 +12,8 @@ import {
 import { dashboard } from '@/routes';
 
 /**
- * The home of someone who does not belong to a studio yet. Creating a
- * studio arrives in phase 1, so its button shows as «Pronto».
+ * The home of someone who does not belong to a studio yet: they join one
+ * through its link or an invitation, or create their own.
  */
 export default function NoStudio() {
     return (
@@ -35,9 +35,10 @@ export default function NoStudio() {
                             para empezar.
                         </CardDescription>
                     </CardHeader>
-                    <CardFooter className="gap-2">
-                        <Button disabled>Crear mi estudio</Button>
-                        <Badge variant="outline">Pronto</Badge>
+                    <CardFooter>
+                        <Button asChild>
+                            <Link href={createStudio()}>Crear mi estudio</Link>
+                        </Button>
                     </CardFooter>
                 </Card>
             </div>

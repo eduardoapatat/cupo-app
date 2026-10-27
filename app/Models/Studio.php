@@ -75,6 +75,17 @@ class Studio extends Model
     }
 
     /**
+     * /estudios/crear is the form to create a studio, so no studio can
+     * take "crear" as its slug.
+     *
+     * @return list<string>
+     */
+    protected function reservedSlugs(): array
+    {
+        return ['crear'];
+    }
+
+    /**
      * Studios are identified by their slug in URLs (/estudios/{slug}).
      */
     public function getRouteKeyName(): string

@@ -34,3 +34,9 @@ export type CurrentStudio = {
     roleLabel: string;
     menu: StudioMenuItem[];
 };
+
+/** A choice of a select input, such as App\Enums\Commune::options(). */
+export type Option = {
+    value: string;
+    label: string;
+};

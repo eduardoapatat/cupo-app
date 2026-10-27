@@ -2,11 +2,17 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Studio\HomeController;
+use App\Http\Controllers\StudioController;
 use App\Http\Middleware\RememberCurrentStudio;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inicio', DashboardController::class)->name('dashboard');
+
+    // Before the studio group, so /estudios/crear never reads as a slug.
+    Route::resource('estudios', StudioController::class)
+        ->only(['create', 'store'])
+        ->names('studios');
 
     Route::middleware(RememberCurrentStudio::class)
         ->prefix('estudios/{studio}')

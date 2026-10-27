@@ -199,6 +199,7 @@ return [
 
     'attributes' => [
         'name' => 'nombre',
+        'commune' => 'comuna',
         'email' => 'correo',
         'password' => 'contraseña',
         'password_confirmation' => 'confirmación de contraseña',
