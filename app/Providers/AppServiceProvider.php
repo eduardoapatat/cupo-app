@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\ExceptionResponse;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureErrorPages();
     }
 
     /**
@@ -46,5 +49,37 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Page visits get a page instead of Laravel's raw error HTML: an expired
+     * session (419) goes back with a warning, and access, missing and server
+     * errors render the "error" page. Server errors keep the debug page while
+     * debugging, and JSON requests keep their JSON errors.
+     */
+    protected function configureErrorPages(): void
+    {
+        Inertia::handleExceptionsUsing(function (ExceptionResponse $response): mixed {
+            $request = $response->request;
+            $status = $response->statusCode();
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+
+            if ($status === 419) {
+                Inertia::flash('toast', ['type' => 'warning', 'message' => __('The page expired. Please try again.')]);
+
+                return back();
+            }
+
+            $showsDebugPage = $status >= 500 && config('app.debug');
+
+            if (in_array($status, [403, 404, 500, 503], true) && ! $showsDebugPage) {
+                return $response->render('error', ['status' => $status])->withSharedData();
+            }
+
+            return null;
+        });
     }
 }

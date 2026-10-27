@@ -21,6 +21,7 @@
     "The :attribute must be at least :length characters and contain at least one uppercase character and one number.": "La :attribute debe tener al menos :length caracteres, al menos una mayúscula y un número.",
     "The :attribute must be at least :length characters and contain at least one uppercase character and one special character.": "La :attribute debe tener al menos :length caracteres, al menos una mayúscula y un carácter especial.",
     "The :attribute must be at least :length characters and contain at least one uppercase character, one number, and one special character.": "La :attribute debe tener al menos :length caracteres, al menos una mayúscula, un número y un carácter especial.",
+    "The page expired. Please try again.": "La página expiró. Vuelve a intentarlo.",
     "The provided password was incorrect.": "La contraseña no es correcta.",
     "The provided two factor authentication code was invalid.": "El código de verificación en dos pasos no es válido.",
     "The provided two factor recovery code was invalid.": "El código de recuperación no es válido.",
