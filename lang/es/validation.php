@@ -181,8 +181,8 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'adult' => [
+            'accepted' => 'Debes declarar que eres mayor de 18 años.',
         ],
     ],
 

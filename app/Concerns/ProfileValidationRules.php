@@ -32,6 +32,17 @@ trait ProfileValidationRules
     }
 
     /**
+     * Get the validation rules for the declaration of being 18 or older,
+     * which every new account makes (Cupo does not take minors).
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function adultRules(): array
+    {
+        return ['accepted'];
+    }
+
+    /**
      * Get the validation rules used to validate user emails.
      *
      * @return array<int, ValidationRule|array<mixed>|string>
