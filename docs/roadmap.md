@@ -86,6 +86,7 @@ Para las fases siguientes:
 
 - [ ] Recordatorios de clase, avisos de la lista de espera y aviso de vencimiento 3 días antes.
 - [ ] Resumen diario para la dueña.
+- [ ] Evaluar mostrar dentro de la app las invitaciones pendientes al correo de la persona (hoy llegan solo por correo).
 - [ ] Eventos, listeners, notificaciones en cola y jobs programados con `withoutOverlapping()`.
 
 ## Fase 5: API REST
