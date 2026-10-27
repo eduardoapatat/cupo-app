@@ -40,14 +40,24 @@ Este archivo es la fuente de verdad del avance de Cupo. Se actualiza en el mismo
 
 ## Fase 1: estudios, equipo y alumnas
 
-- [ ] Crear el estudio (self-service): quien se registra crea su estudio (nombre, comuna y enlace) y queda como su dueña. Las reglas se copian de `config/studio.php`.
-- [ ] Invitar a recepción e instructores por correo, con URLs firmadas y correos en cola. Quitar a alguien del equipo.
-- [ ] El enlace de inscripción del estudio: la alumna crea su cuenta y declara ser mayor de 18.
-- [ ] Alumnas sin app: recepción las inscribe con nombre y teléfono (correo opcional) y ellas pueden activar su cuenta después con su correo.
-- [ ] El selector de estudio, solo para quien pertenece a más de uno, con el último usado recordado en la sesión.
-- [ ] Policies con 404 para recursos de otro estudio.
-- [ ] Traer `resources/js/lib/form.ts` de PichangApp con el primer formulario (errores accesibles y foco en el primer error).
-- [ ] Decidir qué pasa si alguien del equipo también toma clases en su estudio (hoy, un solo rol por estudio).
+Decisiones de la fase: quien entra por el enlace queda como alumna al tiro; a una alumna sin app la activa recepción anotando su correo; una persona es dueña de un solo estudio; las comunas son las 52 de la Región Metropolitana; las invitaciones vencen a los 7 días; el selector de estudio va arriba a la derecha.
+
+- [x] **1.1 "Crear el estudio"**:
+    - la comuna, las reglas copiadas de `config/studio.php` y el token del enlace en `studios`, con sus `CHECK`, y una sola dueña por persona;
+    - la declaración de mayoría de edad en el registro (`users.adult_declared_at`);
+    - `/estudios/crear` y la pantalla «Estudio» (nombre y comuna), con la fila nueva `studio.manage` en la matriz;
+    - `lib/form.ts` traído de PichangApp con el primer formulario.
+- [ ] **1.2 "Equipo"**:
+    - invitar a recepción e instructores por correo, con URLs firmadas que vencen a los 7 días y correos en cola;
+    - aceptar la invitación con o sin cuenta, reenviarla, cancelarla y quitar a alguien del equipo;
+    - la pantalla «Equipo», con 404 para los recursos de otro estudio.
+- [ ] **1.3 "Alumnas, enlace y selector"**:
+    - el enlace de inscripción del estudio (copiarlo y renovarlo en «Estudio»);
+    - la pantalla «Alumnas»: inscribir en el mesón con nombre y teléfono, editar el contacto de quien no usa la app y mandarle la activación;
+    - el selector de estudio arriba a la derecha;
+    - el ADR 0004 y el cierre de la fase.
+
+Para la Fase 2: decidir qué pasa si alguien del equipo también toma clases en su estudio (hoy, un solo rol por estudio).
 
 ## Fase 2: horario, sesiones y reservas
 
