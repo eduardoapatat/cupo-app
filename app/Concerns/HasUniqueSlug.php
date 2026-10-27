@@ -6,8 +6,9 @@ use Illuminate\Support\Str;
 
 /**
  * Fills the "slug" column from "name" when the model is created, adding a
- * numeric suffix (-2, -3...) when the slug is taken. The slug never changes
- * afterwards, so links keep working when the name changes.
+ * numeric suffix (-2, -3...) when the slug is taken. A name with nothing to
+ * transliterate, such as only symbols, falls back to fallbackSlug(). The slug
+ * never changes afterwards, so links keep working when the name changes.
  */
 trait HasUniqueSlug
 {
@@ -22,7 +23,7 @@ trait HasUniqueSlug
 
     protected function uniqueSlug(): string
     {
-        $base = Str::slug($this->getAttribute('name'));
+        $base = Str::slug($this->getAttribute('name')) ?: $this->fallbackSlug();
         $slug = $base;
 
         for ($suffix = 2; $this->slugIsTaken($slug); $suffix++) {
@@ -36,6 +37,14 @@ trait HasUniqueSlug
     {
         return in_array($slug, $this->reservedSlugs(), true)
             || static::query()->where('slug', $slug)->exists();
+    }
+
+    /**
+     * The slug base when the name gives none.
+     */
+    protected function fallbackSlug(): string
+    {
+        return Str::slug(class_basename($this));
     }
 
     /**

@@ -22,6 +22,14 @@ it('derives a unique slug from the name', function () {
         ->and($second->slug)->toBe('estudio-nunoa-2');
 });
 
+it('falls back to a generic slug when the name gives none', function () {
+    $first = Studio::factory()->create(['name' => '★ ★ ★']);
+    $second = Studio::factory()->create(['name' => '日本']);
+
+    expect($first->slug)->toBe('estudio')
+        ->and($second->slug)->toBe('estudio-2');
+});
+
 it('keeps the slug when the name changes', function () {
     $studio = Studio::factory()->create(['name' => 'Estudio Flow']);
 

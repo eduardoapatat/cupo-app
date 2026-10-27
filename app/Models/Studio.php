@@ -86,6 +86,15 @@ class Studio extends Model
     }
 
     /**
+     * A studio whose name gives no slug, such as one made of symbols, is
+     * at /estudios/estudio (or -2, -3...).
+     */
+    protected function fallbackSlug(): string
+    {
+        return 'estudio';
+    }
+
+    /**
      * Studios are identified by their slug in URLs (/estudios/{slug}).
      */
     public function getRouteKeyName(): string
