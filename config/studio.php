@@ -29,6 +29,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Account Activation
+    |--------------------------------------------------------------------------
+    |
+    | Days the link to activate the account of a student enrolled at the
+    | counter stays valid. The front desk can send a new one at any time.
+    |
+    */
+
+    'activation_days' => (int) env('STUDIO_ACTIVATION_DAYS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Rules
     |--------------------------------------------------------------------------
     |

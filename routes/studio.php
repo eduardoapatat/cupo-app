@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountActivationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\InvitationController;
@@ -25,6 +26,15 @@ Route::post('invitaciones/{invitation}', [InvitationController::class, 'accept']
 // Public: the studio's enrollment link, shared by its owner.
 Route::get('inscripcion/{token}', [EnrollmentController::class, 'show'])->name('enrollment.show');
 Route::post('inscripcion/{token}', [EnrollmentController::class, 'store'])->name('enrollment.store');
+
+// Public: a student enrolled at the counter activates her account from the
+// signed link in her email.
+Route::get('activar-cuenta/{user}', [AccountActivationController::class, 'show'])
+    ->whereNumber('user')
+    ->name('activation.show');
+Route::post('activar-cuenta/{user}', [AccountActivationController::class, 'store'])
+    ->whereNumber('user')
+    ->name('activation.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inicio', DashboardController::class)->name('dashboard');
