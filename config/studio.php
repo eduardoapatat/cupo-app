@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Team Invitations
+    |--------------------------------------------------------------------------
+    |
+    | Days an invitation to join a studio's team stays valid. After that its
+    | link stops working, and the owner can send it again.
+    |
+    */
+
+    'invitation_days' => (int) env('STUDIO_INVITATION_DAYS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Rules
     |--------------------------------------------------------------------------
     |

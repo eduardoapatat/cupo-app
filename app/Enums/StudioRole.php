@@ -66,6 +66,17 @@ enum StudioRole: string
         };
     }
 
+    /**
+     * The roles the owner can invite to her team. She is the only owner,
+     * and students join through the studio's enrollment link.
+     *
+     * @return list<self>
+     */
+    public static function invitable(): array
+    {
+        return [self::FrontDesk, self::Instructor];
+    }
+
     public function allows(StudioPermission $permission): bool
     {
         return in_array($permission, $this->permissions(), true);
