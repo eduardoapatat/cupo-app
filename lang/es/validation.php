@@ -200,6 +200,7 @@ return [
     'attributes' => [
         'name' => 'nombre',
         'commune' => 'comuna',
+        'role' => 'rol',
         'email' => 'correo',
         'password' => 'contraseña',
         'password_confirmation' => 'confirmación de contraseña',

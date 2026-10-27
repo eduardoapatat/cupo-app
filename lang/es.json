@@ -35,5 +35,16 @@
     "Studio saved.": "Guardamos los datos del estudio.",
     "This invitation is no longer valid.": "Esta invitación ya no sirve.",
     "You already have an account. Sign in to accept the invitation.": "Ya tienes una cuenta con este correo. Inicia sesión para aceptar la invitación.",
-    "You joined :studio.": "Te uniste a :studio."
+    "You joined :studio.": "Te uniste a :studio.",
+    "You are invited to :studio": "Te invitaron a :studio",
+    ":name invited you to join :studio as :role.": ":name te invitó a sumarte a :studio como :role.",
+    "The owner": "La dueña",
+    "See the invitation": "Ver la invitación",
+    "The invitation expires on :date.": "La invitación vence el :date.",
+    "If you were not expecting it, you can ignore this email.": "Si no la esperabas, puedes ignorar este correo.",
+    "That person is already part of the studio.": "Esa persona ya es parte del estudio.",
+    "You already invited that email. Resend the invitation from the list.": "Ya invitaste a ese correo. Reenvía la invitación desde la lista.",
+    "We sent the invitation to :email.": "Enviamos la invitación a :email.",
+    "We sent the invitation to :email again.": "Volvimos a enviar la invitación a :email.",
+    "We cancelled the invitation to :email.": "Cancelamos la invitación a :email."
 }
