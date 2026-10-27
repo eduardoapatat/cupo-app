@@ -25,7 +25,7 @@ Este archivo es la fuente de verdad del avance de Cupo. Se actualiza en el mismo
     - validación, correos y pantallas en español, y páginas de error con avisos de sesión y de conexión;
     - `config/studio.php` con las reglas por defecto;
     - lint y tipos en verde.
-- [ ] **0.2 "Producto, docs y CI"** _(en curso)_:
+- [x] **0.2 "Producto, docs y CI"**:
     - `PRODUCT.md`, `DESIGN.md` y `docs/roles-y-permisos.md`;
     - este roadmap, `docs/architecture.md`, los ADRs 0001 y 0002 y el README;
     - guías de IA versionadas;
