@@ -17,7 +17,7 @@ Este archivo es la fuente de verdad del avance de Cupo. Se actualiza en el mismo
 
 **Leyenda:** `[x]` hecho · `[ ]` pendiente · _(en curso)_ marca el punto de control actual.
 
-## Fase 0: preparar el proyecto
+## Fase 0: preparar el proyecto ✅
 
 - [x] **0.1 "Hola, Cupo"**:
     - el proyecto creado con el starter kit de React, PostgreSQL 18 y Mailpit en Docker, Node 24 fijado y el registro con correo de verificación funcionando;
@@ -30,7 +30,7 @@ Este archivo es la fuente de verdad del avance de Cupo. Se actualiza en el mismo
     - este roadmap, `docs/architecture.md`, los ADRs 0001 y 0002 y el README;
     - guías de IA versionadas;
     - el workflow de GitHub Actions con pnpm y PostgreSQL.
-- [ ] **0.3 "Roles, menú e Inicio"**:
+- [x] **0.3 "Roles, menú e Inicio"**:
     - `studios` y `memberships` con sus garantías en la base: un rol válido, una membresía por persona y estudio, y una sola dueña por estudio;
     - los enums `StudioRole` y `StudioPermission`, un Gate por permiso y 404 para quien no es miembro;
     - el menú de los 4 roles con «Pronto» y el Inicio de cada rol;
