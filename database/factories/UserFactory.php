@@ -2,6 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\StudioRole;
+use App\Models\Membership;
+use App\Models\Studio;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -44,6 +47,14 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Make the user a member of the studio with the given role.
+     */
+    public function memberOf(Studio $studio, StudioRole $role): static
+    {
+        return $this->has(Membership::factory()->for($studio)->role($role));
     }
 
     /**

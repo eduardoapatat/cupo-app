@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\StudioRole;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -46,5 +48,23 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return HasMany<Membership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(Membership::class);
+    }
+
+    /**
+     * The user's role in the given studio, or null when they are not a
+     * member. It reads the loaded memberships, so repeated checks in one
+     * request run a single query.
+     */
+    public function roleIn(Studio $studio): ?StudioRole
+    {
+        return $this->memberships->firstWhere('studio_id', $studio->id)?->role;
     }
 }
