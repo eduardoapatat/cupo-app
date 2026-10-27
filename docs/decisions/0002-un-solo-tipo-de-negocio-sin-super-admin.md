@@ -32,7 +32,7 @@ Elegimos la **opción 1**:
 - **Un solo tipo de negocio:** estudios pequeños de clases grupales para adultos. Quedan fuera los marketplaces, el catálogo público entre estudios, las sucursales, RR. HH. y contabilidad.
 - **Self-service:** quien se registra crea su propio estudio y queda como su dueña _(Fase 1)_. La dueña invita a recepción e instructores, y las alumnas entran por el enlace del estudio o las inscribe recepción.
 - **Sin super admin:** la app no tiene un rol de plataforma ni un `Gate::before` que lo deje pasar todo. El soporte, si hace falta, se hace fuera de la app (por ejemplo, con `php artisan tinker`).
-- **El rol vive en la membresía** (persona × estudio), como los equipos de Jetstream. El detalle de los roles, el menú y la matriz está en `docs/roles-y-permisos.md`, y cómo se programa, en el ADR 0003 _(punto 0.3)_.
+- **El rol vive en la membresía** (persona × estudio), como los equipos de Jetstream. El detalle de los roles, el menú y la matriz está en `docs/roles-y-permisos.md`, y cómo se programa, en el ADR 0003.
 - **Una sola app con login**, con el menú por rol y los componentes shadcn del starter. No hay sitio público que diseñar.
 
 ### Consecuencias
@@ -46,6 +46,6 @@ Elegimos la **opción 1**:
 
 ### Confirmación
 
-- `docs/roles-y-permisos.md` define los cuatro roles, su menú y la matriz, y los tests del punto 0.3 verifican cada fila.
-- Un test verifica que quien no es miembro de un estudio recibe 404 _(punto 0.3)_.
+- `docs/roles-y-permisos.md` define los cuatro roles, su menú y la matriz, y `tests/Feature/Authorization/PermissionMatrixTest.php` verifica cada fila.
+- `tests/Feature/Http/Controllers/Studio/HomeControllerTest.php` verifica que quien no es miembro de un estudio recibe 404.
 - El roadmap no tiene pantallas de plataforma ni de catálogo público.

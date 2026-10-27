@@ -1,6 +1,6 @@
 # Roles y permisos
 
-Este documento define qué puede hacer cada rol en un estudio, qué ve al entrar y qué menú tiene. Es la fuente de verdad de los tests de permisos: cada fila de la matriz es un caso del dataset de `tests/Feature/Authorization` _(punto 0.3)_. Si cambia una fila, cambia el test en el mismo commit.
+Este documento define qué puede hacer cada rol en un estudio, qué ve al entrar y qué menú tiene. Es la fuente de verdad de los tests de permisos: cada fila de la matriz es un caso del dataset de `tests/Feature/Authorization/PermissionMatrixTest.php`, y el menú de cada rol se prueba en `tests/Feature/Navigation/StudioMenuTest.php`. Si cambia una fila, cambia el test en el mismo commit.
 
 ## Principios
 
@@ -95,6 +95,6 @@ El número es la posición del ítem en el menú de ese rol. La dueña ve sus pr
 
 ## Cómo se aplica en el código
 
-- **Por acción, no por rol:** cada código de la matriz es un caso del enum `StudioPermission`, y `StudioRole::permissions()` arma cada columna. Se registra un Gate por permiso, con la firma `(User, Studio)`. Así, sumar un rol es sumar un caso al enum con sus permisos y su menú, sin `if rol === ...` en ningún lado _(punto 0.3)_.
+- **Por acción, no por rol:** cada código de la matriz es un caso del enum `StudioPermission`, y `StudioRole::permissions()` arma cada columna. Se registra un Gate por permiso, con la firma `(User, Studio)`. Así, sumar un rol es sumar un caso al enum con sus permisos y su menú, sin `if rol === ...` en ningún lado. El menú de cada rol sale de `StudioRole::menu()`.
 - **«Solo las suyas»:** el Gate dice si el rol puede hacer la acción en el estudio. Que el instructor vea solo **sus** sesiones, o la alumna solo **sus** reservas, lo filtran las Policies de cada recurso cuando ese recurso exista _(Fases 2 y 3)_.
 - **404 para otros estudios:** un recurso de un estudio ajeno responde 404 (`Response::denyAsNotFound()`), para no revelar que existe. Si es del estudio pero el rol no tiene el permiso, responde 403.

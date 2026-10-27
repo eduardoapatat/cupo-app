@@ -59,11 +59,12 @@ docker compose up -d pgsql mailpit
 php artisan key:generate
 pnpm install
 pnpm run build
-php artisan migrate
+php artisan migrate --seed
 composer dev
 ```
 
 - La app queda en http://localhost:8000 y los correos (verificación de cuenta) llegan a Mailpit, en http://localhost:8025.
+- El seeder crea Estudio Flow con una cuenta demo por rol, todas con la contraseña `password`: `carla@example.com` (dueña), `camila@example.com` (recepción), `fernanda@example.com` y `diego@example.com` (instructores) y `javiera@example.com` (alumna).
 - `composer ci:check` corre lo mismo que el CI: lint y formato, tipos, Pint, PHPStan y los tests contra PostgreSQL.
 
 ## Documentación
