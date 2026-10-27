@@ -8,6 +8,7 @@ use App\Http\Requests\StudioRequest;
 use App\Models\Studio;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
@@ -32,7 +33,12 @@ class StudioController extends Controller
     #[Authorize('create', Studio::class)]
     public function store(StudioRequest $request, #[CurrentUser] User $user, CreateStudio $createStudio): RedirectResponse
     {
-        $studio = $createStudio->handle($user, $request->studioName(), $request->commune());
+        try {
+            $studio = $createStudio->handle($user, $request->studioName(), $request->commune());
+        } catch (UniqueConstraintViolationException) {
+            // A double submit: the first request already created their studio.
+            return to_route('dashboard');
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Your studio is ready.')]);
 

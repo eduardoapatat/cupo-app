@@ -1,9 +1,11 @@
 <?php
 
+use App\Actions\Studios\CreateStudio;
 use App\Enums\Commune;
 use App\Enums\StudioRole;
 use App\Models\Studio;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 it('shows the form with the communes to people without a studio of their own', function () {
@@ -40,6 +42,16 @@ it('refuses a second studio to someone who already owns one', function () {
         ->assertForbidden();
 
     expect(Studio::count())->toBe(1);
+});
+
+it('takes a double submit to the studio the first request created', function () {
+    $this->mock(CreateStudio::class)
+        ->shouldReceive('handle')
+        ->andThrow(new UniqueConstraintViolationException('pgsql', 'insert into memberships', [], new PDOException));
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('studios.store'), ['name' => 'Estudio Flow', 'commune' => 'nunoa'])
+        ->assertRedirect(route('dashboard'));
 });
 
 it('validates the studio data in Spanish', function (array $data, string $field, string $message) {
