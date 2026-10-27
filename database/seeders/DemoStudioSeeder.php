@@ -13,16 +13,16 @@ class DemoStudioSeeder extends Seeder
     /**
      * Estudio Flow, the fictional studio of the docs, created by its owner
      * the way the app does it, with one demo account per role (two
-     * instructors). Every account uses the password "password".
+     * instructors) and Rosa, who pays in cash and does not use the app.
+     * Fernanda also teaches at Estudio Sur, so the studio switcher has
+     * something to switch. Every account uses the password "password".
      */
     public function run(): void
     {
-        $owner = User::factory()->create([
-            'name' => 'Carla Rojas',
-            'email' => 'carla@example.com',
-        ]);
+        $createStudio = new CreateStudio;
 
-        $studio = (new CreateStudio)->handle($owner, 'Estudio Flow', Commune::Nunoa);
+        $carla = User::factory()->create(['name' => 'Carla Rojas', 'email' => 'carla@example.com']);
+        $flow = $createStudio->handle($carla, 'Estudio Flow', Commune::Nunoa);
 
         $people = [
             ['Camila Soto', 'camila@example.com', StudioRole::FrontDesk],
@@ -32,10 +32,21 @@ class DemoStudioSeeder extends Seeder
         ];
 
         foreach ($people as [$name, $email, $role]) {
-            User::factory()->memberOf($studio, $role)->create([
+            User::factory()->memberOf($flow, $role)->create([
                 'name' => $name,
                 'email' => $email,
             ]);
         }
+
+        User::factory()->withoutApp()->memberOf($flow, StudioRole::Student)->create([
+            'name' => 'Rosa Fuentes',
+            'phone' => '+56987654321',
+        ]);
+
+        $paula = User::factory()->create(['name' => 'Paula Vidal', 'email' => 'paula@example.com']);
+        $sur = $createStudio->handle($paula, 'Estudio Sur', Commune::LaFlorida);
+
+        User::where('email', 'fernanda@example.com')->sole()
+            ->memberships()->create(['studio_id' => $sur->id, 'role' => StudioRole::Instructor]);
     }
 }
