@@ -41,6 +41,7 @@ export default defineConfig({
     },
     lint: {
         ignorePatterns: [
+            '.claude/**',
             'vendor/**',
             'node_modules/**',
             'public/**',
@@ -65,6 +66,7 @@ export default defineConfig({
         htmlWhitespaceSensitivity: 'css',
         ignorePatterns: [
             '.github/**',
+            '.claude/**',
             'composer.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
