@@ -5,6 +5,7 @@ namespace App\Providers;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\ExceptionResponse;
@@ -26,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRoutes();
         $this->configureErrorPages();
     }
 
@@ -49,6 +51,18 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Resource routes use Spanish verbs in their URIs (/planes/crear,
+     * /planes/{plan}/editar), since product URLs are in Spanish.
+     */
+    protected function configureRoutes(): void
+    {
+        Route::resourceVerbs([
+            'create' => 'crear',
+            'edit' => 'editar',
+        ]);
     }
 
     /**

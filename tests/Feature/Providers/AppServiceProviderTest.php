@@ -52,3 +52,11 @@ it('keeps JSON errors for JSON requests', function () {
         ->assertNotFound()
         ->assertHeader('Content-Type', 'application/json');
 });
+
+it('uses Spanish verbs in resource route URIs', function () {
+    Route::resource('planes', 'PlanController')->only(['create', 'edit']);
+    Route::getRoutes()->refreshNameLookups();
+
+    expect(route('planes.create', absolute: false))->toBe('/planes/crear')
+        ->and(route('planes.edit', 1, absolute: false))->toBe('/planes/1/editar');
+});
