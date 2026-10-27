@@ -42,6 +42,16 @@ it('allows a single owner per studio', function () {
     });
 });
 
+it('lets a person own a single studio', function () {
+    $owner = Membership::factory()->role(StudioRole::Owner)->create();
+
+    $secondStudio = fn () => Membership::factory()->for($owner->user)->role(StudioRole::Owner)->create();
+
+    expect($secondStudio)->toThrow(function (QueryException $exception) {
+        expect($exception->getCode())->toBe('23505');
+    });
+});
+
 it('lets a person hold different roles in different studios', function () {
     $ownStudio = Studio::factory()->create();
     $otherStudio = Studio::factory()->create();

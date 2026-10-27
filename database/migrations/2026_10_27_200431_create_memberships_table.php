@@ -27,9 +27,11 @@ return new class extends Migration
             $table->index('user_id');
         });
 
-        // Each studio has a single owner. Laravel has no API for partial
-        // indexes, so this one is plain SQL.
+        // Each studio has a single owner, and a person owns a single studio
+        // (Cupo has no branches). Laravel has no API for partial indexes, so
+        // these are plain SQL.
         DB::statement("CREATE UNIQUE INDEX memberships_one_owner_per_studio ON memberships (studio_id) WHERE role = 'owner'");
+        DB::statement("CREATE UNIQUE INDEX memberships_one_studio_per_owner ON memberships (user_id) WHERE role = 'owner'");
     }
 
     /**

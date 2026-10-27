@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\Commune;
 use App\Models\Studio;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Studio>
@@ -12,17 +12,17 @@ use Illuminate\Support\Str;
 class StudioFactory extends Factory
 {
     /**
-     * Define the model's default state.
+     * Define the model's default state: the default rules of every new
+     * studio. The slug and the enrollment token are filled on creation.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
-        $name = 'Estudio '.fake()->lastName();
-
         return [
-            'name' => $name,
-            'slug' => Str::slug($name).'-'.Str::lower(Str::random(5)),
+            'name' => 'Estudio '.fake()->lastName(),
+            'commune' => fake()->randomElement(Commune::cases()),
+            ...Studio::defaultRules(),
         ];
     }
 }

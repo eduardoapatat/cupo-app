@@ -2,10 +2,9 @@
 
 use App\Enums\StudioRole;
 use App\Models\Studio;
-use Database\Seeders\DemoStudioSeeder;
 
 it('seeds Estudio Flow with a demo account for every role', function () {
-    $this->seed(DemoStudioSeeder::class);
+    $this->seed();
 
     $studio = Studio::where('slug', 'estudio-flow')->sole();
     $roles = $studio->memberships()->with('user')->orderBy('id')->get()

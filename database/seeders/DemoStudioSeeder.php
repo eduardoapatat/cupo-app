@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Commune;
 use App\Enums\StudioRole;
 use App\Models\Studio;
 use App\Models\User;
@@ -15,7 +16,11 @@ class DemoStudioSeeder extends Seeder
      */
     public function run(): void
     {
-        $studio = Studio::create(['name' => 'Estudio Flow', 'slug' => 'estudio-flow']);
+        $studio = Studio::create([
+            'name' => 'Estudio Flow',
+            'commune' => Commune::Nunoa,
+            ...Studio::defaultRules(),
+        ]);
 
         $people = [
             ['Carla Rojas', 'carla@example.com', StudioRole::Owner],
