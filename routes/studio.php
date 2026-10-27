@@ -1,11 +1,21 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\SettingsController;
 use App\Http\Controllers\StudioController;
 use App\Http\Middleware\RememberCurrentStudio;
 use Illuminate\Support\Facades\Route;
+
+// Public: the invited person may not have an account yet. Each action
+// checks the link's signature itself, to explain why a link no longer works.
+Route::get('invitaciones/{invitation}', [InvitationController::class, 'show'])
+    ->whereNumber('invitation')
+    ->name('invitations.show');
+Route::post('invitaciones/{invitation}', [InvitationController::class, 'accept'])
+    ->whereNumber('invitation')
+    ->name('invitations.accept');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inicio', DashboardController::class)->name('dashboard');

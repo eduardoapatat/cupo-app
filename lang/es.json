@@ -32,5 +32,8 @@
     "You are receiving this email because we received a password reset request for your account.": "Recibiste este correo porque pediste restablecer la contraseña de tu cuenta.",
     "The name must include letters or numbers.": "El nombre debe tener letras o números.",
     "Your studio is ready.": "Tu estudio está listo.",
-    "Studio saved.": "Guardamos los datos del estudio."
+    "Studio saved.": "Guardamos los datos del estudio.",
+    "This invitation is no longer valid.": "Esta invitación ya no sirve.",
+    "You already have an account. Sign in to accept the invitation.": "Ya tienes una cuenta con este correo. Inicia sesión para aceptar la invitación.",
+    "You joined :studio.": "Te uniste a :studio."
 }
