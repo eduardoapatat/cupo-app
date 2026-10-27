@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\SettingsController;
 use App\Http\Controllers\Studio\TeamController;
@@ -20,6 +22,10 @@ Route::post('invitaciones/{invitation}', [InvitationController::class, 'accept']
     ->whereNumber('invitation')
     ->name('invitations.accept');
 
+// Public: the studio's enrollment link, shared by its owner.
+Route::get('inscripcion/{token}', [EnrollmentController::class, 'show'])->name('enrollment.show');
+Route::post('inscripcion/{token}', [EnrollmentController::class, 'store'])->name('enrollment.store');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inicio', DashboardController::class)->name('dashboard');
 
@@ -37,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('estudio', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('estudio', [SettingsController::class, 'update'])->name('settings.update');
+            Route::put('estudio/enlace', [EnrollmentLinkController::class, 'update'])->name('settings.enrollment-link.update');
 
             Route::get('equipo', [TeamController::class, 'index'])->name('team.index');
             Route::scopeBindings()->group(function () {

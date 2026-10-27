@@ -29,6 +29,7 @@ class SettingsController extends Controller
                 'commune' => $studio->commune->value,
             ],
             'communes' => Commune::options(),
+            'enrollmentUrl' => route('enrollment.show', $studio->enrollment_token),
         ]);
     }
 

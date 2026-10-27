@@ -17,6 +17,7 @@ void createInertiaApp({
             case name.startsWith('auth/'):
             case name === 'error':
             case name.startsWith('invitations/'):
+            case name.startsWith('enrollment/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];

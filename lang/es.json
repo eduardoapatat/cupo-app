@@ -47,5 +47,7 @@
     "We sent the invitation to :email.": "Enviamos la invitación a :email.",
     "We sent the invitation to :email again.": "Volvimos a enviar la invitación a :email.",
     "We cancelled the invitation to :email.": "Cancelamos la invitación a :email.",
-    ":name is no longer part of the team.": ":name ya no es parte del equipo."
+    ":name is no longer part of the team.": ":name ya no es parte del equipo.",
+    "Welcome to :studio.": "Te damos la bienvenida a :studio.",
+    "The studio has a new enrollment link. The old one no longer works.": "El estudio tiene un enlace de inscripción nuevo. El anterior ya no sirve."
 }
