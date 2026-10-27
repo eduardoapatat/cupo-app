@@ -66,7 +66,7 @@ enum MenuItem: string
             self::Plans => StudioPermission::ManagePlans,
             self::Team => StudioPermission::ManageStaff,
             self::Reports => StudioPermission::ViewReports,
-            self::StudioSettings => StudioPermission::ManageRules,
+            self::StudioSettings => StudioPermission::ManageStudio,
             self::MySessions => StudioPermission::ViewSessions,
             self::Book, self::MyBookings => StudioPermission::BookForSelf,
             self::MyPlan => StudioPermission::ViewOwnAccount,

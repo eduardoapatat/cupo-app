@@ -39,7 +39,7 @@ Elegimos la **opción 1**:
 ### Consecuencias
 
 - Bueno: sumar un rol es sumar un caso a `StudioRole` con sus permisos y su menú, más una migración que cambie el `CHECK`. Ninguna otra parte del código pregunta por el rol.
-- Bueno: la matriz se prueba completa con un dataset de Pest (22 permisos × 4 roles), más un test que falla si se agrega un permiso sin su fila.
+- Bueno: la matriz se prueba completa con un dataset de Pest (cada permiso con los 4 roles), más un test que falla si se agrega un permiso sin su fila.
 - Bueno: cero dependencias nuevas, y código que cualquier dev Laravel reconoce (enum cast, Gates, Policies, `can` en las rutas).
 - Bueno: el frontend no decide nada por rol. Recibe el menú ya armado y solo lo dibuja.
 - Malo: los permisos no se configuran desde la interfaz. Lo aceptamos porque el producto no lo necesita y la matriz es parte del diseño.

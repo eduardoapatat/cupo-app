@@ -13,6 +13,7 @@ enum StudioPermission: string
     case ManageSchedule = 'schedule.manage';
     case ManageRules = 'rules.manage';
     case ViewReports = 'reports.view';
+    case ManageStudio = 'studio.manage';
 
     // Staff.
     case ManageStaff = 'staff.manage';

@@ -22,6 +22,7 @@ function expectedPermissionMatrix(): array
         'schedule.manage' => [true, false, false, false],
         'rules.manage' => [true, false, false, false],
         'reports.view' => [true, false, false, false],
+        'studio.manage' => [true, false, false, false],
         // Staff.
         'staff.manage' => [true, false, false, false],
         // Students.

@@ -56,7 +56,7 @@ Todos los ítems existen desde la Fase 0. Los que aún no funcionan se ven atenu
 | Planes       | `plans.manage`    |   8   |           |            |        | Fase 3   |
 | Equipo       | `staff.manage`    |   9   |           |            |        | Fase 1   |
 | Reportes     | `reports.view`    |  10   |           |            |        | Fase 3   |
-| Estudio      | `rules.manage`    |  11   |           |            |        | Fase 1   |
+| Estudio      | `studio.manage`   |  11   |           |            |        | Fase 1   |
 | Mis clases   | `sessions.view`   |       |           |     2      |        | Fase 2   |
 | Reservar     | `self.book`       |       |           |            |   2    | Fase 2   |
 | Mis reservas | `self.book`       |       |           |            |   3    | Fase 2   |
@@ -74,6 +74,7 @@ El número es la posición del ítem en el menú de ese rol. La dueña ve sus pr
 |              | Horario semanal y tipos de clase                         | `schedule.manage`       |  ✅   |    ❌     |        ❌         |        ❌         |
 |              | Reglas (ventana de cancelación, anticipación)            | `rules.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
 |              | Reportes e ingresos                                      | `reports.view`          |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Datos del estudio y enlace de inscripción                | `studio.manage`         |  ✅   |    ❌     |        ❌         |        ❌         |
 | Personal     | Invitar o quitar recepción e instructores                | `staff.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
 | Alumnas      | Inscribir en el local y editar contacto                  | `students.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
 |              | Ver teléfono y correo de una alumna                      | `students.view_contact` |  ✅   |    ✅     |        ❌         |        ❌         |
