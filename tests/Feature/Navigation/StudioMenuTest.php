@@ -7,16 +7,17 @@ use App\Navigation\MenuItem;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
- * Each role's menu as docs/roles-y-permisos.md defines it, in order.
+ * Each role's menu as docs/roles-y-permisos.md defines it, in order, and the
+ * items already built (with a link); the rest show as «Pronto».
  */
 dataset('menus', [
-    'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio']],
-    'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja']],
-    'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases']],
-    'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan']],
+    'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Estudio']],
+    'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja'], ['Inicio']],
+    'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases'], ['Inicio']],
+    'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan'], ['Inicio']],
 ]);
 
-it('shows each role its menu, with every item but the home as «Pronto»', function (StudioRole $role, array $labels) {
+it('shows each role its menu, with the items not built yet as «Pronto»', function (StudioRole $role, array $labels, array $built) {
     $studio = Studio::factory()->create(['name' => 'Estudio Flow']);
 
     $this->actingAs(User::factory()->memberOf($studio, $role)->create())
@@ -27,7 +28,7 @@ it('shows each role its menu, with every item but the home as «Pronto»', funct
             ->where('studio.roleLabel', $role->label())
             ->where('studio.menu', fn ($menu) => collect($menu)->pluck('label')->all() === $labels)
             ->where('studio.menu.0.href', route('studios.home', $studio, absolute: false))
-            ->where('studio.menu', fn ($menu) => collect($menu)->skip(1)->every(fn (array $item) => $item['href'] === null)));
+            ->where('studio.menu', fn ($menu) => collect($menu)->whereNotNull('href')->pluck('label')->all() === $built));
 })->with('menus');
 
 it('only puts in a menu items the role is allowed to use', function (StudioRole $role) {

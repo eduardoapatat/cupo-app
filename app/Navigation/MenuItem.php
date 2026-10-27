@@ -80,6 +80,7 @@ enum MenuItem: string
     {
         return match ($this) {
             self::Home => 'studios.home',
+            self::StudioSettings => 'studios.settings.edit',
             default => null,
         };
     }
