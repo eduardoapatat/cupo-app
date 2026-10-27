@@ -36,7 +36,7 @@ class InvitationController extends Controller
         }
 
         $user = $request->user();
-        $hasAccount = $user === null && User::where('email', $found->email)->exists();
+        $hasAccount = $user === null && User::withEmail($found->email)->exists();
 
         if ($hasAccount) {
             // Fortify takes them back here after they sign in.
@@ -122,7 +122,7 @@ class InvitationController extends Controller
      */
     private function register(AcceptInvitationRequest $request, Invitation $invitation): User
     {
-        if (User::where('email', $invitation->email)->exists()) {
+        if (User::withEmail($invitation->email)->exists()) {
             throw ValidationException::withMessages([
                 'email' => __('You already have an account. Sign in to accept the invitation.'),
             ]);

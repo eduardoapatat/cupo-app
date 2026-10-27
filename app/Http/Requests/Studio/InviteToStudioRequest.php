@@ -43,7 +43,7 @@ class InviteToStudioRequest extends FormRequest
                 $email = $this->invitedEmail();
 
                 $isMember = $studio->memberships()
-                    ->whereHas('user', fn ($user) => $user->whereRaw('lower(email) = ?', [$email]))
+                    ->whereHas('user', fn ($user) => $user->withEmail($email))
                     ->exists();
 
                 if ($isMember) {

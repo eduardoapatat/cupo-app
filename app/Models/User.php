@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -50,6 +51,17 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'two_factor_confirmed_at' => 'datetime',
             'adult_declared_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Users with the given email, ignoring case: people type it either way,
+     * and accounts keep it as they registered it.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeWithEmail(Builder $query, string $email): void
+    {
+        $query->whereRaw('lower(email) = ?', [mb_strtolower(trim($email))]);
     }
 
     /**

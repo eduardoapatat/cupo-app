@@ -37,6 +37,23 @@ describe('opening the link', function () {
             ->assertSessionHas('url.intended', $link);
     });
 
+    it('recognizes an account whose email differs only in case', function () {
+        $invitation = Invitation::factory()->create(['email' => 'ana@example.com']);
+        User::factory()->create(['email' => 'Ana@Example.com']);
+
+        $this->get(invitationLink($invitation))
+            ->assertInertia(fn (Assert $page) => $page->where('state', 'login'));
+
+        $this->post(invitationLink($invitation, 'invitations.accept'), [
+            'name' => 'Ana',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'adult' => 'on',
+        ])->assertSessionHasErrors('email');
+
+        expect(User::count())->toBe(1);
+    });
+
     it('tells a signed-in person when the invitation is for another email', function () {
         $invitation = Invitation::factory()->create(['email' => 'diego@example.com']);
 
