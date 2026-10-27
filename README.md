@@ -42,7 +42,7 @@ El detalle, con el menú y la matriz de permisos, está en [`docs/roles-y-permis
 
 ## Estado
 
-En la **Fase 0**: el proyecto, la calidad, la documentación y el menú de los cuatro roles. El avance está en [`docs/roadmap.md`](docs/roadmap.md).
+Fases 0 y 1 cerradas: el proyecto, el menú de los cuatro roles, crear el estudio, invitar al equipo, el enlace de inscripción, las alumnas sin app y el selector de estudio. Lo siguiente es la **Fase 2**: horario, sesiones y reservas. El avance está en [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Stack
 
