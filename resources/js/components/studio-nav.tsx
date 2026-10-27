@@ -54,46 +54,62 @@ export function StudioNav({ studio }: { studio: CurrentStudio }) {
 
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel className="truncate">
+            <SidebarGroupLabel className="truncate" title={studio.name}>
                 {studio.name}
             </SidebarGroupLabel>
-            <SidebarMenu>
-                {studio.menu.map((item) => {
-                    const Icon = ICONS[item.key];
+            <nav aria-label={`Menú de ${studio.name}`}>
+                <SidebarMenu>
+                    {studio.menu.map((item) => {
+                        const Icon = ICONS[item.key];
 
-                    return (
-                        <SidebarMenuItem key={item.key}>
-                            {item.href ? (
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={isCurrentUrl(item.href)}
-                                    tooltip={{ children: item.label }}
-                                >
-                                    <Link href={item.href} prefetch>
-                                        <Icon />
-                                        <span>{item.label}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            ) : (
-                                <>
+                        return (
+                            <SidebarMenuItem key={item.key}>
+                                {item.href ? (
                                     <SidebarMenuButton
-                                        disabled
-                                        tooltip={{
-                                            children: `${item.label} (pronto)`,
-                                        }}
+                                        asChild
+                                        isActive={isCurrentUrl(item.href)}
+                                        tooltip={{ children: item.label }}
                                     >
-                                        <Icon />
-                                        <span>{item.label}</span>
+                                        <Link
+                                            href={item.href}
+                                            prefetch
+                                            aria-current={
+                                                isCurrentUrl(item.href)
+                                                    ? 'page'
+                                                    : undefined
+                                            }
+                                        >
+                                            <Icon />
+                                            <span>{item.label}</span>
+                                        </Link>
                                     </SidebarMenuButton>
-                                    <SidebarMenuBadge className="text-muted-foreground">
-                                        Pronto
-                                    </SidebarMenuBadge>
-                                </>
-                            )}
-                        </SidebarMenuItem>
-                    );
-                })}
-            </SidebarMenu>
+                                ) : (
+                                    <>
+                                        {/*
+                                         * aria-disabled instead of disabled keeps
+                                         * the item focusable, so keyboard users
+                                         * reach it and the collapsed sidebar can
+                                         * still say «pronto».
+                                         */}
+                                        <SidebarMenuButton
+                                            aria-disabled
+                                            tooltip={{
+                                                children: `${item.label} (pronto)`,
+                                            }}
+                                        >
+                                            <Icon />
+                                            <span>{item.label}</span>
+                                        </SidebarMenuButton>
+                                        <SidebarMenuBadge className="text-muted-foreground">
+                                            Pronto
+                                        </SidebarMenuBadge>
+                                    </>
+                                )}
+                            </SidebarMenuItem>
+                        );
+                    })}
+                </SidebarMenu>
+            </nav>
         </SidebarGroup>
     );
 }

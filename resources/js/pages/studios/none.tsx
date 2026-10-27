@@ -26,7 +26,7 @@ export default function NoStudio() {
                 <Card className="max-w-xl">
                     <CardHeader>
                         <CardTitle>
-                            Todavía no perteneces a un estudio
+                            <h2>Todavía no perteneces a un estudio</h2>
                         </CardTitle>
                         <CardDescription>
                             Si tomas clases o trabajas en un estudio, usa el

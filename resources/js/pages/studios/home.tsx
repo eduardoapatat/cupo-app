@@ -110,7 +110,9 @@ export default function StudioHome() {
                         <Card key={block.title}>
                             <CardHeader>
                                 <div className="flex items-start justify-between gap-2">
-                                    <CardTitle>{block.title}</CardTitle>
+                                    <CardTitle>
+                                        <h2>{block.title}</h2>
+                                    </CardTitle>
                                     <Badge variant="outline">Pronto</Badge>
                                 </div>
                                 <CardDescription>
