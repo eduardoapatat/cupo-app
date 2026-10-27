@@ -73,3 +73,32 @@ it('never shares a studio the user does not belong to', function () {
             ->where('studio.slug', $ownStudio->slug)
             ->missing('auth.user.memberships'));
 });
+
+it('shares every studio of the user by name, with her role, for the switcher', function () {
+    $flow = Studio::factory()->create(['name' => 'Estudio Flow']);
+    $sur = Studio::factory()->create(['name' => 'Estudio Sur']);
+    $fernanda = User::factory()
+        ->memberOf($sur, StudioRole::Instructor)
+        ->memberOf($flow, StudioRole::Instructor)
+        ->create();
+
+    $this->actingAs($fernanda)
+        ->get(route('studios.home', $sur))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('studio.slug', $sur->slug)
+            ->where('studios', [
+                ['name' => 'Estudio Flow', 'slug' => $flow->slug, 'roleLabel' => 'Instructor', 'href' => route('studios.home', $flow, absolute: false)],
+                ['name' => 'Estudio Sur', 'slug' => $sur->slug, 'roleLabel' => 'Instructor', 'href' => route('studios.home', $sur, absolute: false)],
+            ]));
+});
+
+it('takes the switcher choice as the current studio from then on', function () {
+    $flow = Studio::factory()->create(['name' => 'Estudio Flow']);
+    $sur = Studio::factory()->create(['name' => 'Estudio Sur']);
+    $fernanda = User::factory()->memberOf($flow, StudioRole::Instructor)->memberOf($sur, StudioRole::Owner)->create();
+
+    $this->actingAs($fernanda)->get(route('studios.home', $sur));
+
+    $this->get(route('profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page->where('studio.slug', $sur->slug)->where('studio.role', 'owner'));
+});

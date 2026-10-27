@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\StudioRole;
+use App\Models\Membership;
 use App\Models\Studio;
 use App\Navigation\MenuItem;
 use Illuminate\Http\Request;
@@ -46,7 +47,26 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'studio' => fn (): ?array => $this->studio($request),
+            'studios' => fn (): array => $this->studios($request),
         ];
+    }
+
+    /**
+     * Every studio the user belongs to, by name, for the studio switcher.
+     *
+     * @return list<array{name: string, slug: string, roleLabel: string, href: string}>
+     */
+    protected function studios(Request $request): array
+    {
+        $memberships = $request->user()?->memberships()->with('studio')->get()
+            ->sortBy(fn (Membership $membership): array => [mb_strtolower($membership->studio->name), $membership->studio_id]);
+
+        return array_values($memberships?->map(fn (Membership $membership): array => [
+            'name' => $membership->studio->name,
+            'slug' => $membership->studio->slug,
+            'roleLabel' => $membership->role->label(),
+            'href' => route('studios.home', $membership->studio, absolute: false),
+        ])->all() ?? []);
     }
 
     /**

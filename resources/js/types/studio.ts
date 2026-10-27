@@ -40,3 +40,11 @@ export type Option = {
     value: string;
     label: string;
 };
+
+/** One of the user's studios, for the studio switcher. */
+export type StudioLink = {
+    name: string;
+    slug: string;
+    roleLabel: string;
+    href: string;
+};
