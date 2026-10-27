@@ -57,7 +57,10 @@ Decisiones de la fase: quien entra por el enlace queda como alumna al tiro; a un
     - el selector de estudio arriba a la derecha;
     - el ADR 0004 y el cierre de la fase.
 
-Para la Fase 2: decidir qué pasa si alguien del equipo también toma clases en su estudio (hoy, un solo rol por estudio).
+Para las fases siguientes:
+
+- **Fase 2:** decidir qué pasa si alguien del equipo también toma clases en su estudio (hoy, un solo rol por estudio), y qué pasa al quitar a un instructor que tiene clases agendadas (pedir un reemplazo antes, o no dejarlo quitar).
+- **Fase 3:** los pagos y las cajas apuntan a la persona, no a la membresía, para que el historial conserve a quien cobró aunque ya no esté en el equipo.
 
 ## Fase 2: horario, sesiones y reservas
 

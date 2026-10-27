@@ -223,6 +223,10 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
     - si ya es parte del estudio, se le avisa y su rol no cambia.
 5. **Aceptar** (`AcceptInvitation`) bloquea la fila de la invitación, crea la membresía y la marca aceptada en una transacción.
 
+### Quitar a alguien del equipo
+
+Quitar a alguien borra su membresía, así que en ese estudio queda **sin rol**: pierde el acceso al tiro (404) y no pasa a ser alumna. Su cuenta y sus roles en otros estudios no cambian. Si quiere tomar clases ahí, entra por el enlace de inscripción, y si vuelve al equipo, se le invita de nuevo. Solo se quita a recepción e instructores, nunca a la dueña.
+
 ### Usuarios demo
 
 `php artisan migrate --seed` crea Estudio Flow (`/estudios/estudio-flow`) con una cuenta por rol, todas con la contraseña `password`:
