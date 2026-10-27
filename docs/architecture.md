@@ -46,13 +46,15 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `app/Actions/Fortify/`                         | Creación de usuarios y restablecimiento de contraseña, invocados por Fortify                                                                                                                                                                                                      |
 | `app/Actions/Studios/`                         | `CreateStudio`: crea el estudio con las reglas por defecto y su dueña, en una transacción                                                                                                                                                                                         |
+| `app/Actions/Team/`                            | `InviteToStudio`, `SendInvitation` (también reenvía) y `AcceptInvitation` (con la fila bloqueada, para que un enlace no se use dos veces)                                                                                                                                         |
 | `app/Concerns/`                                | Reglas de validación compartidas para el perfil, la contraseña y la declaración de mayoría de edad, y `HasUniqueSlug` (el slug del estudio)                                                                                                                                       |
 | `app/Enums/`                                   | `StudioRole` (los 4 roles, con sus permisos y su menú) y `StudioPermission` (una acción por fila de la matriz)                                                                                                                                                                    |
 | `app/Navigation/`                              | `MenuItem`: los ítems del menú, con su etiqueta, el permiso que exigen y su ruta (o «Pronto»)                                                                                                                                                                                     |
-| `app/Http/Controllers/`                        | `DashboardController` (`/inicio`), `StudioController` (crear el estudio), `Studio/` (las pantallas de cada estudio) y `Settings/` (perfil y seguridad)                                                                                                                            |
+| `app/Notifications/`                           | `StudioInvitation`: el correo de la invitación, en cola, con el enlace firmado                                                                                                                                                                                                    |
+| `app/Http/Controllers/`                        | `DashboardController` (`/inicio`), `StudioController` (crear el estudio), `InvitationController` (el enlace público de la invitación), `Studio/` (las pantallas de cada estudio: Inicio, Estudio y Equipo) y `Settings/` (perfil y seguridad)                                     |
 | `app/Http/Requests/`                           | Validación de los formularios, con mensajes en español: `StudioRequest` (crear y editar el estudio) y `Settings/` (Configuración)                                                                                                                                                 |
 | `app/Http/Middleware/`                         | `HandleInertiaRequests` (props compartidas, incluido el estudio con su menú), `RememberCurrentStudio` (el estudio actual) y `HandleAppearance` (tema)                                                                                                                             |
-| `app/Models/`                                  | `User`, `Studio` y `Membership`, con casts a enums y relaciones                                                                                                                                                                                                                   |
+| `app/Models/`                                  | `User`, `Studio`, `Membership` e `Invitation`, con casts a enums, relaciones y scopes (`pending`)                                                                                                                                                                                 |
 | `app/Policies/`                                | `StudioPolicy`, que Laravel descubre sola: solo los miembros entran a un estudio                                                                                                                                                                                                  |
 | `app/Providers/`                               | `AppServiceProvider` (fechas, contraseñas, un Gate por permiso, verbos en español y páginas de error) y `FortifyServiceProvider` (vistas)                                                                                                                                         |
 | `config/studio.php`                            | La zona horaria y las reglas por defecto de cada estudio nuevo                                                                                                                                                                                                                    |
@@ -67,7 +69,7 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 
 Lo que viene, según el plan (cada fase lo agrega a esta tabla):
 
-- **Fase 1 (lo que falta):** las acciones para invitar al equipo e inscribir alumnas (`app/Actions/`).
+- **Fase 1 (lo que falta):** las acciones para inscribir alumnas y activar sus cuentas (`app/Actions/`).
 - **Fases 2 y 3:** las acciones de reservas, créditos, pagos y caja, y las Policies de cada recurso.
 
 ## Invariantes
@@ -131,6 +133,8 @@ Cupo guarda lo mínimo para operar (minimización de datos desde el día 1):
 erDiagram
     users ||--o{ memberships : "pertenece a"
     studios ||--o{ memberships : tiene
+    studios ||--o{ invitations : invita
+    users |o--o{ invitations : "invitó"
 
     users {
         bigint id PK
@@ -155,18 +159,29 @@ erDiagram
         bigint user_id FK
         varchar role "enum: owner, front_desk, instructor, student"
     }
+    invitations {
+        bigint id PK
+        bigint studio_id FK
+        varchar email "en minúsculas"
+        varchar role "enum: front_desk, instructor"
+        bigint invited_by_id FK "null si la dueña borró su cuenta"
+        timestamptz expires_at
+        timestamptz accepted_at "null mientras esté pendiente"
+    }
 ```
 
 Las garantías viven en PostgreSQL, no solo en PHP:
 
-| Garantía                                                                                                   | Dónde         | Qué evita                                                                        |
-| ---------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------- |
-| `CHECK` del rol (generado por `$table->enum()`)                                                            | `memberships` | Un rol desconocido (SQLSTATE `23514`)                                            |
-| `UNIQUE (studio_id, user_id)`                                                                              | `memberships` | Dos roles para la misma persona en el mismo estudio (`23505`)                    |
-| `UNIQUE (studio_id) WHERE role = 'owner'`, con `DB::statement` porque Blueprint no tiene índices parciales | `memberships` | Una segunda dueña en el estudio (`23505`)                                        |
-| `UNIQUE (user_id) WHERE role = 'owner'`                                                                    | `memberships` | Que una persona sea dueña de dos estudios (`23505`): Cupo no maneja sucursales   |
-| `CHECK` de reglas no negativas                                                                             | `studios`     | Una ventana de cancelación, un cierre de reservas o un aviso negativos (`23514`) |
-| Claves foráneas con `ON DELETE CASCADE`                                                                    | `memberships` | Membresías de un estudio o de una persona que ya no existen                      |
+| Garantía                                                                                                   | Dónde         | Qué evita                                                                            |
+| ---------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| `CHECK` del rol (generado por `$table->enum()`)                                                            | `memberships` | Un rol desconocido (SQLSTATE `23514`)                                                |
+| `UNIQUE (studio_id, user_id)`                                                                              | `memberships` | Dos roles para la misma persona en el mismo estudio (`23505`)                        |
+| `UNIQUE (studio_id) WHERE role = 'owner'`, con `DB::statement` porque Blueprint no tiene índices parciales | `memberships` | Una segunda dueña en el estudio (`23505`)                                            |
+| `UNIQUE (user_id) WHERE role = 'owner'`                                                                    | `memberships` | Que una persona sea dueña de dos estudios (`23505`): Cupo no maneja sucursales       |
+| `CHECK` de reglas no negativas                                                                             | `studios`     | Una ventana de cancelación, un cierre de reservas o un aviso negativos (`23514`)     |
+| `UNIQUE (studio_id, email) WHERE accepted_at IS NULL` y `CHECK (email = lower(email))`                     | `invitations` | Dos invitaciones pendientes al mismo correo, aunque cambien las mayúsculas (`23505`) |
+| `CHECK` del rol (`front_desk` o `instructor`)                                                              | `invitations` | Invitar a alguien como dueña o como alumna (`23514`)                                 |
+| Claves foráneas con `ON DELETE CASCADE`                                                                    | `memberships` | Membresías de un estudio o de una persona que ya no existen                          |
 
 ## Permisos y navegación
 
@@ -180,12 +195,14 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 
 ### Rutas
 
-| URL                        | Qué es                                                                                                                                   |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `/inicio`                  | El `home` de Fortify. Lleva al Inicio del estudio actual o, a quien no pertenece a ninguno, muestra «Todavía no perteneces a un estudio» |
-| `/estudios/{slug}`         | El Inicio del estudio, con los bloques del rol de la persona                                                                             |
-| `/estudios/crear`          | Crear mi estudio (nombre y comuna). Responde 403 a quien ya es dueña de uno                                                              |
-| `/estudios/{slug}/estudio` | «Estudio»: la dueña edita el nombre y la comuna. El slug no cambia, para no romper los enlaces                                           |
+| URL                               | Qué es                                                                                                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/inicio`                         | El `home` de Fortify. Lleva al Inicio del estudio actual o, a quien no pertenece a ninguno, muestra «Todavía no perteneces a un estudio»                                          |
+| `/estudios/{slug}`                | El Inicio del estudio, con los bloques del rol de la persona                                                                                                                      |
+| `/estudios/crear`                 | Crear mi estudio (nombre y comuna). Responde 403 a quien ya es dueña de uno                                                                                                       |
+| `/estudios/{slug}/estudio`        | «Estudio»: la dueña edita el nombre y la comuna. El slug no cambia, para no romper los enlaces                                                                                    |
+| `/estudios/{slug}/equipo`         | «Equipo»: el equipo, invitar, las invitaciones pendientes (reenviar y cancelar) y quitar a alguien. Una invitación o una membresía de otro estudio responde 404 (scoped bindings) |
+| `/invitaciones/{id}` (GET y POST) | Pública y firmada: ver la invitación y aceptarla. Ver «Invitaciones» abajo                                                                                                        |
 
 ### El estudio actual y el menú
 
@@ -193,6 +210,18 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 - **Props:** `HandleInertiaRequests` comparte `studio` (nombre, slug, rol y menú). Nunca comparte un estudio al que la persona no pertenece, ni siquiera en el 404 de uno ajeno, y las membresías no viajan dentro de `auth.user`.
 - **El menú lo arma el servidor:** `StudioRole::menu()` da los ítems y su orden, y `MenuItem` su etiqueta y su ruta. El frontend (`studio-nav.tsx`) solo elige el ícono de cada ítem. Los ítems sin ruta se ven atenuados con «Pronto».
 - **El rol se ve arriba a la derecha:** la barra de los breadcrumbs (`app-sidebar-header.tsx`) muestra el estudio actual y el rol de la persona en una insignia, en todas las páginas. En el celular queda solo la insignia.
+
+### Invitaciones
+
+1. **La dueña invita** desde «Equipo» con un correo y un rol (recepción o instructor). No se invita a quien ya es del estudio ni dos veces al mismo correo: una pendiente se reenvía desde la lista.
+2. **El correo sale en cola** (`StudioInvitation`, `ShouldQueue`, después del commit) con un enlace `URL::temporarySignedRoute` que vence a los `config('studio.invitation_days')` días (7). Reenviar renueva el plazo y manda un enlace nuevo.
+3. **El enlace es público**, porque quien lo abre puede no tener cuenta. Primero se revisa la firma: un enlace alterado responde 404, igual que una invitación inexistente, para no revelar cuáles existen. Una invitación usada o vencida responde 410 con una explicación.
+4. **Según quién lo abre:**
+    - sin cuenta, crea la suya (nombre, contraseña y la declaración de 18) con el correo invitado, que queda verificado porque el enlace llegó ahí;
+    - con cuenta, inicia sesión y Fortify lo trae de vuelta (`url.intended`);
+    - con otra sesión abierta, se le pide entrar con el correo invitado;
+    - si ya es parte del estudio, se le avisa y su rol no cambia.
+5. **Aceptar** (`AcceptInvitation`) bloquea la fila de la invitación, crea la membresía y la marca aceptada en una transacción.
 
 ### Usuarios demo
 

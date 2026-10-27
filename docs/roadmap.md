@@ -47,7 +47,7 @@ Decisiones de la fase: quien entra por el enlace queda como alumna al tiro; a un
     - la declaración de mayoría de edad en el registro (`users.adult_declared_at`);
     - `/estudios/crear` y la pantalla «Estudio» (nombre y comuna), con la fila nueva `studio.manage` en la matriz;
     - `lib/form.ts` traído de PichangApp con el primer formulario.
-- [ ] **1.2 "Equipo"**:
+- [x] **1.2 "Equipo"**:
     - invitar a recepción e instructores por correo, con URLs firmadas que vencen a los 7 días y correos en cola;
     - aceptar la invitación con o sin cuenta, reenviarla, cancelarla y quitar a alguien del equipo;
     - la pantalla «Equipo», con 404 para los recursos de otro estudio.
