@@ -42,34 +42,35 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 
 ## Mapa del código
 
-| Ruta                                           | Qué contiene                                                                                                                                                                                                                                                                      |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/Actions/Fortify/`                         | Creación de usuarios y restablecimiento de contraseña, invocados por Fortify                                                                                                                                                                                                      |
-| `app/Actions/Studios/`                         | `CreateStudio`: crea el estudio con las reglas por defecto y su dueña, en una transacción                                                                                                                                                                                         |
-| `app/Actions/Team/`                            | `InviteToStudio`, `SendInvitation` (también reenvía) y `AcceptInvitation` (con la fila bloqueada, para que un enlace no se use dos veces)                                                                                                                                         |
-| `app/Concerns/`                                | Reglas de validación compartidas para el perfil, la contraseña y la declaración de mayoría de edad, y `HasUniqueSlug` (el slug del estudio)                                                                                                                                       |
-| `app/Enums/`                                   | `StudioRole` (los 4 roles, con sus permisos y su menú) y `StudioPermission` (una acción por fila de la matriz)                                                                                                                                                                    |
-| `app/Navigation/`                              | `MenuItem`: los ítems del menú, con su etiqueta, el permiso que exigen y su ruta (o «Pronto»)                                                                                                                                                                                     |
-| `app/Notifications/`                           | `StudioInvitation`: el correo de la invitación, en cola, con el enlace firmado                                                                                                                                                                                                    |
-| `app/Http/Controllers/`                        | `DashboardController` (`/inicio`), `StudioController` (crear el estudio), `InvitationController` (el enlace público de la invitación), `Studio/` (las pantallas de cada estudio: Inicio, Estudio y Equipo) y `Settings/` (perfil y seguridad)                                     |
-| `app/Http/Requests/`                           | Validación de los formularios, con mensajes en español: `StudioRequest` (crear y editar el estudio) y `Settings/` (Configuración)                                                                                                                                                 |
-| `app/Http/Middleware/`                         | `HandleInertiaRequests` (props compartidas, incluido el estudio con su menú), `RememberCurrentStudio` (el estudio actual) y `HandleAppearance` (tema)                                                                                                                             |
-| `app/Models/`                                  | `User`, `Studio`, `Membership` e `Invitation`, con casts a enums, relaciones y scopes (`pending`)                                                                                                                                                                                 |
-| `app/Policies/`                                | `StudioPolicy`, que Laravel descubre sola: solo los miembros entran a un estudio                                                                                                                                                                                                  |
-| `app/Providers/`                               | `AppServiceProvider` (fechas, contraseñas, un Gate por permiso, verbos en español y páginas de error) y `FortifyServiceProvider` (vistas)                                                                                                                                         |
-| `config/studio.php`                            | La zona horaria y las reglas por defecto de cada estudio nuevo                                                                                                                                                                                                                    |
-| `database/`                                    | Migraciones (con las garantías de PostgreSQL), factories con estados y el seeder demo (`DemoStudioSeeder`)                                                                                                                                                                        |
-| `lang/es/`, `lang/es.json`                     | Traducciones del backend: validación, autenticación y correos                                                                                                                                                                                                                     |
-| `resources/js/pages/`                          | Una página Inertia por pantalla: `studios/` (Inicio de cada rol, crear el estudio, sus datos y el estado sin estudio), `auth/`, `settings/`, `error.tsx` y `welcome.tsx`                                                                                                          |
-| `resources/js/layouts/`, `components/`, `lib/` | Layouts y componentes. `studio-nav.tsx` dibuja el menú del estudio y `studio-form.tsx` el formulario del estudio; `lib/form.ts` enlaza cada campo con su error (`aria-invalid`, `aria-describedby`) y lleva el foco al primero; `components/ui/` son los de shadcn, sin modificar |
-| `resources/js/actions/`, `routes/`             | Funciones de Wayfinder **generadas** (están en `.gitignore`); no se editan a mano                                                                                                                                                                                                 |
-| `routes/web.php`, `studio.php`, `settings.php` | Rutas web, del estudio y de Configuración. Las de autenticación las registra Fortify                                                                                                                                                                                              |
-| `tests/Feature/`                               | Tests contra PostgreSQL: la matriz de permisos (`Authorization/`), el menú (`Navigation/`), la base (`Models/`), las policies, las pantallas (`Http/`), el seeder, la autenticación y las páginas de error                                                                        |
-| `docs/`                                        | Esta documentación, la hoja de ruta, los roles y permisos, y las decisiones (`docs/decisions/`)                                                                                                                                                                                   |
+| Ruta                                           | Qué contiene                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/Actions/Fortify/`                         | Creación de usuarios y restablecimiento de contraseña, invocados por Fortify                                                                                                                                                                                                                   |
+| `app/Actions/Studios/`                         | `CreateStudio` (el estudio con las reglas por defecto y su dueña, en una transacción) y `JoinStudioAsStudent` (lo que hace el enlace de inscripción)                                                                                                                                           |
+| `app/Actions/Team/`                            | `InviteToStudio`, `SendInvitation` (también reenvía) y `AcceptInvitation` (con la fila bloqueada, para que un enlace no se use dos veces)                                                                                                                                                      |
+| `app/Actions/Students/`                        | `EnrollStudent` (inscribir en el mesón a quien no usa la app) y `SendActivation` (el enlace para que active su cuenta)                                                                                                                                                                         |
+| `app/Concerns/`                                | Reglas de validación compartidas para el perfil, la contraseña y la declaración de mayoría de edad, y `HasUniqueSlug` (el slug del estudio)                                                                                                                                                    |
+| `app/Enums/`                                   | `StudioRole` (los 4 roles, con sus permisos y su menú) y `StudioPermission` (una acción por fila de la matriz)                                                                                                                                                                                 |
+| `app/Navigation/`                              | `MenuItem`: los ítems del menú, con su etiqueta, el permiso que exigen y su ruta (o «Pronto»)                                                                                                                                                                                                  |
+| `app/Notifications/`                           | `StudioInvitation` (la invitación al equipo) y `ActivateAccount` (activar la cuenta de una alumna sin app), en cola y con enlaces firmados                                                                                                                                                     |
+| `app/Http/Controllers/`                        | `DashboardController` (`/inicio`), `StudioController` (crear el estudio), los enlaces públicos `InvitationController`, `EnrollmentController` y `AccountActivationController`, `Studio/` (las pantallas de cada estudio: Inicio, Estudio, Equipo y Alumnas) y `Settings/` (perfil y seguridad) |
+| `app/Http/Requests/`                           | Validación de los formularios, con mensajes en español: `StudioRequest` (crear y editar el estudio) y `Settings/` (Configuración)                                                                                                                                                              |
+| `app/Http/Middleware/`                         | `HandleInertiaRequests` (props compartidas, incluido el estudio con su menú), `RememberCurrentStudio` (el estudio actual) y `HandleAppearance` (tema)                                                                                                                                          |
+| `app/Models/`                                  | `User`, `Studio`, `Membership` e `Invitation`, con casts a enums, relaciones y scopes (`pending`)                                                                                                                                                                                              |
+| `app/Policies/`                                | `StudioPolicy`, que Laravel descubre sola: solo los miembros entran a un estudio                                                                                                                                                                                                               |
+| `app/Providers/`                               | `AppServiceProvider` (fechas, contraseñas, un Gate por permiso, verbos en español y páginas de error) y `FortifyServiceProvider` (vistas)                                                                                                                                                      |
+| `config/studio.php`                            | La zona horaria y las reglas por defecto de cada estudio nuevo                                                                                                                                                                                                                                 |
+| `database/`                                    | Migraciones (con las garantías de PostgreSQL), factories con estados y el seeder demo (`DemoStudioSeeder`)                                                                                                                                                                                     |
+| `lang/es/`, `lang/es.json`                     | Traducciones del backend: validación, autenticación y correos                                                                                                                                                                                                                                  |
+| `resources/js/pages/`                          | Una página Inertia por pantalla: `studios/` (Inicio de cada rol, crear el estudio, Estudio, Equipo, Alumnas y el estado sin estudio), las páginas públicas `invitations/`, `enrollment/` y `activation/`, `auth/`, `settings/`, `error.tsx` y `welcome.tsx`                                    |
+| `resources/js/layouts/`, `components/`, `lib/` | Layouts y componentes. `studio-nav.tsx` dibuja el menú del estudio y `studio-form.tsx` el formulario del estudio; `lib/form.ts` enlaza cada campo con su error (`aria-invalid`, `aria-describedby`) y lleva el foco al primero; `components/ui/` son los de shadcn, sin modificar              |
+| `resources/js/actions/`, `routes/`             | Funciones de Wayfinder **generadas** (están en `.gitignore`); no se editan a mano                                                                                                                                                                                                              |
+| `routes/web.php`, `studio.php`, `settings.php` | Rutas web, del estudio y de Configuración. Las de autenticación las registra Fortify                                                                                                                                                                                                           |
+| `tests/Feature/`                               | Tests contra PostgreSQL: la matriz de permisos (`Authorization/`), el menú (`Navigation/`), la base (`Models/`), las policies, las pantallas (`Http/`), el seeder, la autenticación y las páginas de error                                                                                     |
+| `docs/`                                        | Esta documentación, la hoja de ruta, los roles y permisos, y las decisiones (`docs/decisions/`)                                                                                                                                                                                                |
 
 Lo que viene, según el plan (cada fase lo agrega a esta tabla):
 
-- **Fase 1 (lo que falta):** las acciones para inscribir alumnas y activar sus cuentas (`app/Actions/`).
+- **Fases 2 y 3:** las acciones de reservas, créditos, pagos y caja, y las Policies de cada recurso.
 - **Fases 2 y 3:** las acciones de reservas, créditos, pagos y caja, y las Policies de cada recurso.
 
 ## Invariantes
@@ -139,7 +140,9 @@ erDiagram
     users {
         bigint id PK
         varchar name
-        varchar email UK
+        varchar email UK "null en una alumna sin app"
+        varchar password "null hasta que la cuenta se activa"
+        varchar phone "+569XXXXXXXX"
         timestamptz adult_declared_at "declaró ser mayor de 18"
     }
     studios {
@@ -195,21 +198,25 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 
 ### Rutas
 
-| URL                               | Qué es                                                                                                                                                                            |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/inicio`                         | El `home` de Fortify. Lleva al Inicio del estudio actual o, a quien no pertenece a ninguno, muestra «Todavía no perteneces a un estudio»                                          |
-| `/estudios/{slug}`                | El Inicio del estudio, con los bloques del rol de la persona                                                                                                                      |
-| `/estudios/crear`                 | Crear mi estudio (nombre y comuna). Responde 403 a quien ya es dueña de uno                                                                                                       |
-| `/estudios/{slug}/estudio`        | «Estudio»: la dueña edita el nombre y la comuna. El slug no cambia, para no romper los enlaces                                                                                    |
-| `/estudios/{slug}/equipo`         | «Equipo»: el equipo, invitar, las invitaciones pendientes (reenviar y cancelar) y quitar a alguien. Una invitación o una membresía de otro estudio responde 404 (scoped bindings) |
-| `/invitaciones/{id}` (GET y POST) | Pública y firmada: ver la invitación y aceptarla. Ver «Invitaciones» abajo                                                                                                        |
+| URL                                 | Qué es                                                                                                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/inicio`                           | El `home` de Fortify. Lleva al Inicio del estudio actual o, a quien no pertenece a ninguno, muestra «Todavía no perteneces a un estudio»                                          |
+| `/estudios/{slug}`                  | El Inicio del estudio, con los bloques del rol de la persona                                                                                                                      |
+| `/estudios/crear`                   | Crear mi estudio (nombre y comuna). Responde 403 a quien ya es dueña de uno                                                                                                       |
+| `/estudios/{slug}/estudio`          | «Estudio»: la dueña edita el nombre y la comuna. El slug no cambia, para no romper los enlaces                                                                                    |
+| `/estudios/{slug}/equipo`           | «Equipo»: el equipo, invitar, las invitaciones pendientes (reenviar y cancelar) y quitar a alguien. Una invitación o una membresía de otro estudio responde 404 (scoped bindings) |
+| `/invitaciones/{id}` (GET y POST)   | Pública y firmada: ver la invitación y aceptarla. Ver «Invitaciones» abajo                                                                                                        |
+| `/estudios/{slug}/alumnas`          | «Alumnas»: el enlace para compartir, inscribir en el mesón, la lista con su estado, editar a quien no usa la app y reenviarle la activación                                       |
+| `/inscripcion/{token}` (GET y POST) | Pública: el enlace de inscripción del estudio. Un token renovado responde 404                                                                                                     |
+| `/activar-cuenta/{id}` (GET y POST) | Pública y firmada: una alumna sin app crea su contraseña                                                                                                                          |
 
 ### El estudio actual y el menú
 
-- **Siempre hay un estudio actual:** el de la página o, fuera de un estudio (por ejemplo en Configuración), el último que la persona abrió. Lo guarda en la sesión el middleware `RememberCurrentStudio`. Si ya no pertenece a ese estudio, se usa el primero por nombre. El selector para quien pertenece a más de uno llega en la Fase 1.
-- **Props:** `HandleInertiaRequests` comparte `studio` (nombre, slug, rol y menú). Nunca comparte un estudio al que la persona no pertenece, ni siquiera en el 404 de uno ajeno, y las membresías no viajan dentro de `auth.user`.
+- **Siempre hay un estudio actual:** el de la página o, fuera de un estudio (por ejemplo en Configuración), el último que la persona abrió. Lo guarda en la sesión el middleware `RememberCurrentStudio`. Si ya no pertenece a ese estudio, se usa el primero por nombre.
+- **Props:** `HandleInertiaRequests` comparte `studio` (nombre, slug, rol y menú) y `studios` (todos los de la persona, con su rol, para el selector). Nunca comparte un estudio al que la persona no pertenece, ni siquiera en el 404 de uno ajeno, y las membresías no viajan dentro de `auth.user`.
 - **El menú lo arma el servidor:** `StudioRole::menu()` da los ítems y su orden, y `MenuItem` su etiqueta y su ruta. El frontend (`studio-nav.tsx`) solo elige el ícono de cada ítem. Los ítems sin ruta se ven atenuados con «Pronto».
 - **El rol se ve arriba a la derecha:** la barra de los breadcrumbs (`app-sidebar-header.tsx`) muestra el estudio actual y el rol de la persona en una insignia, en todas las páginas. En el celular queda solo la insignia.
+- **El selector de estudio** es eso mismo cuando la persona pertenece a más de uno: un menú con sus estudios y su rol en cada uno. Cada opción es un enlace al Inicio de ese estudio, así que no hace falta otro endpoint: `RememberCurrentStudio` lo recuerda. «Crear mi estudio» no aparece ahí; solo se ofrece a quien no pertenece a ningún estudio.
 
 ### Invitaciones
 
@@ -227,17 +234,34 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 
 Quitar a alguien borra su membresía, así que en ese estudio queda **sin rol**: pierde el acceso al tiro (404) y no pasa a ser alumna. Su cuenta y sus roles en otros estudios no cambian. Si quiere tomar clases ahí, entra por el enlace de inscripción, y si vuelve al equipo, se le invita de nuevo. Solo se quita a recepción e instructores, nunca a la dueña.
 
+### Enlace de inscripción
+
+- Cada estudio tiene un token (`studios.enrollment_token`) y su enlace `/inscripcion/{token}`, que la dueña copia y renueva desde «Estudio» y recepción copia desde «Alumnas». Renovarlo deja sin efecto el anterior.
+- Quien entra sin cuenta la crea con las mismas reglas del registro (`CreateNewUser`, con la declaración de 18 y el correo de verificación). Quien ya tiene sesión se une con un botón. En los dos casos queda como **alumna al tiro**: sin un plan pagado igual no puede reservar _(Fase 3)_.
+- Quien ya es parte del estudio conserva su rol.
+
+### Alumnas sin app
+
+Ver `docs/decisions/0004-alumnas-sin-app.md`.
+
+- Recepción inscribe en el mesón con nombre y celular (normalizado a `+569XXXXXXXX`), correo opcional y la declaración de 18. La persona queda sin contraseña (`User::usesApp()` es falso) y no puede iniciar sesión.
+- Si tiene correo, `ActivateAccount` le manda un enlace firmado que vence a los `config('studio.activation_days')` días (7) y lleva el hash del correo: si recepción lo corrige, los enlaces anteriores dejan de servir. Al crear su contraseña, su correo queda verificado e inicia sesión.
+- Mientras no use la app, recepción corrige sus datos y reenvía la activación. Después, sus datos son suyos y nadie del estudio los edita.
+- No se inscribe en el mesón un correo que ya tiene cuenta: se le comparte el enlace del estudio.
+
 ### Usuarios demo
 
-`php artisan migrate --seed` crea Estudio Flow (`/estudios/estudio-flow`) con una cuenta por rol, todas con la contraseña `password`:
+`php artisan migrate --seed` crea dos estudios. Todas las cuentas usan la contraseña `password`:
 
-| Persona         | Correo                 | Rol        |
-| --------------- | ---------------------- | ---------- |
-| Carla Rojas     | `carla@example.com`    | Dueña      |
-| Camila Soto     | `camila@example.com`   | Recepción  |
-| Fernanda Díaz   | `fernanda@example.com` | Instructor |
-| Diego Herrera   | `diego@example.com`    | Instructor |
-| Javiera Morales | `javiera@example.com`  | Alumna     |
+| Persona         | Correo                 | Rol                                              |
+| --------------- | ---------------------- | ------------------------------------------------ |
+| Carla Rojas     | `carla@example.com`    | Dueña de Estudio Flow (`/estudios/estudio-flow`) |
+| Camila Soto     | `camila@example.com`   | Recepción en Estudio Flow                        |
+| Fernanda Díaz   | `fernanda@example.com` | Instructora en Estudio Flow y en Estudio Sur     |
+| Diego Herrera   | `diego@example.com`    | Instructor en Estudio Flow                       |
+| Javiera Morales | `javiera@example.com`  | Alumna de Estudio Flow                           |
+| Rosa Fuentes    | (sin correo)           | Alumna de Estudio Flow sin app: no puede entrar  |
+| Paula Vidal     | `paula@example.com`    | Dueña de Estudio Sur                             |
 
 ## Reservas _(Fase 2)_
 

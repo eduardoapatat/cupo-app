@@ -58,7 +58,7 @@ Spots are guaranteed by the database: confirmed bookings never exceed a session'
 
 ## Evidence on Hand
 
-- Fictional demo data only: the studio «Estudio Flow» in Ñuñoa and one demo account per role (Carla, the owner; Camila at the front desk; Fernanda and Diego, instructors; Javiera, a student), seeded by `database/seeders` from phase 0.3.
+- Fictional demo data only: the studio «Estudio Flow» in Ñuñoa and one demo account per role (Carla, the owner; Camila at the front desk; Fernanda and Diego, instructors; Javiera, a student), plus Rosa, a student without the app, and «Estudio Sur» (Paula, the owner), where Fernanda also teaches. All seeded by `database/seeders`.
 - Market evidence is general to Chilean small businesses (technology adoption, transfers handled by hand, late collections), cited in the README. Evidence specific to studios is weak and commercial, and must be presented as such.
 - No logo, brand assets, photography, testimonials, customers or metrics exist. Do not fabricate any of them.
 

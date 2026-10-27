@@ -64,7 +64,7 @@ composer dev
 ```
 
 - La app queda en http://localhost:8000 y los correos (verificación de cuenta) llegan a Mailpit, en http://localhost:8025.
-- El seeder crea Estudio Flow con una cuenta demo por rol, todas con la contraseña `password`: `carla@example.com` (dueña), `camila@example.com` (recepción), `fernanda@example.com` y `diego@example.com` (instructores) y `javiera@example.com` (alumna).
+- El seeder crea Estudio Flow con una cuenta demo por rol, todas con la contraseña `password`: `carla@example.com` (dueña), `camila@example.com` (recepción), `fernanda@example.com` y `diego@example.com` (instructores) y `javiera@example.com` (alumna), más Rosa Fuentes, una alumna sin app. También crea Estudio Sur (`paula@example.com`, dueña), donde Fernanda también es instructora, para probar el selector de estudio.
 - `composer ci:check` corre lo mismo que el CI: lint y formato, tipos, Pint, PHPStan y los tests contra PostgreSQL.
 
 ## Documentación

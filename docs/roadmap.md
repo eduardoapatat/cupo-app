@@ -38,7 +38,7 @@ Este archivo es la fuente de verdad del avance de Cupo. Se actualiza en el mismo
     - tests de la matriz completa (una fila por permiso y rol) y del menú de cada rol;
     - ADR 0003.
 
-## Fase 1: estudios, equipo y alumnas
+## Fase 1: estudios, equipo y alumnas ✅
 
 Decisiones de la fase: quien entra por el enlace queda como alumna al tiro; a una alumna sin app la activa recepción anotando su correo; una persona es dueña de un solo estudio; las comunas son las 52 de la Región Metropolitana; las invitaciones vencen a los 7 días; el selector de estudio va arriba a la derecha.
 
@@ -51,7 +51,7 @@ Decisiones de la fase: quien entra por el enlace queda como alumna al tiro; a un
     - invitar a recepción e instructores por correo, con URLs firmadas que vencen a los 7 días y correos en cola;
     - aceptar la invitación con o sin cuenta, reenviarla, cancelarla y quitar a alguien del equipo;
     - la pantalla «Equipo», con 404 para los recursos de otro estudio.
-- [ ] **1.3 "Alumnas, enlace y selector"**:
+- [x] **1.3 "Alumnas, enlace y selector"**:
     - el enlace de inscripción del estudio (copiarlo y renovarlo en «Estudio»);
     - la pantalla «Alumnas»: inscribir en el mesón con nombre y teléfono, editar el contacto de quien no usa la app y mandarle la activación;
     - el selector de estudio arriba a la derecha;
