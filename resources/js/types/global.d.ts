@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { CurrentStudio } from '@/types/studio';
 
 declare module 'react' {
     interface InputHTMLAttributes<T> {
@@ -12,6 +13,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            studio: CurrentStudio | null;
             [key: string]: unknown;
         };
     }

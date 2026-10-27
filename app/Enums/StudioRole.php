@@ -2,10 +2,12 @@
 
 namespace App\Enums;
 
+use App\Navigation\MenuItem;
+
 /**
  * The role a person holds in one studio. It lives in the membership, never on
- * the user. Adding a role means adding a case here with its permissions (see
- * docs/roles-y-permisos.md).
+ * the user. Adding a role means adding a case here with its permissions and
+ * its menu (see docs/roles-y-permisos.md).
  */
 enum StudioRole: string
 {
@@ -67,5 +69,49 @@ enum StudioRole: string
     public function allows(StudioPermission $permission): bool
     {
         return in_array($permission, $this->permissions(), true);
+    }
+
+    /**
+     * The role's sidebar menu, in order. Every item exists from phase 0; the
+     * ones not built yet show as «Pronto». The owner sees her own sessions in
+     * the agenda, so she has no «Mis clases».
+     *
+     * @return list<MenuItem>
+     */
+    public function menu(): array
+    {
+        return match ($this) {
+            self::Owner => [
+                MenuItem::Home,
+                MenuItem::Agenda,
+                MenuItem::Students,
+                MenuItem::SellPlan,
+                MenuItem::Payments,
+                MenuItem::CashRegister,
+                MenuItem::Classes,
+                MenuItem::Plans,
+                MenuItem::Team,
+                MenuItem::Reports,
+                MenuItem::StudioSettings,
+            ],
+            self::FrontDesk => [
+                MenuItem::Home,
+                MenuItem::Agenda,
+                MenuItem::Students,
+                MenuItem::SellPlan,
+                MenuItem::Payments,
+                MenuItem::CashRegister,
+            ],
+            self::Instructor => [
+                MenuItem::Home,
+                MenuItem::MySessions,
+            ],
+            self::Student => [
+                MenuItem::Home,
+                MenuItem::Book,
+                MenuItem::MyBookings,
+                MenuItem::MyPlan,
+            ],
+        };
     }
 }

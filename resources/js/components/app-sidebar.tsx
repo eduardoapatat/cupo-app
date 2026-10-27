@@ -1,8 +1,9 @@
-import { Link } from '@inertiajs/react';
-import { LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { House } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { StudioNav } from '@/components/studio-nav';
 import {
     Sidebar,
     SidebarContent,
@@ -19,11 +20,17 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Inicio',
         href: dashboard(),
-        icon: LayoutGrid,
+        icon: House,
     },
 ];
 
+/**
+ * Members get their studio's menu, by role; it follows them outside the
+ * studio too (settings). Someone without a studio only gets «Inicio».
+ */
 export function AppSidebar() {
+    const { studio } = usePage().props;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -39,7 +46,11 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {studio ? (
+                    <StudioNav studio={studio} />
+                ) : (
+                    <NavMain items={mainNavItems} />
+                )}
             </SidebarContent>
 
             <SidebarFooter>

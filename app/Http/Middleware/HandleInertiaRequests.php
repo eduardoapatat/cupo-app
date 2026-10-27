@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\StudioRole;
+use App\Models\Studio;
+use App\Navigation\MenuItem;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +45,48 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'studio' => fn (): ?array => $this->studio($request),
+        ];
+    }
+
+    /**
+     * The studio the sidebar shows, with the member's role and menu: the
+     * studio of the page or, outside a studio (or on a 404 for someone
+     * else's), the user's current one (see RememberCurrentStudio::current()).
+     *
+     * @return array{name: string, slug: string, role: string, roleLabel: string, menu: list<array{key: string, label: string, href: string|null}>}|null
+     */
+    protected function studio(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        $pageStudio = $request->route('studio');
+        $role = $pageStudio instanceof Studio ? $user->roleIn($pageStudio) : null;
+
+        if ($pageStudio instanceof Studio && $role !== null) {
+            return $this->studioProps($pageStudio, $role);
+        }
+
+        $membership = RememberCurrentStudio::current($request);
+
+        return $membership === null ? null : $this->studioProps($membership->studio, $membership->role);
+    }
+
+    /**
+     * @return array{name: string, slug: string, role: string, roleLabel: string, menu: list<array{key: string, label: string, href: string|null}>}
+     */
+    protected function studioProps(Studio $studio, StudioRole $role): array
+    {
+        return [
+            'name' => $studio->name,
+            'slug' => $studio->slug,
+            'role' => $role->value,
+            'roleLabel' => $role->label(),
+            'menu' => array_map(fn (MenuItem $item): array => $item->toNavigation($studio), $role->menu()),
         ];
     }
 }

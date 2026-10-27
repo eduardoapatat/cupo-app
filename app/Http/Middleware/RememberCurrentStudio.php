@@ -37,14 +37,17 @@ class RememberCurrentStudio
 
     /**
      * The user's current membership: the studio they opened last if they
-     * still belong to it, or else the first one by name.
+     * still belong to it, or else the first one by name. Requests that never
+     * reached a route, such as a 404 for an unknown URL, have no session.
      */
     public static function current(Request $request): ?Membership
     {
         $memberships = $request->user()?->memberships()->with('studio')->get()
             ->sortBy(fn (Membership $membership): array => [$membership->studio->name, $membership->studio_id]);
 
-        return $memberships?->firstWhere('studio_id', $request->session()->get(self::SESSION_KEY))
+        $lastStudioId = $request->hasSession() ? $request->session()->get(self::SESSION_KEY) : null;
+
+        return $memberships?->firstWhere('studio_id', $lastStudioId)
             ?? $memberships?->first();
     }
 }
