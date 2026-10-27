@@ -54,5 +54,13 @@
     ":studio signed you up in Cupo. Create your password to book your classes from your phone.": ":studio te inscribió en Cupo. Crea tu contraseña para reservar tus clases desde el celular.",
     "Create my password": "Crear mi contraseña",
     "The link works for :days days. If it expires, ask the studio to send you a new one.": "El enlace sirve por :days días. Si vence, pídele uno nuevo a tu estudio.",
-    "Your account is ready.": "Tu cuenta está lista."
+    "Your account is ready.": "Tu cuenta está lista.",
+    "That email already has a Cupo account. Share the studio link with her so she joins with it.": "Ese correo ya tiene una cuenta en Cupo. Compártele el enlace del estudio para que se una con ella.",
+    "Type a Chilean mobile number, for example 9 1234 5678.": "Escribe un celular chileno, por ejemplo 9 1234 5678.",
+    "Confirm that she is 18 or older.": "Confirma que es mayor de 18 años.",
+    ":name is now a student of the studio.": ":name ya es alumna del estudio.",
+    ":name is now a student of the studio. We sent her the link to activate her account.": ":name ya es alumna del estudio. Le enviamos el enlace para activar su cuenta.",
+    "We saved the data and sent the activation link to :email.": "Guardamos los datos y enviamos el enlace de activación a :email.",
+    "We saved the data.": "Guardamos los datos.",
+    "We sent the activation link to :email again.": "Volvimos a enviar el enlace de activación a :email."
 }

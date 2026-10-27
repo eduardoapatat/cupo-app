@@ -201,6 +201,7 @@ return [
         'name' => 'nombre',
         'commune' => 'comuna',
         'role' => 'rol',
+        'phone' => 'teléfono',
         'email' => 'correo',
         'password' => 'contraseña',
         'password_confirmation' => 'confirmación de contraseña',

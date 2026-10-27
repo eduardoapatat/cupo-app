@@ -7,6 +7,8 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\SettingsController;
+use App\Http\Controllers\Studio\StudentActivationController;
+use App\Http\Controllers\Studio\StudentController;
 use App\Http\Controllers\Studio\TeamController;
 use App\Http\Controllers\Studio\TeamInvitationController;
 use App\Http\Controllers\Studio\TeamMemberController;
@@ -61,6 +63,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('equipo/invitaciones/{invitation}/reenviar', [TeamInvitationController::class, 'resend'])->name('team.invitations.resend');
                 Route::delete('equipo/invitaciones/{invitation}', [TeamInvitationController::class, 'destroy'])->name('team.invitations.destroy');
                 Route::delete('equipo/{membership}', [TeamMemberController::class, 'destroy'])->name('team.members.destroy');
+
+                Route::get('alumnas', [StudentController::class, 'index'])->name('students.index');
+                Route::post('alumnas', [StudentController::class, 'store'])->name('students.store');
+                Route::put('alumnas/{membership}', [StudentController::class, 'update'])->name('students.update');
+                Route::post('alumnas/{membership}/activacion', [StudentActivationController::class, 'store'])->name('students.activation.store');
             });
         });
 });
