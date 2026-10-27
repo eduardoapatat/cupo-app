@@ -51,6 +51,20 @@ class UserFactory extends Factory
     }
 
     /**
+     * A student enrolled at the counter who does not use the app: a name and
+     * a phone, no email and no password.
+     */
+    public function withoutApp(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email' => null,
+            'email_verified_at' => null,
+            'password' => null,
+            'phone' => '+56912345678',
+        ]);
+    }
+
+    /**
      * Make the user a member of the studio with the given role.
      */
     public function memberOf(Studio $studio, StudioRole $role): static
