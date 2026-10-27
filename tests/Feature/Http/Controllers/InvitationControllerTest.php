@@ -124,6 +124,21 @@ describe('accepting', function () {
             ->and($invitation->fresh()->isAccepted())->toBeTrue();
     });
 
+    it('starts a new session when it signs the new account in', function () {
+        $invitation = Invitation::factory()->create(['email' => 'diego@example.com']);
+        $this->get(invitationLink($invitation));
+        $sessionId = session()->getId();
+
+        $this->post(invitationLink($invitation, 'invitations.accept'), [
+            'name' => 'Diego Herrera',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'adult' => 'on',
+        ]);
+
+        expect(session()->getId())->not->toBe($sessionId);
+    });
+
     it('asks a guest for the account data in Spanish', function () {
         $invitation = Invitation::factory()->create();
 

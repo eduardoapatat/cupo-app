@@ -76,3 +76,13 @@ it('validates the password', function () {
 
     expect($rosa->fresh()->usesApp())->toBeFalse();
 });
+
+it('starts a new session when it signs her in', function () {
+    $rosa = studentWithoutApp();
+    $activateUrl = $this->get(ActivateAccount::url($rosa))->viewData('page')['props']['activateUrl'];
+    $sessionId = session()->getId();
+
+    $this->post($activateUrl, ['password' => 'password', 'password_confirmation' => 'password']);
+
+    expect(session()->getId())->not->toBe($sessionId);
+});

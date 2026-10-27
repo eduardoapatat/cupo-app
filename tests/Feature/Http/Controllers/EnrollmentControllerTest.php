@@ -98,3 +98,19 @@ it('answers 404 to a link that no longer exists', function () {
 
     $this->post(route('enrollment.store', 'enlace-viejo'), [])->assertNotFound();
 });
+
+it('starts a new session when it signs a new student in', function () {
+    $studio = Studio::factory()->create();
+    $this->get(route('enrollment.show', $studio->enrollment_token));
+    $sessionId = session()->getId();
+
+    $this->post(route('enrollment.store', $studio->enrollment_token), [
+        'name' => 'Javiera Morales',
+        'email' => 'javiera@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+        'adult' => 'on',
+    ]);
+
+    expect(session()->getId())->not->toBe($sessionId);
+});
