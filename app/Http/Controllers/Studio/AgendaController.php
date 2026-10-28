@@ -11,6 +11,7 @@ use App\Models\ClassSession;
 use App\Models\Membership;
 use App\Models\Studio;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,6 +62,7 @@ class AgendaController extends Controller
     {
         $search = mb_substr(trim($request->string('buscar')->toString()), 0, 100);
         $booked = $classSession->bookings()->current()->pluck('user_id')->all();
+        $waiting = $classSession->waitlistEntries()->waiting()->pluck('user_id')->all();
 
         $students = $studio->memberships()
             ->where('memberships.role', StudioRole::Student)
@@ -78,6 +80,7 @@ class AgendaController extends Controller
                 'name' => $membership->user->name,
                 'phone' => $membership->user->phone,
                 'alreadyBooked' => in_array($membership->user_id, $booked, true),
+                'alreadyWaiting' => in_array($membership->user_id, $waiting, true),
             ]),
         ]);
     }
@@ -288,6 +291,15 @@ class AgendaController extends Controller
                 'name' => $booking->user->name,
                 'isStaff' => $booking->kind === BookingKind::Staff,
             ]),
+            'waitlistIsOpen' => $session->status === ClassSessionStatus::Scheduled
+                && $session->instructor_id !== null
+                && now()->lessThan($session->waitlistClosesAt()),
+            'waitlist' => $session->waitlistEntries()->waiting()->with('user')->get()
+                ->map(fn (WaitlistEntry $entry, int $index): array => [
+                    'id' => $entry->id,
+                    'name' => $entry->user->name,
+                    'position' => $index + 1,
+                ]),
             'teamOptions' => $staff
                 ->reject(fn (Membership $membership): bool => in_array($membership->user_id, $taken, true))
                 ->map(fn (Membership $membership): array => ['value' => (string) $membership->user_id, 'label' => $membership->user->name])

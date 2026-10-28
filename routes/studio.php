@@ -6,6 +6,7 @@ use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\Studio\AgendaBookingController;
 use App\Http\Controllers\Studio\AgendaController;
+use App\Http\Controllers\Studio\AgendaWaitlistController;
 use App\Http\Controllers\Studio\BookingController;
 use App\Http\Controllers\Studio\ClassesController;
 use App\Http\Controllers\Studio\ClassTypeController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Studio\StudioRulesController;
 use App\Http\Controllers\Studio\TeamController;
 use App\Http\Controllers\Studio\TeamInvitationController;
 use App\Http\Controllers\Studio\TeamMemberController;
+use App\Http\Controllers\Studio\WaitlistController;
 use App\Http\Controllers\StudioController;
 use App\Http\Middleware\RememberCurrentStudio;
 use Illuminate\Support\Facades\Route;
@@ -96,13 +98,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::delete('agenda/clases/{classSession}/reservas/{booking}', [AgendaBookingController::class, 'destroy'])->name('agenda.bookings.destroy');
                 Route::put('agenda/clases/{classSession}/instructor', [SessionInstructorController::class, 'update'])->name('agenda.instructor.update');
                 Route::post('agenda/clases/{classSession}/cancelar', [SessionCancellationController::class, 'store'])->name('agenda.cancel');
+                Route::post('agenda/clases/{classSession}/espera', [AgendaWaitlistController::class, 'store'])->name('agenda.waitlist.store');
+                Route::delete('agenda/clases/{classSession}/espera/{waitlistEntry}', [AgendaWaitlistController::class, 'destroy'])->name('agenda.waitlist.destroy');
 
                 Route::get('mis-clases', [MySessionsController::class, 'index'])->name('my-sessions.index');
 
                 Route::get('reservar', [BookingController::class, 'index'])->name('book.index');
                 Route::post('reservar/{classSession}', [BookingController::class, 'store'])->name('book.store');
+                Route::post('reservar/{classSession}/espera', [WaitlistController::class, 'store'])->name('waitlist.store');
                 Route::get('mis-reservas', [MyBookingsController::class, 'index'])->name('my-bookings.index');
                 Route::delete('mis-reservas/{booking}', [MyBookingsController::class, 'destroy'])->name('my-bookings.destroy');
+                Route::delete('mis-reservas/espera/{waitlistEntry}', [WaitlistController::class, 'destroy'])->name('waitlist.destroy');
             });
         });
 });

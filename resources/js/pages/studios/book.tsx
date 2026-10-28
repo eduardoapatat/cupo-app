@@ -6,6 +6,10 @@ import {
     store as bookSession,
 } from '@/actions/App/Http/Controllers/Studio/BookingController';
 import { destroy as cancelBooking } from '@/actions/App/Http/Controllers/Studio/MyBookingsController';
+import {
+    destroy as leaveWaitlist,
+    store as joinWaitlist,
+} from '@/actions/App/Http/Controllers/Studio/WaitlistController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +26,18 @@ type Day = {
     sessionCount: number;
 };
 
-type SessionState = 'open' | 'booked' | 'full' | 'closed' | 'no_instructor';
+/**
+ * What she can do with a class. «waitlist» is a full class she can wait
+ * for; «waiting», one she is already waiting for.
+ */
+type SessionState =
+    | 'open'
+    | 'booked'
+    | 'waitlist'
+    | 'waiting'
+    | 'full'
+    | 'closed'
+    | 'no_instructor';
 
 type BookableSession = {
     id: number;
@@ -33,6 +48,7 @@ type BookableSession = {
     spotsLeft: number;
     state: SessionState;
     bookingId: number | null;
+    waitlist: { id: number; position: number } | null;
     freeCancellationUntil: string;
     cancelsOnTime: boolean;
 };
@@ -155,6 +171,37 @@ function SessionAction({
                     dismissLabel="Volver"
                 />
             );
+        case 'waitlist':
+            return (
+                <Form
+                    {...joinWaitlist.form([slug, session.id])}
+                    options={{ preserveScroll: true }}
+                >
+                    {({ processing }) => (
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            disabled={processing}
+                        >
+                            {processing && <Spinner />}
+                            Inscribirme si se libera un lugar
+                        </Button>
+                    )}
+                </Form>
+            );
+        case 'waiting':
+            return session.waitlist === null ? null : (
+                <ConfirmDialog
+                    trigger={
+                        <Button variant="outline">Salir de la lista</Button>
+                    }
+                    title={`¿Salir de la lista de ${session.classTypeName}?`}
+                    description="Pierdes tu puesto en la fila. Si vuelves a anotarte, quedas al final."
+                    action={leaveWaitlist.form([slug, session.waitlist.id])}
+                    confirmLabel="Salir de la lista"
+                    dismissLabel="Volver"
+                />
+            );
         case 'full':
             return <Badge variant="secondary">Llena</Badge>;
         case 'closed':
@@ -175,8 +222,12 @@ function sessionNote(session: BookableSession): string {
             return session.cancelsOnTime
                 ? `${teacher} · Puedes cancelar gratis hasta ${session.freeCancellationUntil}`
                 : `${teacher} · Ya pasó el plazo de cancelación gratis`;
+        case 'waitlist':
+            return `${teacher} · Llena. Si se libera un lugar a tiempo, te lo reservamos`;
+        case 'waiting':
+            return `${teacher} · Estás en el puesto ${session.waitlist?.position ?? 1} de la lista de espera`;
         case 'full':
-            return `${teacher} · Lista de espera, pronto`;
+            return `${teacher} · Llena`;
         case 'closed':
             return `${teacher} · Las reservas ya cerraron`;
         case 'no_instructor':
@@ -238,6 +289,8 @@ export default function Book({ days, selectedDay, sessions }: Props) {
                                         'flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border p-4',
                                         session.state === 'booked' &&
                                             'border-foreground',
+                                        session.state === 'waiting' &&
+                                            'border-dashed border-foreground',
                                     )}
                                 >
                                     <div className="grid min-w-0 gap-0.5">

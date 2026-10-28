@@ -1,6 +1,6 @@
 import type { Page } from '@inertiajs/core';
 import { Form, Head, router, usePage } from '@inertiajs/react';
-import { Search, UserPlus } from 'lucide-react';
+import { ListPlus, Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
     destroy as cancelAgendaBooking,
@@ -11,6 +11,10 @@ import {
     show as agendaShow,
     students as agendaStudents,
 } from '@/actions/App/Http/Controllers/Studio/AgendaController';
+import {
+    destroy as removeFromWaitlist,
+    store as storeAgendaWaitlist,
+} from '@/actions/App/Http/Controllers/Studio/AgendaWaitlistController';
 import { store as cancelSession } from '@/actions/App/Http/Controllers/Studio/SessionCancellationController';
 import { update as substituteInstructor } from '@/actions/App/Http/Controllers/Studio/SessionInstructorController';
 import AgendaHeader from '@/components/agenda/agenda-header';
@@ -68,6 +72,8 @@ import type { FlashToast } from '@/types/ui';
 
 type Attendee = { id: number; name: string; isStaff: boolean };
 
+type WaitingPerson = { id: number; name: string; position: number };
+
 type SessionDetail = {
     id: number;
     classTypeName: string;
@@ -83,6 +89,9 @@ type SessionDetail = {
     hasStarted: boolean;
     cancelsOnTime: boolean;
     attendees: Attendee[];
+    /** Whether a student can still join the waitlist, once the class is full. */
+    waitlistIsOpen: boolean;
+    waitlist: WaitingPerson[];
     teamOptions: Option[];
     teachers: Option[];
     can: { returnClass: boolean; substitute: boolean; cancel: boolean };
@@ -105,6 +114,7 @@ type FoundStudent = {
     name: string;
     phone: string | null;
     alreadyBooked: boolean;
+    alreadyWaiting: boolean;
 };
 
 /** What reloads when the Agenda moves: the calendar and the panel, nothing else. */
@@ -133,16 +143,26 @@ function wentThrough(page: Page): boolean {
 }
 
 /**
- * Book a student of the studio: search by name, email or phone, and book
- * from the results.
+ * Book a student of the studio, or put her in the waitlist of a full
+ * class: search by name, email or phone, and pick from the results.
  */
 function BookStudentDialog({
     slug,
     session,
+    waitlist = false,
 }: {
     slug: string;
     session: SessionDetail;
+    waitlist?: boolean;
 }) {
+    const title = waitlist
+        ? 'Anotar en la lista de espera'
+        : 'Reservar por una alumna';
+    const actionLabel = waitlist ? 'Anotar' : 'Reservar';
+    const action = waitlist
+        ? storeAgendaWaitlist.form([slug, session.id])
+        : storeAgendaBooking.form([slug, session.id]);
+
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [students, setStudents] = useState<FoundStudent[] | null>(null);
@@ -211,15 +231,17 @@ function BookStudentDialog({
         <Dialog open={open} onOpenChange={changeOpen}>
             <DialogTrigger asChild>
                 <Button>
-                    <UserPlus />
-                    Reservar por una alumna
+                    {waitlist ? <ListPlus /> : <UserPlus />}
+                    {title}
                 </Button>
             </DialogTrigger>
             <DialogContent>
-                <DialogTitle>Reservar por una alumna</DialogTitle>
+                <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>
                     {session.classTypeName}, {session.date} a las{' '}
                     {session.startsAt}.
+                    {waitlist &&
+                        ' Si se libera un lugar a tiempo, queda reservada sola.'}
                 </DialogDescription>
 
                 <div className="relative">
@@ -276,16 +298,16 @@ function BookStudentDialog({
                                             )}
                                         </span>
                                     </span>
-                                    {student.alreadyBooked ? (
+                                    {student.alreadyBooked ||
+                                    (waitlist && student.alreadyWaiting) ? (
                                         <Badge variant="secondary">
-                                            Ya está
+                                            {student.alreadyBooked
+                                                ? 'Ya está'
+                                                : 'Ya espera'}
                                         </Badge>
                                     ) : (
                                         <Form
-                                            {...storeAgendaBooking.form([
-                                                slug,
-                                                session.id,
-                                            ])}
+                                            {...action}
                                             options={{ preserveScroll: true }}
                                             onSuccess={(page) => {
                                                 if (wentThrough(page)) {
@@ -300,22 +322,24 @@ function BookStudentDialog({
                                                         name="user_id"
                                                         value={student.id}
                                                     />
-                                                    <input
-                                                        type="hidden"
-                                                        name="kind"
-                                                        value="student"
-                                                    />
+                                                    {!waitlist && (
+                                                        <input
+                                                            type="hidden"
+                                                            name="kind"
+                                                            value="student"
+                                                        />
+                                                    )}
                                                     <Button
                                                         type="submit"
                                                         size="sm"
                                                         variant="outline"
                                                         disabled={processing}
-                                                        aria-label={`Reservar a ${student.name}`}
+                                                        aria-label={`${actionLabel} a ${student.name}`}
                                                     >
                                                         {processing && (
                                                             <Spinner />
                                                         )}
-                                                        Reservar
+                                                        {actionLabel}
                                                     </Button>
                                                 </>
                                             )}
@@ -659,6 +683,69 @@ function CancelSessionDialog({
     );
 }
 
+/** The people waiting for a spot, in order, each of whom can be taken out. */
+function WaitlistSection({
+    slug,
+    session,
+}: {
+    slug: string;
+    session: SessionDetail;
+}) {
+    return (
+        <section
+            aria-labelledby="waitlist"
+            className="grid grid-cols-[minmax(0,1fr)] gap-2"
+        >
+            <h3 id="waitlist" className="text-sm font-medium">
+                Lista de espera ({session.waitlist.length})
+            </h3>
+            {!session.waitlistIsOpen && (
+                <p className="text-sm text-muted-foreground">
+                    Ya pasó el corte: un cupo que se libere queda libre para
+                    cualquiera.
+                </p>
+            )}
+            <ol className="divide-y">
+                {session.waitlist.map((person) => (
+                    <li
+                        key={person.id}
+                        className="flex items-center justify-between gap-3 py-2"
+                    >
+                        <span className="flex min-w-0 items-center gap-3">
+                            <span className="w-5 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
+                                {person.position}.
+                            </span>
+                            <InitialsAvatar name={person.name} />
+                            <span className="truncate">{person.name}</span>
+                        </span>
+                        <Form
+                            {...removeFromWaitlist.form([
+                                slug,
+                                session.id,
+                                person.id,
+                            ])}
+                            options={{ preserveScroll: true }}
+                        >
+                            {({ processing }) => (
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={processing}
+                                    aria-label={`Quitar a ${person.name} de la lista de espera`}
+                                >
+                                    {processing && <Spinner />}
+                                    Quitar
+                                </Button>
+                            )}
+                        </Form>
+                    </li>
+                ))}
+            </ol>
+        </section>
+    );
+}
+
 function SessionPanel({
     slug,
     session,
@@ -710,10 +797,25 @@ function SessionPanel({
 
                 {canAct &&
                     (isFull ? (
-                        <p className="rounded-lg bg-muted p-3 text-sm">
-                            La clase está llena. Para sumar a alguien, primero
-                            cancela una reserva.
-                        </p>
+                        session.waitlistIsOpen ? (
+                            <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                                <p className="text-sm text-muted-foreground">
+                                    La clase está llena. Si una alumna quiere
+                                    venir, anótala en la lista de espera.
+                                </p>
+                                <BookStudentDialog
+                                    slug={slug}
+                                    session={session}
+                                    waitlist
+                                />
+                            </div>
+                        ) : (
+                            <p className="rounded-lg bg-muted p-3 text-sm">
+                                La clase está llena y la lista de espera ya
+                                cerró. Para sumar a alguien, primero cancela una
+                                reserva.
+                            </p>
+                        )
                     ) : (
                         <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
                             <BookStudentDialog slug={slug} session={session} />
@@ -762,6 +864,10 @@ function SessionPanel({
                         </ul>
                     )}
                 </section>
+
+                {canAct && session.waitlist.length > 0 && (
+                    <WaitlistSection slug={slug} session={session} />
+                )}
 
                 {canAct && session.can.substitute && (
                     <SubstituteForm

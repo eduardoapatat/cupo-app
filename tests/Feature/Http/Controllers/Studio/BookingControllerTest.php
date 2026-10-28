@@ -3,10 +3,12 @@
 use App\Actions\Bookings\BookSession;
 use App\Enums\BookingKind;
 use App\Enums\StudioRole;
+use App\Enums\WaitlistStatus;
 use App\Models\ClassSession;
 use App\Models\ClassType;
 use App\Models\Studio;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -55,7 +57,7 @@ it('shows the days of the horizon and the classes of the chosen day, with what s
             ->where('days.1', ['date' => '2026-11-03', 'weekday' => 'Mar', 'dayOfMonth' => 3, 'sessionCount' => 4])
             ->where('selectedDay', ['date' => '2026-11-03', 'label' => 'martes 3 de noviembre'])
             ->where('sessions', fn ($sessions) => collect($sessions)->map(fn ($session) => [$session['startsAt'], $session['state']])->all() === [
-                ['07:00', 'full'],
+                ['07:00', 'waitlist'],
                 ['09:00', 'no_instructor'],
                 ['19:00', 'booked'],
                 ['20:00', 'open'],
@@ -79,6 +81,60 @@ it('closes the classes past the cutoff', function () {
     $this->actingAs(student($studio))
         ->get(route('studios.book.index', $studio))
         ->assertInertia(fn (Assert $page) => $page->where('sessions.0.state', 'closed'));
+});
+
+it('offers the waitlist of a full class until its cutoff, and shows her place in line', function () {
+    $studio = Studio::factory()->create(['waitlist_cutoff_hours' => 6]);
+    $javiera = student($studio);
+    $waited = classAt($studio, '2026-11-03 19:00', ['capacity' => 1, 'booked_count' => 1]);
+    WaitlistEntry::factory()->for($waited)->create();
+    $entry = WaitlistEntry::factory()->for($waited)->for($javiera)->create();
+    classAt($studio, '2026-11-03 20:00', ['capacity' => 1, 'booked_count' => 1]);
+    classAt($studio, '2026-11-02 17:30', ['capacity' => 1, 'booked_count' => 1]);
+
+    $this->actingAs($javiera)
+        ->get(route('studios.book.index', [$studio, 'dia' => '2026-11-03']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sessions.0.state', 'waiting')
+            ->where('sessions.0.waitlist', ['id' => $entry->id, 'position' => 2])
+            ->where('sessions.1.state', 'waitlist')
+            ->where('sessions.1.waitlist', null));
+    $this->actingAs($javiera)
+        ->get(route('studios.book.index', $studio))
+        ->assertInertia(fn (Assert $page) => $page->where('sessions.0.state', 'full'));
+});
+
+it('puts her in the waitlist of a full class, and lets her leave it', function () {
+    $studio = Studio::factory()->create();
+    $javiera = student($studio);
+    $session = classAt($studio, '2026-11-03 19:00', ['capacity' => 1, 'booked_count' => 1]);
+
+    $this->actingAs($javiera)
+        ->post(route('studios.waitlist.store', [$studio, $session]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Quedaste en la lista de espera, en el puesto 1. Si se libera un lugar a tiempo, te lo reservamos.']);
+    $entry = $session->waitlistEntries()->sole();
+
+    $this->actingAs($javiera)
+        ->delete(route('studios.waitlist.destroy', [$studio, $entry]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Saliste de la lista de espera.']);
+
+    expect($entry->fresh()->status)->toBe(WaitlistStatus::Left);
+});
+
+it('does not let her leave someone else\'s place in line, nor wait as staff', function () {
+    $studio = Studio::factory()->create();
+    $session = classAt($studio, '2026-11-03 19:00', ['capacity' => 1, 'booked_count' => 1]);
+    $rosasEntry = WaitlistEntry::factory()->for($session)->for(student($studio))->create();
+
+    $this->actingAs(student($studio))
+        ->delete(route('studios.waitlist.destroy', [$studio, $rosasEntry]))
+        ->assertNotFound();
+    $this->actingAs(User::factory()->memberOf($studio, StudioRole::FrontDesk)->create())
+        ->post(route('studios.waitlist.store', [$studio, $session]))
+        ->assertForbidden();
+
+    expect($rosasEntry->fresh()->status)->toBe(WaitlistStatus::Waiting)
+        ->and($session->waitlistEntries()->count())->toBe(1);
 });
 
 it('books a class for the student herself', function () {

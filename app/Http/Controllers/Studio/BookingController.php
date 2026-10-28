@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +43,7 @@ class BookingController extends Controller
 
         /** @var Collection<int, int> $bookingIds */
         $bookingIds = $user->bookings()->current()->whereIn('class_session_id', $sessions->modelKeys())->pluck('id', 'class_session_id');
+        $waitlistEntries = $user->waitlistEntries()->waiting()->whereIn('class_session_id', $sessions->modelKeys())->get()->keyBy('class_session_id');
 
         return Inertia::render('studios/book', [
             'days' => $days->map(fn (CarbonImmutable $day, int $offset): array => [
@@ -55,7 +57,7 @@ class BookingController extends Controller
                 'label' => $selectedDay->translatedFormat('l j \d\e F'),
             ],
             'sessions' => $sessionsByDay->get($selectedDay->toDateString(), collect())
-                ->map(fn (ClassSession $session): array => $this->present($session, $bookingIds->get($session->id)))
+                ->map(fn (ClassSession $session): array => $this->present($session, $bookingIds->get($session->id), $waitlistEntries->get($session->id)))
                 ->values(),
         ]);
     }
@@ -92,17 +94,23 @@ class BookingController extends Controller
     }
 
     /**
-     * A session as a card of «Reservar», with what the student can do.
+     * A session as a card of «Reservar», with what the student can do. A
+     * full class takes her in its waitlist until the waitlist cutoff; after
+     * it, her place in line no longer counts and a free spot is for anyone.
      *
      * @return array<string, mixed>
      */
-    private function present(ClassSession $session, ?int $bookingId): array
+    private function present(ClassSession $session, ?int $bookingId, ?WaitlistEntry $waitlistEntry): array
     {
+        $isFull = $session->booked_count >= $session->capacity;
+        $waitlistIsOpen = now()->lessThan($session->waitlistClosesAt());
         $state = match (true) {
             $bookingId !== null => 'booked',
+            $waitlistEntry !== null && $isFull && $waitlistIsOpen => 'waiting',
             $session->instructor_id === null => 'no_instructor',
             now()->greaterThanOrEqualTo($session->bookingClosesAt()) => 'closed',
-            $session->booked_count >= $session->capacity => 'full',
+            $isFull && $waitlistIsOpen => 'waitlist',
+            $isFull => 'full',
             default => 'open',
         };
 
@@ -115,6 +123,9 @@ class BookingController extends Controller
             'spotsLeft' => max(0, $session->capacity - $session->booked_count),
             'state' => $state,
             'bookingId' => $bookingId,
+            'waitlist' => $waitlistEntry !== null && $state === 'waiting'
+                ? ['id' => $waitlistEntry->id, 'position' => $waitlistEntry->position()]
+                : null,
             'freeCancellationUntil' => $session->freeCancellationLabel(),
             'cancelsOnTime' => now()->lessThanOrEqualTo($session->freeCancellationEndsAt()),
         ];

@@ -173,4 +173,15 @@ class Studio extends Model
     {
         return $this->hasManyThrough(Booking::class, ClassSession::class);
     }
+
+    /**
+     * Every waitlist entry of the studio's sessions, so an entry in a URL
+     * under /estudios/{slug} is looked up within the studio.
+     *
+     * @return HasManyThrough<WaitlistEntry, ClassSession, $this>
+     */
+    public function waitlistEntries(): HasManyThrough
+    {
+        return $this->hasManyThrough(WaitlistEntry::class, ClassSession::class);
+    }
 }

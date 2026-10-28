@@ -8,8 +8,10 @@ use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -18,8 +20,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * «Mis reservas»: the student's upcoming classes, which she can cancel, and
- * her history in the studio.
+ * «Mis reservas»: the student's upcoming classes, which she can cancel, the
+ * full classes she is waiting for, and her history in the studio.
  */
 class MyBookingsController extends Controller
 {
@@ -36,6 +38,14 @@ class MyBookingsController extends Controller
             ->sortBy(fn (Booking $booking) => $booking->classSession->starts_at)
             ->values();
 
+        $waiting = $user->waitlistEntries()
+            ->waiting()
+            ->whereIn('class_session_id', $studio->classSessions()->upcoming()->select('id'))
+            ->with('classSession.classType', 'classSession.instructor', 'classSession.studio')
+            ->get()
+            ->sortBy(fn (WaitlistEntry $entry) => $entry->classSession->starts_at)
+            ->values();
+
         $history = $user->bookings()
             ->whereHas('classSession', $inStudio)
             ->whereNotIn('bookings.id', $upcoming->modelKeys())
@@ -50,6 +60,11 @@ class MyBookingsController extends Controller
                 ...$this->present($booking),
                 'freeCancellationUntil' => $booking->classSession->freeCancellationLabel(),
                 'cancelsOnTime' => now()->lessThanOrEqualTo($booking->classSession->freeCancellationEndsAt()),
+            ]),
+            'waiting' => $waiting->map(fn (WaitlistEntry $entry): array => [
+                ...$this->presentSession($entry->id, $entry->classSession),
+                'position' => $entry->position(),
+                'isOpen' => now()->lessThan($entry->classSession->waitlistClosesAt()),
             ]),
             'history' => $history->through(fn (Booking $booking): array => [
                 ...$this->present($booking),
@@ -99,10 +114,16 @@ class MyBookingsController extends Controller
      */
     private function present(Booking $booking): array
     {
-        $session = $booking->classSession;
+        return $this->presentSession($booking->id, $booking->classSession);
+    }
 
+    /**
+     * @return array{id: int, date: string, startsAt: string, classTypeName: string, instructorName: string|null}
+     */
+    private function presentSession(int $id, ClassSession $session): array
+    {
         return [
-            'id' => $booking->id,
+            'id' => $id,
             'date' => $session->localStartsAt()->translatedFormat('l j \d\e F'),
             'startsAt' => $session->localStartsAt()->format('H:i'),
             'classTypeName' => $session->classType->name,

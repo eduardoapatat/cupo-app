@@ -162,7 +162,7 @@ it('finds the students to book, marking who already has the class', function () 
     $this->actingAs(frontDeskOf($this->studio))
         ->getJson(route('studios.agenda.students', [$this->studio, $session, 'buscar' => 'javi']))
         ->assertOk()
-        ->assertJsonPath('students', [['id' => $javiera->id, 'name' => 'Javiera Morales', 'phone' => $javiera->phone, 'alreadyBooked' => true]]);
+        ->assertJsonPath('students', [['id' => $javiera->id, 'name' => 'Javiera Morales', 'phone' => $javiera->phone, 'alreadyBooked' => true, 'alreadyWaiting' => false]]);
 });
 
 it('books a student or adds someone of the team, and nobody else', function () {

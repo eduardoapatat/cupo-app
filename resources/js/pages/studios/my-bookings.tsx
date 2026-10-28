@@ -5,6 +5,7 @@ import {
     destroy as cancelBooking,
     index as myBookingsIndex,
 } from '@/actions/App/Http/Controllers/Studio/MyBookingsController';
+import { destroy as leaveWaitlist } from '@/actions/App/Http/Controllers/Studio/WaitlistController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,9 @@ type UpcomingBooking = BookingSummary & {
 
 type PastBooking = BookingSummary & { status: string };
 
+/** A full class she waits for. Past the cutoff, her place no longer counts. */
+type WaitingEntry = BookingSummary & { position: number; isOpen: boolean };
+
 type Paginated<T> = {
     data: T[];
     current_page: number;
@@ -38,6 +42,7 @@ type Paginated<T> = {
 
 type Props = {
     upcoming: UpcomingBooking[];
+    waiting: WaitingEntry[];
     history: Paginated<PastBooking>;
 };
 
@@ -57,7 +62,52 @@ function BookingLine({ booking }: { booking: BookingSummary }) {
     );
 }
 
-export default function MyBookings({ upcoming, history }: Props) {
+function WaitingList({
+    slug,
+    waiting,
+}: {
+    slug: string;
+    waiting: WaitingEntry[];
+}) {
+    return (
+        <section aria-labelledby="waiting" className="grid gap-3">
+            <h2 id="waiting" className="text-sm font-medium">
+                En lista de espera
+            </h2>
+            <ul className="grid gap-3">
+                {waiting.map((entry) => (
+                    <li
+                        key={entry.id}
+                        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-dashed p-4"
+                    >
+                        <div className="grid gap-1">
+                            <BookingLine booking={entry} />
+                            <p className="text-sm">
+                                {entry.isOpen
+                                    ? `Puesto ${entry.position} en la fila. Si se libera un lugar a tiempo, te lo reservamos.`
+                                    : 'No se liberó un lugar a tiempo. Si queda uno libre, puedes reservarlo en «Reservar».'}
+                            </p>
+                        </div>
+                        <ConfirmDialog
+                            trigger={
+                                <Button variant="outline">
+                                    Salir de la lista
+                                </Button>
+                            }
+                            title={`¿Salir de la lista de ${entry.classTypeName}?`}
+                            description="Pierdes tu puesto en la fila. Si vuelves a anotarte, quedas al final."
+                            action={leaveWaitlist.form([slug, entry.id])}
+                            confirmLabel="Salir de la lista"
+                            dismissLabel="Volver"
+                        />
+                    </li>
+                ))}
+            </ul>
+        </section>
+    );
+}
+
+export default function MyBookings({ upcoming, waiting, history }: Props) {
     const { studio } = usePage().props;
 
     if (!studio) {
@@ -86,7 +136,7 @@ export default function MyBookings({ upcoming, history }: Props) {
                         <TabsTrigger value="history">Historial</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="upcoming">
+                    <TabsContent value="upcoming" className="grid gap-6">
                         {upcoming.length === 0 ? (
                             <div className="grid justify-items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center">
                                 <CalendarCheck
@@ -139,6 +189,10 @@ export default function MyBookings({ upcoming, history }: Props) {
                                     </li>
                                 ))}
                             </ul>
+                        )}
+
+                        {waiting.length > 0 && (
+                            <WaitingList slug={studio.slug} waiting={waiting} />
                         )}
                     </TabsContent>
 

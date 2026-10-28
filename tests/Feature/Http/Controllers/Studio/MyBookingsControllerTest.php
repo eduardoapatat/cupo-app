@@ -11,6 +11,7 @@ use App\Models\ClassSession;
 use App\Models\ClassType;
 use App\Models\Studio;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -87,6 +88,24 @@ it('cancels her own booking on time or late', function (string $now, BookingStat
     'a tiempo' => ['2026-11-03 12:00', BookingStatus::CancelledOnTime, 'Cancelaste tu clase a tiempo: no la pierdes.'],
     'tarde' => ['2026-11-03 14:00', BookingStatus::CancelledLate, 'Cancelaste tu clase. Como fue después del plazo de cancelación gratis, la clase cuenta como usada.'],
 ]);
+
+it('shows the full classes she waits for, with her place or that the cutoff passed', function () {
+    $studio = Studio::factory()->create(['waitlist_cutoff_hours' => 6]);
+    $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create();
+    $tomorrow = bookingOf(User::factory()->create(), $studio, '2026-11-03 19:00')->classSession;
+    $today = bookingOf(User::factory()->create(), $studio, '2026-11-02 17:00')->classSession;
+    WaitlistEntry::factory()->for($tomorrow)->create();
+    WaitlistEntry::factory()->for($tomorrow)->for($javiera)->create();
+    WaitlistEntry::factory()->for($today)->for($javiera)->create();
+
+    $this->actingAs($javiera)
+        ->get(route('studios.my-bookings.index', $studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('waiting', fn ($waiting) => collect($waiting)->map(fn ($entry) => [$entry['startsAt'], $entry['position'], $entry['isOpen']])->all() === [
+                ['17:00', 1, false],
+                ['19:00', 2, true],
+            ]));
+});
 
 it('hides the bookings of other students and of other studios', function () {
     $studio = Studio::factory()->create();

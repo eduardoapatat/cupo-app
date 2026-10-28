@@ -105,5 +105,10 @@
     ":name is already on the waitlist.": ":name ya está en la lista de espera.",
     "The waitlist for this class is closed.": "La lista de espera de esta clase ya cerró.",
     "This place in the waitlist is no longer active.": "Este lugar en la lista de espera ya no está vigente.",
-    ":name took the spot from the waitlist.": ":name tomó el cupo desde la lista de espera."
+    ":name took the spot from the waitlist.": ":name tomó el cupo desde la lista de espera.",
+    "You are on the waitlist, number :position. If a spot frees up in time, we book it for you.": "Quedaste en la lista de espera, en el puesto :position. Si se libera un lugar a tiempo, te lo reservamos.",
+    "You left the waitlist.": "Saliste de la lista de espera.",
+    ":name is on the waitlist, number :position.": "Anotamos a :name en la lista de espera, en el puesto :position.",
+    "We took :name off the waitlist.": "Sacamos a :name de la lista de espera.",
+    "No spot freed up in time": "No se liberó un lugar a tiempo"
 }
