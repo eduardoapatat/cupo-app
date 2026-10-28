@@ -2,7 +2,6 @@
 
 namespace App\Actions\Classes;
 
-use App\Enums\ClassSessionStatus;
 use App\Models\ScheduleSlot;
 use App\Models\Studio;
 use Illuminate\Support\Facades\DB;
@@ -25,12 +24,7 @@ class ApplyScheduleChange
         DB::transaction(function () use ($studio, $changedSlots): void {
             $slotIds = collect($changedSlots)->map(fn (ScheduleSlot $slot): int => $slot->id)->all();
 
-            $studio->classSessions()
-                ->whereIn('schedule_slot_id', $slotIds)
-                ->where('status', ClassSessionStatus::Scheduled)
-                ->where('starts_at', '>', now())
-                ->where('booked_count', 0)
-                ->delete();
+            $studio->classSessions()->whereIn('schedule_slot_id', $slotIds)->unbookedAhead()->delete();
 
             $this->generateSessions->handle($studio);
         });

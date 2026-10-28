@@ -95,4 +95,15 @@ class ClassSession extends Model
     {
         $query->where('status', ClassSessionStatus::Scheduled)->where('starts_at', '>', now());
     }
+
+    /**
+     * Upcoming sessions nobody booked yet: the only ones a schedule change
+     * may remove or generate again.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeUnbookedAhead(Builder $query): void
+    {
+        $query->upcoming()->where('booked_count', 0);
+    }
 }

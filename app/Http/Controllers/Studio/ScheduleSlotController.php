@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Actions\Classes\ApplyScheduleChange;
-use App\Enums\ClassSessionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\ScheduleSlotRequest;
 use App\Models\ScheduleSlot;
@@ -51,11 +50,7 @@ class ScheduleSlotController extends Controller
     public function destroy(Studio $studio, ScheduleSlot $scheduleSlot): RedirectResponse
     {
         DB::transaction(function () use ($scheduleSlot): void {
-            $scheduleSlot->classSessions()
-                ->where('status', ClassSessionStatus::Scheduled)
-                ->where('starts_at', '>', now())
-                ->where('booked_count', 0)
-                ->delete();
+            $scheduleSlot->classSessions()->unbookedAhead()->delete();
 
             $scheduleSlot->delete();
         });
