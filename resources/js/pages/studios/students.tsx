@@ -16,6 +16,8 @@ import {
     store as enrollStudent,
     update as updateStudent,
 } from '@/actions/App/Http/Controllers/Studio/StudentController';
+import { update as renewEnrollmentLink } from '@/actions/App/Http/Controllers/Studio/EnrollmentLinkController';
+import ConfirmDialog from '@/components/confirm-dialog';
 import EnrollmentLinkField from '@/components/enrollment-link-field';
 import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
@@ -64,6 +66,7 @@ type Props = {
     filters: Filters;
     counts: Record<'all' | StudentStatus, number>;
     enrollmentUrl: string;
+    canRenewEnrollmentLink: boolean;
     /** The student whose profile is open, if any. */
     student: Student | null;
 };
@@ -256,7 +259,19 @@ function EnrollDialog({ slug }: { slug: string }) {
     );
 }
 
-function ShareLinkDialog({ url }: { url: string }) {
+/**
+ * The enrollment link to share. The owner can also renew it here, for
+ * example after it was shared where it should not have been.
+ */
+function ShareLinkDialog({
+    slug,
+    url,
+    canRenew,
+}: {
+    slug: string;
+    url: string;
+    canRenew: boolean;
+}) {
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -272,6 +287,25 @@ function ShareLinkDialog({ url }: { url: string }) {
                     cuenta y queda como alumna.
                 </DialogDescription>
                 <EnrollmentLinkField url={url} />
+                {canRenew && (
+                    <div className="flex flex-col items-start gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-muted-foreground">
+                            ¿Se compartió donde no debía? Genera uno nuevo y el
+                            actual deja de servir.
+                        </p>
+                        <ConfirmDialog
+                            trigger={
+                                <Button variant="outline" size="sm">
+                                    Generar un enlace nuevo
+                                </Button>
+                            }
+                            title="¿Generar un enlace nuevo?"
+                            description="El enlace actual dejará de servir de inmediato. Quienes ya son alumnas no se ven afectadas."
+                            action={renewEnrollmentLink.form(slug)}
+                            confirmLabel="Generar enlace nuevo"
+                        />
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );
@@ -540,6 +574,7 @@ export default function Students({
     filters,
     counts,
     enrollmentUrl,
+    canRenewEnrollmentLink,
     student,
 }: Props) {
     const { studio } = usePage().props;
@@ -613,7 +648,11 @@ export default function Students({
                         </h1>
                         <div className="flex gap-2">
                             <EnrollDialog slug={slug} />
-                            <ShareLinkDialog url={enrollmentUrl} />
+                            <ShareLinkDialog
+                                slug={slug}
+                                url={enrollmentUrl}
+                                canRenew={canRenewEnrollmentLink}
+                            />
                         </div>
                         <div className="relative">
                             <Search

@@ -236,19 +236,19 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 
 ### Rutas
 
-| URL                                 | Qué es                                                                                                                                                                                                      |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/inicio`                           | El `home` de Fortify. Lleva al Inicio del estudio actual o, a quien no pertenece a ninguno, muestra «Todavía no perteneces a un estudio»                                                                    |
-| `/estudios/{slug}`                  | El Inicio del estudio, con los bloques del rol de la persona                                                                                                                                                |
-| `/estudios/crear`                   | Crear mi estudio (nombre y comuna). Responde 403 a quien ya es dueña de uno                                                                                                                                 |
-| `/estudios/{slug}/estudio`          | «Estudio»: la dueña edita el nombre y la comuna. El slug no cambia, para no romper los enlaces                                                                                                              |
-| `/estudios/{slug}/equipo`           | «Equipo»: el equipo, invitar, las invitaciones pendientes (reenviar y cancelar) y quitar a alguien. Una invitación o una membresía de otro estudio responde 404 (scoped bindings)                           |
-| `/invitaciones/{id}` (GET y POST)   | Pública y firmada: ver la invitación y aceptarla. Ver «Invitaciones» abajo                                                                                                                                  |
-| `/estudios/{slug}/alumnas`          | «Alumnas», un fichero: la lista con buscador, filtro por estado y scroll infinito a la izquierda, y la ficha de la alumna elegida a la derecha. Inscribir en el mesón y compartir el enlace van en diálogos |
-| `/estudios/{slug}/alumnas/{id}`     | La ficha de una alumna, junto a la lista: sus datos, editar a quien no usa la app y reenviarle la activación. En el celular se ve sola, con «←» para volver                                                 |
-| `/inscripcion/{token}` (GET y POST) | Pública: el enlace de inscripción del estudio. Un token renovado responde 404                                                                                                                               |
-| `/activar-cuenta/{id}` (GET y POST) | Pública y firmada: una alumna sin app crea su contraseña                                                                                                                                                    |
-| `/estudios/{slug}/clases`           | «Clases»: el horario semanal como tablero por día (cada clase se edita en un panel lateral) y los tipos de clase. Dos clases del mismo día no se pueden cruzar                                              |
+| URL                                 | Qué es                                                                                                                                                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/inicio`                           | El `home` de Fortify. Lleva al Inicio del estudio actual o, a quien no pertenece a ninguno, muestra «Todavía no perteneces a un estudio»                                                                                             |
+| `/estudios/{slug}`                  | El Inicio del estudio, con los bloques del rol de la persona                                                                                                                                                                         |
+| `/estudios/crear`                   | Crear mi estudio (nombre y comuna). Responde 403 a quien ya es dueña de uno                                                                                                                                                          |
+| `/estudios/{slug}/estudio`          | «Estudio»: la dueña edita el nombre y la comuna. El slug no cambia, para no romper los enlaces                                                                                                                                       |
+| `/estudios/{slug}/equipo`           | «Equipo»: el equipo, invitar, las invitaciones pendientes (reenviar y cancelar) y quitar a alguien. Una invitación o una membresía de otro estudio responde 404 (scoped bindings)                                                    |
+| `/invitaciones/{id}` (GET y POST)   | Pública y firmada: ver la invitación y aceptarla. Ver «Invitaciones» abajo                                                                                                                                                           |
+| `/estudios/{slug}/alumnas`          | «Alumnas», un fichero: la lista con buscador, filtro por estado y scroll infinito a la izquierda, y la ficha de la alumna elegida a la derecha. Inscribir en el mesón y compartir el enlace (y, la dueña, renovarlo) van en diálogos |
+| `/estudios/{slug}/alumnas/{id}`     | La ficha de una alumna, junto a la lista: sus datos, editar a quien no usa la app y reenviarle la activación. En el celular se ve sola, con «←» para volver                                                                          |
+| `/inscripcion/{token}` (GET y POST) | Pública: el enlace de inscripción del estudio. Un token renovado responde 404                                                                                                                                                        |
+| `/activar-cuenta/{id}` (GET y POST) | Pública y firmada: una alumna sin app crea su contraseña                                                                                                                                                                             |
+| `/estudios/{slug}/clases`           | «Clases»: el horario semanal como tablero por día (cada clase se edita en un panel lateral) y los tipos de clase. Dos clases del mismo día no se pueden cruzar                                                                       |
 
 ### El estudio actual y el menú
 
@@ -276,7 +276,7 @@ Quitar a alguien borra su membresía, así que en ese estudio queda **sin rol**:
 
 ### Enlace de inscripción
 
-- Cada estudio tiene un token (`studios.enrollment_token`) y su enlace `/inscripcion/{token}`, que la dueña copia y renueva desde «Estudio» y recepción copia desde «Alumnas». Renovarlo deja sin efecto el anterior.
+- Cada estudio tiene un token (`studios.enrollment_token`) y su enlace `/inscripcion/{token}`, que la dueña y recepción copian desde «Alumnas» («Compartir enlace»). Solo la dueña lo renueva, desde el mismo diálogo. Renovarlo deja sin efecto el anterior.
 - Quien entra sin cuenta la crea con las mismas reglas del registro (`CreateNewUser`, con la declaración de 18 y el correo de verificación). Quien ya tiene sesión se une con un botón. En los dos casos queda como **alumna al tiro**: sin un plan pagado igual no puede reservar _(Fase 3)_.
 - Quien ya es parte del estudio conserva su rol.
 

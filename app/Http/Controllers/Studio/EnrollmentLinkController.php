@@ -11,8 +11,9 @@ use Inertia\Inertia;
 class EnrollmentLinkController extends Controller
 {
     /**
-     * Give the studio a new enrollment link. The old one stops working at
-     * once, for example after it was shared where it should not have been.
+     * Give the studio a new enrollment link, from «Alumnas». The old one
+     * stops working at once, for example after it was shared where it
+     * should not have been.
      */
     #[Authorize('studio.manage', 'studio')]
     public function update(Studio $studio): RedirectResponse
@@ -21,6 +22,6 @@ class EnrollmentLinkController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('The studio has a new enrollment link. The old one no longer works.')]);
 
-        return to_route('studios.settings.edit', $studio);
+        return back(fallback: route('studios.students.index', $studio));
     }
 }

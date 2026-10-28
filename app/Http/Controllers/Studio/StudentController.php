@@ -146,6 +146,7 @@ class StudentController extends Controller
             'filters' => ['search' => $search, 'status' => $status?->queryValue()],
             'counts' => $statusCounts,
             'enrollmentUrl' => route('enrollment.show', $studio->enrollment_token),
+            'canRenewEnrollmentLink' => $request->user()?->can('studio.manage', $studio) ?? false,
         ];
     }
 
