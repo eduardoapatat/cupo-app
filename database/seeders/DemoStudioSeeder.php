@@ -123,7 +123,8 @@ class DemoStudioSeeder extends Seeder
         }
 
         $generateSessions = new GenerateSessions;
-        $generateSessions->handle($flow, now()->subDays(2));
+        // From the start of that day, whatever time it is seeded.
+        $generateSessions->handle($flow, now(config()->string('studio.timezone'))->subDays(2)->startOfDay());
         $generateSessions->handle($flow);
     }
 

@@ -62,7 +62,7 @@ it('seeds the weekly schedule, past and upcoming bookings and a full class with 
     $statuses = Booking::query()
         ->whereIn('class_session_id', $flow->classSessions()->where('starts_at', '<', $twoDaysAgo->addDay()->utc())->select('id'))
         ->pluck('status');
-    expect($statuses->unique()->sort()->values()->all())->toEqual([BookingStatus::Attended, BookingStatus::NoShow]);
+    expect($statuses->map(fn (BookingStatus $status) => $status->value)->unique()->sort()->values()->all())->toBe(['attended', 'no_show']);
 
     $yesterday = $flow->classSessions()
         ->where('starts_at', '>=', $twoDaysAgo->addDay()->utc())
@@ -78,10 +78,12 @@ it('seeds the weekly schedule, past and upcoming bookings and a full class with 
         ->and($javiera->bookings()->current()->whereRelation('classSession', 'starts_at', '>', now())->exists())->toBeTrue();
 });
 
-it('seeds at any time of the week', function (string $now) {
+it('seeds at any time of the week, with the classes of two days ago from the morning', function (string $now) {
     $this->travelTo(CarbonImmutable::parse($now, 'America/Santiago'));
 
     $this->seed();
 
-    expect(User::where('email', 'javiera@example.com')->sole()->waitlistEntries()->count())->toBe(1);
-})->with(['2026-11-01 23:30', '2026-11-02 06:00', '2026-11-07 21:00', '2026-11-04 19:55']);
+    $first = Studio::where('slug', 'estudio-flow')->sole()->classSessions()->orderBy('starts_at')->first();
+    expect(User::where('email', 'javiera@example.com')->sole()->waitlistEntries()->count())->toBe(1)
+        ->and($first?->localStartsAt()->toDateString())->toBe(now('America/Santiago')->subDays(2)->toDateString());
+})->with(['2026-11-04 23:30', '2026-11-05 06:00', '2026-11-07 21:00', '2026-11-04 19:55']);
