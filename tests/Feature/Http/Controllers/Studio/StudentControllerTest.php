@@ -94,7 +94,7 @@ it('treats an unknown tab as all the students', function () {
 
 it('keeps the search and the tab in the pages', function () {
     $studio = Studio::factory()->create();
-    User::factory()->count(26)->withoutApp()->memberOf($studio, StudioRole::Student)->create();
+    User::factory()->count(31)->withoutApp()->memberOf($studio, StudioRole::Student)->create();
 
     $this->actingAs(frontDesk($studio))
         ->get(route('studios.students.index', [$studio, 'buscar' => '1234', 'estado' => 'sin-app']))
@@ -102,30 +102,83 @@ it('keeps the search and the tab in the pages', function () {
             ->where('students.next_page_url', route('studios.students.index', [$studio, 'buscar' => '1234', 'estado' => 'sin-app', 'page' => 2])));
 });
 
-it('goes back to the filtered list after enrolling or editing', function () {
+it('goes back to the profile with its filters after editing', function () {
     $studio = Studio::factory()->create();
-    $front = frontDesk($studio);
-    $filtered = route('studios.students.index', [$studio, 'buscar' => 'rosa', 'estado' => 'sin-app']);
     $ana = User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Ana']);
-
-    $this->actingAs($front)
-        ->from($filtered)
-        ->post(route('studios.students.store', $studio), ['name' => 'Rosa Fuentes', 'phone' => '987654321', 'adult' => 'on'])
-        ->assertRedirect($filtered);
-    $this->actingAs($front)
-        ->from($filtered)
-        ->put(route('studios.students.update', [$studio, $ana->memberships()->sole()]), ['name' => 'Ana Soto', 'phone' => '912345678'])
-        ->assertRedirect($filtered);
-});
-
-it('enrolls at the counter a student without the app, with a normalized phone', function () {
-    $studio = Studio::factory()->create();
+    $membership = $ana->memberships()->sole();
+    $profile = route('studios.students.show', [$studio, $membership, 'buscar' => 'ana', 'estado' => 'sin-app']);
 
     $this->actingAs(frontDesk($studio))
-        ->post(route('studios.students.store', $studio), ['name' => 'Rosa Fuentes', 'phone' => '9 8765-4321', 'adult' => 'on'])
-        ->assertRedirect(route('studios.students.index', $studio));
+        ->from($profile)
+        ->put(route('studios.students.update', [$studio, $membership]), ['name' => 'Ana Soto', 'phone' => '912345678'])
+        ->assertRedirect($profile);
+});
+
+it('shows a student\'s profile next to the filtered list', function () {
+    $studio = Studio::factory()->create();
+    $rosa = User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes', 'email' => 'rosa@example.com']);
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosalía Pérez']);
+    User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Ana Soto']);
+    $membership = $rosa->memberships()->sole();
+
+    $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.show', [$studio, $membership, 'buscar' => 'ros']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('studios/students')
+            ->where('student.id', $membership->id)
+            ->where('student.name', 'Rosa Fuentes')
+            ->where('student.status', 'activation_sent')
+            ->where('students.data', fn ($students) => collect($students)->pluck('name')->all() === ['Rosa Fuentes', 'Rosalía Pérez'])
+            ->where('filters.search', 'ros'));
+});
+
+it('answers 404 for the profile of someone of another studio or who is not a student', function () {
+    $studio = Studio::factory()->create();
+    $front = frontDesk($studio);
+    $elsewhere = User::factory()->withoutApp()->memberOf(Studio::factory()->create(), StudioRole::Student)->create();
+    $instructor = Membership::factory()->for($studio)->role(StudioRole::Instructor)->create();
+
+    $this->actingAs($front)
+        ->get(route('studios.students.show', [$studio, $elsewhere->memberships()->sole()]))
+        ->assertNotFound();
+    $this->actingAs($front)
+        ->get(route('studios.students.show', [$studio, $instructor]))
+        ->assertNotFound();
+});
+
+it('keeps the profiles away from instructors', function () {
+    $studio = Studio::factory()->create();
+    $student = User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create();
+
+    $this->actingAs(User::factory()->memberOf($studio, StudioRole::Instructor)->create())
+        ->get(route('studios.students.show', [$studio, $student->memberships()->sole()]))
+        ->assertForbidden();
+});
+
+it('loads the list as an infinite scroll that keeps the search', function () {
+    $studio = Studio::factory()->create();
+    User::factory()->count(31)->withoutApp()->memberOf($studio, StudioRole::Student)->create();
+
+    $response = $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.index', [$studio, 'buscar' => '1234', 'page' => 2]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->count('students.data', 1)
+            ->where('filters.search', '1234')
+            ->where('students.prev_page_url', route('studios.students.index', [$studio, 'buscar' => '1234', 'page' => 1])));
+
+    expect($response->viewData('page')['scrollProps']['students'])
+        ->toMatchArray(['currentPage' => 2, 'previousPage' => 1, 'nextPage' => null]);
+});
+
+it('enrolls at the counter a student without the app, with a normalized phone, and opens her profile', function () {
+    $studio = Studio::factory()->create();
+
+    $response = $this->actingAs(frontDesk($studio))
+        ->post(route('studios.students.store', $studio), ['name' => 'Rosa Fuentes', 'phone' => '9 8765-4321', 'adult' => 'on']);
 
     $rosa = User::where('name', 'Rosa Fuentes')->sole();
+    $response->assertRedirect(route('studios.students.show', [$studio, $rosa->memberships()->sole()]));
     expect($rosa->phone)->toBe('+56987654321')
         ->and($rosa->usesApp())->toBeFalse()
         ->and($rosa->email)->toBeNull()

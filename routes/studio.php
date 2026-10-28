@@ -71,6 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 Route::get('alumnas', [StudentController::class, 'index'])->name('students.index');
                 Route::post('alumnas', [StudentController::class, 'store'])->name('students.store');
+                Route::get('alumnas/{membership}', [StudentController::class, 'show'])->name('students.show');
                 Route::put('alumnas/{membership}', [StudentController::class, 'update'])->name('students.update');
                 Route::post('alumnas/{membership}/activacion', [StudentActivationController::class, 'store'])->name('students.activation.store');
 
