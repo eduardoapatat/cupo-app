@@ -96,6 +96,14 @@ class ClassSession extends Model
     }
 
     /**
+     * @return HasMany<WaitlistEntry, $this>
+     */
+    public function waitlistEntries(): HasMany
+    {
+        return $this->hasMany(WaitlistEntry::class);
+    }
+
+    /**
      * When the session starts, in the studio's time zone, for showing it.
      */
     public function localStartsAt(): CarbonImmutable
@@ -118,6 +126,17 @@ class ClassSession extends Model
     public function freeCancellationEndsAt(): CarbonImmutable
     {
         return $this->starts_at->subHours($this->studio->cancellation_window_hours);
+    }
+
+    /**
+     * The last moment a freed spot goes to the first one waiting: the
+     * studio's waitlist cutoff before it starts, and never after bookings
+     * close. Later, the spot stays open for anyone, so joining the waitlist
+     * closes then too.
+     */
+    public function waitlistClosesAt(): CarbonImmutable
+    {
+        return $this->starts_at->subHours($this->studio->waitlist_cutoff_hours)->min($this->bookingClosesAt());
     }
 
     /**

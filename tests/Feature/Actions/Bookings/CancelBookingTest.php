@@ -32,7 +32,7 @@ function bookingOnTuesdayAtSeven(): Booking
 
 function cancelPlace(Booking $booking, bool $returnClass = false, ?string $reason = null): Booking
 {
-    return app(CancelBooking::class)->handle($booking, $booking->user, $returnClass, $reason);
+    return app(CancelBooking::class)->handle($booking, $booking->user, $returnClass, $reason)->booking;
 }
 
 it('cancels on time up to the window, and frees the spot', function () {

@@ -58,13 +58,17 @@ class AgendaBookingController extends Controller
         abort_if($request->returnsClass() && ! $user->can('bookings.override', $studio), 403);
 
         try {
-            $cancelled = $cancelBooking->handle($booking, $user, $request->returnsClass(), $request->reason());
-            $name = $cancelled->user->name;
-
-            Inertia::flash('toast', ['type' => 'success', 'message' => $cancelled->status === BookingStatus::CancelledOnTime
+            $cancellation = $cancelBooking->handle($booking, $user, $request->returnsClass(), $request->reason());
+            $name = $cancellation->booking->user->name;
+            $message = $cancellation->booking->status === BookingStatus::CancelledOnTime
                 ? __('We cancelled :name\'s booking on time.', ['name' => $name])
-                : __('We cancelled :name\'s booking. It was after the free cancellation window, so the class counts as used.', ['name' => $name]),
-            ]);
+                : __('We cancelled :name\'s booking. It was after the free cancellation window, so the class counts as used.', ['name' => $name]);
+
+            if ($cancellation->promoted !== null) {
+                $message .= ' '.__(':name took the spot from the waitlist.', ['name' => $cancellation->promoted->name]);
+            }
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
         } catch (BookingRejected $rejected) {
             Inertia::flash('toast', ['type' => 'error', 'message' => $rejected->getMessage()]);
         }

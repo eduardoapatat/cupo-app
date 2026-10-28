@@ -4,6 +4,7 @@ namespace App\Actions\Bookings;
 
 use App\Enums\BookingKind;
 use App\Enums\ClassSessionStatus;
+use App\Enums\WaitlistStatus;
 use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\User;
@@ -41,6 +42,12 @@ class BookSession
                         ? __('This class was cancelled.')
                         : __('This class is full.'));
                 }
+
+                // Booked another way: she is no longer waiting for a spot.
+                $session->waitlistEntries()
+                    ->where('user_id', $person->id)
+                    ->where('status', WaitlistStatus::Waiting)
+                    ->update(['status' => WaitlistStatus::Left, 'resolved_at' => now(), 'updated_at' => now()]);
 
                 return $session->bookings()->create([
                     'user_id' => $person->id,

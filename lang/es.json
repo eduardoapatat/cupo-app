@@ -100,5 +100,10 @@
     "Today": "Hoy",
     "The studio cancelled the class": "El estudio canceló la clase",
     ":name teaches this class and cannot take a spot in it.": ":name da esta clase, así que no puede ocupar un cupo en ella.",
-    ":name already has a booking in this class. Cancel it first.": ":name ya tiene una reserva en esta clase. Cancélala primero."
+    ":name already has a booking in this class. Cancel it first.": ":name ya tiene una reserva en esta clase. Cancélala primero.",
+    "A spot freed up: book it instead.": "Se liberó un lugar: resérvalo.",
+    ":name is already on the waitlist.": ":name ya está en la lista de espera.",
+    "The waitlist for this class is closed.": "La lista de espera de esta clase ya cerró.",
+    "This place in the waitlist is no longer active.": "Este lugar en la lista de espera ya no está vigente.",
+    ":name took the spot from the waitlist.": ":name tomó el cupo desde la lista de espera."
 }

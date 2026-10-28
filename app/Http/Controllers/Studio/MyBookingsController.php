@@ -65,7 +65,7 @@ class MyBookingsController extends Controller
     public function destroy(Studio $studio, Booking $booking, #[CurrentUser] User $user, CancelBooking $cancelBooking): RedirectResponse
     {
         try {
-            $cancelled = $cancelBooking->handle($booking, $user);
+            $cancelled = $cancelBooking->handle($booking, $user)->booking;
 
             Inertia::flash('toast', ['type' => 'success', 'message' => $cancelled->status === BookingStatus::CancelledOnTime
                 ? __('You cancelled your class. You keep it to use another day.')

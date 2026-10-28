@@ -12,14 +12,17 @@ use Illuminate\Support\Facades\DB;
  * Give up a place. It is on time while at least the studio's cancellation
  * window is left before the class; later, it is late and the class counts
  * as used. The owner may return the class anyway (bookings.override, checked
- * by the caller), with a reason.
+ * by the caller), with a reason. The freed spot goes to the first one on
+ * the waitlist while the class is before the waitlist cutoff.
  */
 class CancelBooking
 {
+    public function __construct(private PromoteFromWaitlist $promoteFromWaitlist) {}
+
     /**
      * @throws BookingRejected when the booking is no longer active or the class started.
      */
-    public function handle(Booking $booking, User $by, bool $returnClass = false, ?string $reason = null): Booking
+    public function handle(Booking $booking, User $by, bool $returnClass = false, ?string $reason = null): BookingCancellation
     {
         $session = $booking->classSession;
 
@@ -35,7 +38,7 @@ class CancelBooking
             ? BookingStatus::CancelledOnTime
             : BookingStatus::CancelledLate;
 
-        DB::transaction(function () use ($booking, $session, $by, $status, $reason): void {
+        $promoted = DB::transaction(function () use ($booking, $session, $by, $status, $reason): ?User {
             // Conditional, so cancelling twice at once frees one spot only.
             $cancelled = Booking::query()
                 ->whereKey($booking->id)
@@ -53,8 +56,10 @@ class CancelBooking
             }
 
             ClassSession::query()->whereKey($session->id)->where('booked_count', '>', 0)->decrement('booked_count');
+
+            return $this->promoteFromWaitlist->handle($session);
         });
 
-        return $booking->refresh();
+        return new BookingCancellation($booking->refresh(), $promoted);
     }
 }

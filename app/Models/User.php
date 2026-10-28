@@ -113,6 +113,14 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * @return HasMany<WaitlistEntry, $this>
+     */
+    public function waitlistEntries(): HasMany
+    {
+        return $this->hasMany(WaitlistEntry::class);
+    }
+
+    /**
      * The user's role in the given studio, or null when they are not a
      * member. It reads the loaded memberships, so repeated checks in one
      * request run a single query.

@@ -4,13 +4,14 @@ namespace App\Actions\Bookings;
 
 use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
+use App\Enums\WaitlistStatus;
 use App\Models\ClassSession;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The studio cancels a class: its bookings are cancelled on time, so
- * nobody loses the class, and its spots are released. The slot of the
+ * nobody loses the class, its spots are released and its waitlist closes. The slot of the
  * schedule is not generated again for that time.
  */
 class CancelSession
@@ -59,6 +60,12 @@ class CancelSession
                 'cancelled_at' => $now,
                 'cancelled_by_id' => $by->id,
                 'cancellation_reason' => __('The studio cancelled the class.'),
+                'updated_at' => $now,
+            ]);
+
+            $session->waitlistEntries()->where('status', WaitlistStatus::Waiting)->update([
+                'status' => WaitlistStatus::Left,
+                'resolved_at' => $now,
                 'updated_at' => $now,
             ]);
         });
