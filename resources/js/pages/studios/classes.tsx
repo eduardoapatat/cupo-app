@@ -479,6 +479,7 @@ export default function Classes({
 
             <div className="flex flex-col gap-12 px-4 py-6">
                 <Heading
+                    className="mb-0"
                     title="Clases"
                     description={`Las clases que da tu estudio y su horario semanal. De aquí salen las clases que tus alumnas reservan, hasta ${bookingHorizonDays} días antes.`}
                 />

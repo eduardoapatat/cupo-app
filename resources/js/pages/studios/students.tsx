@@ -304,6 +304,7 @@ export default function Students({ students, enrollmentUrl }: Props) {
 
             <div className="flex flex-col gap-10 px-4 py-6">
                 <Heading
+                    className="mb-0"
                     title="Alumnas"
                     description="Quienes toman clases en el estudio. Las que usan la app manejan sus propios datos."
                 />

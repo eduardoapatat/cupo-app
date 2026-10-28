@@ -308,6 +308,7 @@ export default function Team({ members, invitations, roles }: Props) {
 
             <div className="flex flex-col gap-8 px-4 py-6">
                 <Heading
+                    className="mb-0"
                     title="Equipo"
                     description="Quienes atienden el mesón y dan clases en tu estudio. Las alumnas están en «Alumnas»."
                 />
