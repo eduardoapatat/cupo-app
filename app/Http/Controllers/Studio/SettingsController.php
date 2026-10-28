@@ -30,6 +30,12 @@ class SettingsController extends Controller
             ],
             'communes' => Commune::options(),
             'enrollmentUrl' => route('enrollment.show', $studio->enrollment_token),
+            'rules' => [
+                'cancellation_window_hours' => $studio->cancellation_window_hours,
+                'booking_cutoff_minutes' => $studio->booking_cutoff_minutes,
+                'waitlist_cutoff_hours' => $studio->waitlist_cutoff_hours,
+                'booking_horizon_days' => $studio->booking_horizon_days,
+            ],
         ]);
     }
 

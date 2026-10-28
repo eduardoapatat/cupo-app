@@ -12,6 +12,7 @@ use App\Http\Controllers\Studio\ScheduleSlotController;
 use App\Http\Controllers\Studio\SettingsController;
 use App\Http\Controllers\Studio\StudentActivationController;
 use App\Http\Controllers\Studio\StudentController;
+use App\Http\Controllers\Studio\StudioRulesController;
 use App\Http\Controllers\Studio\TeamController;
 use App\Http\Controllers\Studio\TeamInvitationController;
 use App\Http\Controllers\Studio\TeamMemberController;
@@ -59,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('estudio', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('estudio', [SettingsController::class, 'update'])->name('settings.update');
             Route::put('estudio/enlace', [EnrollmentLinkController::class, 'update'])->name('settings.enrollment-link.update');
+            Route::put('estudio/reglas', [StudioRulesController::class, 'update'])->name('settings.rules.update');
 
             Route::get('equipo', [TeamController::class, 'index'])->name('team.index');
             Route::scopeBindings()->group(function () {

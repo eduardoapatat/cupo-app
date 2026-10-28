@@ -9,6 +9,8 @@ import EnrollmentLinkField from '@/components/enrollment-link-field';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import StudioForm from '@/components/studio-form';
+import StudioRulesForm from '@/components/studio-rules-form';
+import type { StudioRules } from '@/components/studio-rules-form';
 import { dashboard } from '@/routes';
 import type { Option } from '@/types';
 
@@ -16,12 +18,14 @@ type Props = {
     details: { slug: string; name: string; commune: string };
     communes: Option[];
     enrollmentUrl: string;
+    rules: StudioRules;
 };
 
 export default function StudioSettings({
     details,
     communes,
     enrollmentUrl,
+    rules,
 }: Props) {
     return (
         <>
@@ -61,6 +65,15 @@ export default function StudioSettings({
                             confirmLabel="Generar enlace nuevo"
                         />
                     </div>
+                </section>
+
+                <section className="grid max-w-xl gap-6">
+                    <Heading
+                        variant="small"
+                        title="Reglas"
+                        description="Rigen desde que las guardas. Las reservas ya hechas no cambian."
+                    />
+                    <StudioRulesForm slug={details.slug} rules={rules} />
                 </section>
             </div>
         </>
