@@ -4,8 +4,11 @@ use App\Http\Controllers\AccountActivationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\Studio\ClassesController;
+use App\Http\Controllers\Studio\ClassTypeController;
 use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
+use App\Http\Controllers\Studio\ScheduleSlotController;
 use App\Http\Controllers\Studio\SettingsController;
 use App\Http\Controllers\Studio\StudentActivationController;
 use App\Http\Controllers\Studio\StudentController;
@@ -68,6 +71,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('alumnas', [StudentController::class, 'store'])->name('students.store');
                 Route::put('alumnas/{membership}', [StudentController::class, 'update'])->name('students.update');
                 Route::post('alumnas/{membership}/activacion', [StudentActivationController::class, 'store'])->name('students.activation.store');
+
+                Route::get('clases', [ClassesController::class, 'index'])->name('classes.index');
+                Route::post('clases/tipos', [ClassTypeController::class, 'store'])->name('classes.types.store');
+                Route::put('clases/tipos/{classType}', [ClassTypeController::class, 'update'])->name('classes.types.update');
+                Route::post('clases/horario', [ScheduleSlotController::class, 'store'])->name('classes.slots.store');
+                Route::put('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'update'])->name('classes.slots.update');
+                Route::delete('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'destroy'])->name('classes.slots.destroy');
             });
         });
 });

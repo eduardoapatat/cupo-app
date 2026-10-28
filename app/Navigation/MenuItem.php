@@ -81,6 +81,7 @@ enum MenuItem: string
         return match ($this) {
             self::Home => 'studios.home',
             self::Students => 'studios.students.index',
+            self::Classes => 'studios.classes.index',
             self::Team => 'studios.team.index',
             self::StudioSettings => 'studios.settings.edit',
             default => null,

@@ -62,5 +62,14 @@
     ":name is now a student of the studio. We sent her the link to activate her account.": ":name ya es alumna del estudio. Le enviamos el enlace para activar su cuenta.",
     "We saved the data and sent the activation link to :email.": "Guardamos los datos y enviamos el enlace de activación a :email.",
     "We saved the data.": "Guardamos los datos.",
-    "We sent the activation link to :email again.": "Volvimos a enviar el enlace de activación a :email."
+    "We sent the activation link to :email again.": "Volvimos a enviar el enlace de activación a :email.",
+    "The studio already has a class with that name.": "El estudio ya tiene una clase con ese nombre.",
+    "It overlaps with :class at :time. The studio has a single room.": "Se cruza con :class a las :time. El estudio tiene una sola sala.",
+    "Choose one of the studio's classes.": "Elige una de las clases del estudio.",
+    "Choose someone who teaches in the studio.": "Elige a alguien que dé clases en el estudio.",
+    "We added :class.": "Agregamos :class.",
+    "We saved :class.": "Guardamos :class.",
+    "We added the class to the schedule.": "Agregamos la clase al horario.",
+    "We saved the schedule. Classes that already have bookings stay as they were.": "Guardamos el horario. Las clases que ya tienen reservas quedan como estaban.",
+    "We took the class off the schedule. Classes that already have bookings stay.": "Sacamos la clase del horario. Las clases que ya tienen reservas se mantienen."
 }
