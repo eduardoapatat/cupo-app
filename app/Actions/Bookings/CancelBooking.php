@@ -31,7 +31,7 @@ class CancelBooking
             throw new BookingRejected(__('The class already started, so the booking can no longer be cancelled.'));
         }
 
-        $status = $returnClass || $this->isOnTime($session)
+        $status = $returnClass || now()->lessThanOrEqualTo($session->freeCancellationEndsAt())
             ? BookingStatus::CancelledOnTime
             : BookingStatus::CancelledLate;
 
@@ -56,14 +56,5 @@ class CancelBooking
         });
 
         return $booking->refresh();
-    }
-
-    /**
-     * Whether cancelling now keeps the class: at least the studio's
-     * cancellation window is left before it starts.
-     */
-    public function isOnTime(ClassSession $session): bool
-    {
-        return now()->lessThanOrEqualTo($session->starts_at->copy()->subHours($session->studio->cancellation_window_hours));
     }
 }

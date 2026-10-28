@@ -24,6 +24,8 @@ type ConfirmDialogProps = {
     /** The destructive request, from a Wayfinder `.form()` helper. */
     action: RouteFormDefinition<'post'>;
     confirmLabel: string;
+    /** The button that closes without doing anything, when «Cancelar» would read as the action itself. */
+    dismissLabel?: string;
 };
 
 /**
@@ -39,6 +41,7 @@ export default function ConfirmDialog({
     description,
     action,
     confirmLabel,
+    dismissLabel = 'Cancelar',
 }: ConfirmDialogProps) {
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const isOpen = open ?? uncontrolledOpen;
@@ -63,7 +66,9 @@ export default function ConfirmDialog({
                     {({ processing }) => (
                         <DialogFooter className="gap-2">
                             <DialogClose asChild>
-                                <Button variant="secondary">Cancelar</Button>
+                                <Button variant="secondary">
+                                    {dismissLabel}
+                                </Button>
                             </DialogClose>
 
                             <Button

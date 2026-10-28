@@ -84,6 +84,8 @@ enum MenuItem: string
             self::Classes => 'studios.classes.index',
             self::Team => 'studios.team.index',
             self::StudioSettings => 'studios.settings.edit',
+            self::Book => 'studios.book.index',
+            self::MyBookings => 'studios.my-bookings.index',
             default => null,
         };
     }

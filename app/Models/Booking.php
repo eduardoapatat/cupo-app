@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\BookingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * A person's place in a session. Use BookSession and CancelBooking to
@@ -22,11 +22,11 @@ use Illuminate\Support\Carbon;
  * @property BookingKind $kind
  * @property int|null $booked_by_id
  * @property BookingStatus $status
- * @property Carbon|null $cancelled_at
+ * @property CarbonImmutable|null $cancelled_at
  * @property int|null $cancelled_by_id
  * @property string|null $cancellation_reason
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['class_session_id', 'user_id', 'kind', 'booked_by_id'])]
 class Booking extends Model

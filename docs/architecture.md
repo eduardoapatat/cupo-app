@@ -263,6 +263,8 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 | `/inscripcion/{token}` (GET y POST) | Pública: el enlace de inscripción del estudio. Un token renovado responde 404                                                                                                                                                        |
 | `/activar-cuenta/{id}` (GET y POST) | Pública y firmada: una alumna sin app crea su contraseña                                                                                                                                                                             |
 | `/estudios/{slug}/clases`           | «Clases»: el horario semanal como tablero por día (cada clase se edita en un panel lateral) y los tipos de clase. Dos clases del mismo día no se pueden cruzar                                                                       |
+| `/estudios/{slug}/reservar`         | «Reservar», de la alumna: una tira con los días de la anticipación y las clases del día elegido (`?dia=`), cada una con lo que puede hacer: reservar, cancelar, llena, cerrada o sin instructor                                      |
+| `/estudios/{slug}/mis-reservas`     | «Mis reservas»: sus próximas clases, con hasta cuándo cancela gratis, y su historial. Cancelar una reserva ajena responde 404 (`BookingPolicy`)                                                                                      |
 
 ### El estudio actual y el menú
 
@@ -344,6 +346,7 @@ Ver `docs/decisions/0005-cupo-garantizado-con-contador.md`.
 - **El equipo** también ocupa un cupo: recepción o la dueña lo anotan como `staff`.
 - **Cancelar** (`CancelBooking`) es a tiempo si faltan al menos `cancellation_window_hours`, y tarde después. La dueña puede devolver la clase igual (`bookings.override`), con motivo. Una clase que ya empezó no se cancela. El cambio de estado es condicional, así que cancelar dos veces libera un solo cupo.
 - **Cancelar una clase** (`CancelSession`, `sessions.cancel`) la deja `cancelled` con su motivo, cancela a tiempo sus reservas y deja el contador en 0.
+- **Las pantallas** muestran las mismas reglas que aplican las acciones: el cierre (`ClassSession::bookingClosesAt()`) y la cancelación gratis (`freeCancellationEndsAt()`) salen del modelo. Cuando una regla dice que no, el mensaje de `BookingRejected` llega como toast.
 - **En la Fase 2** reservar no descuenta clases; desde la Fase 3 exige un plan vigente.
 - Pendiente _(punto 2.3)_: la lista de espera y la asistencia.
 

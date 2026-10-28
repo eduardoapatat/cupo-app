@@ -4,10 +4,12 @@ use App\Http\Controllers\AccountActivationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\Studio\BookingController;
 use App\Http\Controllers\Studio\ClassesController;
 use App\Http\Controllers\Studio\ClassTypeController;
 use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
+use App\Http\Controllers\Studio\MyBookingsController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
 use App\Http\Controllers\Studio\SettingsController;
 use App\Http\Controllers\Studio\StudentActivationController;
@@ -81,6 +83,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('clases/horario', [ScheduleSlotController::class, 'store'])->name('classes.slots.store');
                 Route::put('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'update'])->name('classes.slots.update');
                 Route::delete('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'destroy'])->name('classes.slots.destroy');
+
+                Route::get('reservar', [BookingController::class, 'index'])->name('book.index');
+                Route::post('reservar/{classSession}', [BookingController::class, 'store'])->name('book.store');
+                Route::get('mis-reservas', [MyBookingsController::class, 'index'])->name('my-bookings.index');
+                Route::delete('mis-reservas/{booking}', [MyBookingsController::class, 'destroy'])->name('my-bookings.destroy');
             });
         });
 });

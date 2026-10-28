@@ -14,7 +14,7 @@ dataset('menus', [
     'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Alumnas', 'Clases', 'Equipo', 'Estudio']],
     'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja'], ['Inicio', 'Alumnas']],
     'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases'], ['Inicio']],
-    'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan'], ['Inicio']],
+    'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan'], ['Inicio', 'Reservar', 'Mis reservas']],
 ]);
 
 it('shows each role its menu, with the items not built yet as «Pronto»', function (StudioRole $role, array $labels, array $built) {

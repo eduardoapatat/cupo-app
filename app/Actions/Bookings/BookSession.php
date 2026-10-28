@@ -70,7 +70,7 @@ class BookSession
             throw new BookingRejected(__('This class has no instructor yet, so it cannot be booked.'));
         }
 
-        if (now()->greaterThanOrEqualTo($session->starts_at->copy()->subMinutes($studio->booking_cutoff_minutes))) {
+        if (now()->greaterThanOrEqualTo($session->bookingClosesAt())) {
             throw new BookingRejected(__('Bookings for this class are closed.'));
         }
 

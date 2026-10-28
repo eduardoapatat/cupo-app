@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClassSessionStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\ClassSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A concrete class, such as «pilates mat, Tuesday 4 at 19:00», usually
@@ -20,17 +20,17 @@ use Illuminate\Support\Carbon;
  * @property int $studio_id
  * @property int $class_type_id
  * @property int|null $schedule_slot_id
- * @property Carbon $starts_at
- * @property Carbon $ends_at
+ * @property CarbonImmutable $starts_at
+ * @property CarbonImmutable $ends_at
  * @property int $capacity
  * @property int $booked_count
  * @property int|null $instructor_id
  * @property ClassSessionStatus $status
- * @property Carbon|null $cancelled_at
+ * @property CarbonImmutable|null $cancelled_at
  * @property int|null $cancelled_by_id
  * @property string|null $cancellation_reason
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['class_type_id', 'schedule_slot_id', 'starts_at', 'ends_at', 'capacity', 'instructor_id'])]
 class ClassSession extends Model
@@ -93,6 +93,31 @@ class ClassSession extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * When the session starts, in the studio's time zone, for showing it.
+     */
+    public function localStartsAt(): CarbonImmutable
+    {
+        return $this->starts_at->timezone(config()->string('studio.timezone'));
+    }
+
+    /**
+     * The last moment to book it: the studio's cutoff before it starts.
+     */
+    public function bookingClosesAt(): CarbonImmutable
+    {
+        return $this->starts_at->subMinutes($this->studio->booking_cutoff_minutes);
+    }
+
+    /**
+     * The last moment to cancel it without losing the class: the studio's
+     * cancellation window before it starts.
+     */
+    public function freeCancellationEndsAt(): CarbonImmutable
+    {
+        return $this->starts_at->subHours($this->studio->cancellation_window_hours);
     }
 
     /**

@@ -84,5 +84,8 @@
     "The class already started, so the booking can no longer be cancelled.": "La clase ya empezó, así que la reserva ya no se puede cancelar.",
     "This class was already cancelled.": "Esta clase ya estaba cancelada.",
     "The class already started, so it can no longer be cancelled.": "La clase ya empezó, así que ya no se puede cancelar.",
-    "The studio cancelled the class.": "El estudio canceló la clase."
+    "The studio cancelled the class.": "El estudio canceló la clase.",
+    "You booked :class on :day at :time.": "Reservaste :class el :day a las :time.",
+    "You cancelled your class. You keep it to use another day.": "Cancelaste tu clase a tiempo: no la pierdes.",
+    "You cancelled your class. It was after the free cancellation window, so the class counts as used.": "Cancelaste tu clase. Como fue después del plazo de cancelación gratis, la clase cuenta como usada."
 }
