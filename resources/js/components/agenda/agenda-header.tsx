@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { es } from 'react-day-picker/locale';
 import type {
     AgendaFocus,
+    AgendaMonth,
     AgendaToday,
     AgendaView,
     AgendaWeek,
@@ -50,6 +51,7 @@ function classCount(count: number): string {
 export default function AgendaHeader({
     today,
     week,
+    month,
     focus,
     view,
     dayCount,
@@ -57,6 +59,8 @@ export default function AgendaHeader({
 }: {
     today: AgendaToday;
     week: AgendaWeek;
+    /** Only in the month view. */
+    month: AgendaMonth | null;
     focus: AgendaFocus;
     view: AgendaView;
     /** Classes of the focused day, for the day view's badge. */
@@ -65,11 +69,33 @@ export default function AgendaHeader({
 }) {
     const [pickerOpen, setPickerOpen] = useState(false);
     const isDay = view === 'dia';
-    const showsToday = isDay
-        ? focus.date === today.date
-        : today.date >= week.start && today.date <= addDays(week.start, 6);
-    const previous = isDay ? addDays(focus.date, -1) : week.previous;
-    const next = isDay ? addDays(focus.date, 1) : week.next;
+    const shownMonth = view === 'mes' ? month : null;
+    const showsToday = shownMonth
+        ? today.date.slice(0, 7) === shownMonth.start.slice(0, 7)
+        : isDay
+          ? focus.date === today.date
+          : today.date >= week.start && today.date <= addDays(week.start, 6);
+    const previous = shownMonth
+        ? shownMonth.previous
+        : isDay
+          ? addDays(focus.date, -1)
+          : week.previous;
+    const next = shownMonth
+        ? shownMonth.next
+        : isDay
+          ? addDays(focus.date, 1)
+          : week.next;
+    const unit = shownMonth ? 'Mes' : isDay ? 'Día' : 'Semana';
+    const rangeLabel = shownMonth
+        ? shownMonth.rangeLabel
+        : isDay
+          ? focus.label
+          : week.label;
+    const count = shownMonth
+        ? shownMonth.sessionCount
+        : isDay
+          ? dayCount
+          : week.sessionCount;
 
     return (
         <header className="flex flex-wrap items-center justify-between gap-4">
@@ -89,23 +115,23 @@ export default function AgendaHeader({
                 <div className="grid gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                         <h1 className="text-xl font-semibold tracking-tight">
-                            {week.monthLabel}
+                            {shownMonth ? shownMonth.label : week.monthLabel}
                         </h1>
                         <Badge variant="secondary" className="tabular-nums">
-                            {classCount(isDay ? dayCount : week.sessionCount)}
+                            {classCount(count)}
                         </Badge>
                     </div>
                     <nav
-                        aria-label={isDay ? 'Días' : 'Semanas'}
+                        aria-label={
+                            shownMonth ? 'Meses' : isDay ? 'Días' : 'Semanas'
+                        }
                         className="flex items-center gap-1"
                     >
                         <Button
                             variant="ghost"
                             size="icon"
                             className="size-7"
-                            aria-label={
-                                isDay ? 'Día anterior' : 'Semana anterior'
-                            }
+                            aria-label={`${unit} anterior`}
                             onClick={() => goTo(previous, view)}
                         >
                             <ChevronLeft />
@@ -114,15 +140,13 @@ export default function AgendaHeader({
                             className="min-w-32 text-center text-sm text-muted-foreground first-letter:uppercase"
                             aria-live="polite"
                         >
-                            {isDay ? focus.label : week.label}
+                            {rangeLabel}
                         </span>
                         <Button
                             variant="ghost"
                             size="icon"
                             className="size-7"
-                            aria-label={
-                                isDay ? 'Día siguiente' : 'Semana siguiente'
-                            }
+                            aria-label={`${unit} siguiente`}
                             onClick={() => goTo(next, view)}
                         >
                             <ChevronRight />
@@ -167,7 +191,11 @@ export default function AgendaHeader({
                     variant="outline"
                     value={view}
                     onValueChange={(next) => {
-                        if (next === 'dia' || next === 'semana') {
+                        if (
+                            next === 'dia' ||
+                            next === 'semana' ||
+                            next === 'mes'
+                        ) {
                             goTo(focus.date, next);
                         }
                     }}
@@ -178,6 +206,9 @@ export default function AgendaHeader({
                     </ToggleGroupItem>
                     <ToggleGroupItem value="semana" className="px-3">
                         Semana
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="mes" className="px-3">
+                        Mes
                     </ToggleGroupItem>
                 </ToggleGroup>
                 <Button

@@ -1,5 +1,5 @@
 /** The Agenda's two views, as they go in the URL (?vista=). */
-export type AgendaView = 'dia' | 'semana';
+export type AgendaView = 'dia' | 'semana' | 'mes';
 
 export type AgendaWeek = {
     start: string;
@@ -40,4 +40,23 @@ export type CalendarDay = {
     longLabel: string;
     isToday: boolean;
     sessions: CalendarSession[];
+};
+
+export type MonthDay = {
+    date: string;
+    dayOfMonth: number;
+    isToday: boolean;
+    inMonth: boolean;
+    sessions: CalendarSession[];
+};
+
+/** The month view: whole weeks from Monday to Sunday (5 or 6). */
+export type AgendaMonth = {
+    start: string;
+    label: string;
+    rangeLabel: string;
+    previous: string;
+    next: string;
+    sessionCount: number;
+    weeks: MonthDay[][];
 };

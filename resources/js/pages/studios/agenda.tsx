@@ -15,13 +15,16 @@ import { store as cancelSession } from '@/actions/App/Http/Controllers/Studio/Se
 import { update as substituteInstructor } from '@/actions/App/Http/Controllers/Studio/SessionInstructorController';
 import AgendaHeader from '@/components/agenda/agenda-header';
 import DayStrip from '@/components/agenda/day-strip';
+import MonthGrid from '@/components/agenda/month-grid';
 import TimeGrid from '@/components/agenda/time-grid';
 import type {
     AgendaFocus,
+    AgendaMonth,
     AgendaToday,
     AgendaView,
     AgendaWeek,
     CalendarDay,
+    CalendarSession,
 } from '@/components/agenda/types';
 import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
@@ -92,6 +95,8 @@ type Props = {
     days: CalendarDay[];
     /** The view asked for in the URL, or null to let the screen choose. */
     view: AgendaView | null;
+    /** Only when the month view is asked for. */
+    month: AgendaMonth | null;
     session: SessionDetail | null;
 };
 
@@ -103,7 +108,15 @@ type FoundStudent = {
 };
 
 /** What reloads when the Agenda moves: the calendar and the panel, nothing else. */
-const CALENDAR_RELOAD = ['today', 'focus', 'week', 'days', 'view', 'session'];
+const CALENDAR_RELOAD = [
+    'today',
+    'focus',
+    'week',
+    'days',
+    'view',
+    'month',
+    'session',
+];
 
 function agendaQuery(date: string, view: AgendaView) {
     return { query: { fecha: date, vista: view } };
@@ -775,6 +788,7 @@ export default function Agenda({
     week,
     days,
     view: requestedView,
+    month,
     session,
 }: Props) {
     const { studio } = usePage().props;
@@ -784,7 +798,12 @@ export default function Agenda({
     const [shown, setShown] = useState(session);
     // The calendar slides in from the side it moved to, so a new week or
     // day is noticed.
-    const anchor = view === 'dia' ? focus.date : week.start;
+    const anchor =
+        view === 'mes' && month
+            ? month.start
+            : view === 'dia'
+              ? focus.date
+              : week.start;
     const [lastAnchor, setLastAnchor] = useState(anchor);
     const [direction, setDirection] = useState<'next' | 'previous' | null>(
         null,
@@ -824,6 +843,10 @@ export default function Agenda({
         );
     }
 
+    function sessionHref(card: CalendarSession): string {
+        return agendaShow.url([slug, card.id], agendaQuery(focus.date, view));
+    }
+
     function closePanel() {
         router.get(
             agendaIndex.url(slug, agendaQuery(focus.date, view)),
@@ -840,6 +863,7 @@ export default function Agenda({
                 <AgendaHeader
                     today={today}
                     week={week}
+                    month={month}
                     focus={focus}
                     view={view}
                     dayCount={dayCount}
@@ -864,18 +888,22 @@ export default function Agenda({
                             'motion-safe:slide-in-from-left-4',
                     )}
                 >
-                    <TimeGrid
-                        days={days}
-                        shownDays={shownDays}
-                        view={view}
-                        openSessionId={session?.id ?? null}
-                        sessionHref={(card) =>
-                            agendaShow.url(
-                                [slug, card.id],
-                                agendaQuery(focus.date, view),
-                            )
-                        }
-                    />
+                    {view === 'mes' && month ? (
+                        <MonthGrid
+                            month={month}
+                            openSessionId={session?.id ?? null}
+                            sessionHref={sessionHref}
+                            onOpenDay={(date) => goTo(date, 'dia')}
+                        />
+                    ) : (
+                        <TimeGrid
+                            days={days}
+                            shownDays={shownDays}
+                            view={view === 'mes' ? 'semana' : view}
+                            openSessionId={session?.id ?? null}
+                            sessionHref={sessionHref}
+                        />
+                    )}
                 </div>
             </div>
 

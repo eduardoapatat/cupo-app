@@ -32,8 +32,9 @@ class AgendaController extends Controller
     public function index(Request $request, Studio $studio): Response
     {
         return Inertia::render('studios/agenda', [
-            ...$this->calendarProps($studio, $this->focusDay($request, null)),
-            'view' => $this->requestedView($request),
+            ...$this->calendarProps($studio, $focus = $this->focusDay($request, null)),
+            'view' => $view = $this->requestedView($request),
+            'month' => $view === 'mes' ? $this->monthProps($studio, $focus) : null,
             'session' => null,
         ]);
     }
@@ -45,8 +46,9 @@ class AgendaController extends Controller
     public function show(Request $request, Studio $studio, ClassSession $classSession, #[CurrentUser] User $user): Response
     {
         return Inertia::render('studios/agenda', [
-            ...$this->calendarProps($studio, $this->focusDay($request, $classSession)),
-            'view' => $this->requestedView($request),
+            ...$this->calendarProps($studio, $focus = $this->focusDay($request, $classSession)),
+            'view' => $view = $this->requestedView($request),
+            'month' => $view === 'mes' ? $this->monthProps($studio, $focus) : null,
             'session' => $this->presentSession($studio, $classSession, $user),
         ]);
     }
@@ -81,14 +83,14 @@ class AgendaController extends Controller
     }
 
     /**
-     * The view in ?vista=dia|semana, or null to let the screen choose: the
-     * day on a phone, the week elsewhere.
+     * The view in ?vista=dia|semana|mes, or null to let the screen choose:
+     * the day on a phone, the week elsewhere.
      */
     private function requestedView(Request $request): ?string
     {
         $view = $request->string('vista')->toString();
 
-        return in_array($view, ['dia', 'semana'], true) ? $view : null;
+        return in_array($view, ['dia', 'semana', 'mes'], true) ? $view : null;
     }
 
     /**
@@ -144,7 +146,7 @@ class AgendaController extends Controller
                 'next' => $start->addWeek()->toDateString(),
                 'sessionCount' => $sessions->where('status', ClassSessionStatus::Scheduled)->count(),
             ],
-            'days' => collect(range(0, 6))->map(function (int $offset) use ($start, $today, $sessions, $timezone): array {
+            'days' => collect(range(0, 6))->map(function (int $offset) use ($start, $today, $sessions): array {
                 $day = $start->addDays($offset);
 
                 return [
@@ -155,22 +157,85 @@ class AgendaController extends Controller
                     'isToday' => $day->isSameDay($today),
                     'sessions' => $sessions
                         ->filter(fn (ClassSession $session): bool => $session->localStartsAt()->isSameDay($day))
-                        ->map(fn (ClassSession $session): array => [
-                            'id' => $session->id,
-                            'startsAt' => $session->localStartsAt()->format('H:i'),
-                            'endsAt' => $session->ends_at->timezone($timezone)->format('H:i'),
-                            'startMinutes' => $session->localStartsAt()->hour * 60 + $session->localStartsAt()->minute,
-                            'durationMinutes' => (int) $session->starts_at->diffInMinutes($session->ends_at),
-                            'classTypeName' => $session->classType->name,
-                            'instructorName' => $session->instructor?->name,
-                            'bookedCount' => $session->booked_count,
-                            'capacity' => $session->capacity,
-                            'isCancelled' => $session->status === ClassSessionStatus::Cancelled,
-                            'hasStarted' => now()->greaterThanOrEqualTo($session->starts_at),
-                        ])
+                        ->map(fn (ClassSession $session): array => $this->presentCard($session))
                         ->values(),
                 ];
             }),
+        ];
+    }
+
+    /**
+     * The month around the day in focus, as whole weeks from Monday to
+     * Sunday (5 or 6), with the classes of each day. One query covers
+     * every shown day, including those of the months around it.
+     *
+     * @return array<string, mixed>
+     */
+    private function monthProps(Studio $studio, CarbonImmutable $focus): array
+    {
+        $today = now(config()->string('studio.timezone'))->startOfDay();
+        $first = $focus->startOfMonth();
+        $gridStart = $first->startOfWeek(CarbonImmutable::MONDAY);
+        $gridEnd = $first->endOfMonth()->endOfWeek(CarbonImmutable::SUNDAY)->startOfDay();
+        $sessions = $studio->classSessions()
+            ->where('starts_at', '>=', $gridStart->utc())
+            ->where('starts_at', '<', $gridEnd->addDay()->utc())
+            ->with(['classType', 'instructor'])
+            ->orderBy('starts_at')
+            ->get()
+            ->groupBy(fn (ClassSession $session): string => $session->localStartsAt()->toDateString());
+        $weekCount = (int) round($gridStart->diffInDays($gridEnd->addDay()) / 7);
+        $cardsByDay = $sessions->map(fn ($daySessions): array => $daySessions
+            ->map(fn (ClassSession $session): array => $this->presentCard($session))
+            ->values()
+            ->all());
+
+        return [
+            'start' => $first->toDateString(),
+            'label' => Str::ucfirst($first->translatedFormat('F Y')),
+            'rangeLabel' => '1 – '.rtrim($first->endOfMonth()->translatedFormat('j M'), '.'),
+            'previous' => $first->subMonth()->toDateString(),
+            'next' => $first->addMonth()->toDateString(),
+            'sessionCount' => $sessions
+                ->filter(fn ($daySessions, string $date): bool => str_starts_with($date, $first->format('Y-m')))
+                ->flatten()
+                ->where('status', ClassSessionStatus::Scheduled)
+                ->count(),
+            'weeks' => collect(range(0, $weekCount - 1))->map(fn (int $week): array => collect(range(0, 6))->map(function (int $offset) use ($gridStart, $week, $first, $today, $cardsByDay): array {
+                $day = $gridStart->addDays($week * 7 + $offset);
+
+                return [
+                    'date' => $day->toDateString(),
+                    'dayOfMonth' => $day->day,
+                    'isToday' => $day->isSameDay($today),
+                    'inMonth' => $day->isSameMonth($first),
+                    'sessions' => $cardsByDay->get($day->toDateString(), []),
+                ];
+            })->all()),
+        ];
+    }
+
+    /**
+     * A class as the calendar draws it, in the week and in the month.
+     *
+     * @return array<string, mixed>
+     */
+    private function presentCard(ClassSession $session): array
+    {
+        $startsAt = $session->localStartsAt();
+
+        return [
+            'id' => $session->id,
+            'startsAt' => $startsAt->format('H:i'),
+            'endsAt' => $session->ends_at->timezone(config()->string('studio.timezone'))->format('H:i'),
+            'startMinutes' => $startsAt->hour * 60 + $startsAt->minute,
+            'durationMinutes' => (int) $session->starts_at->diffInMinutes($session->ends_at),
+            'classTypeName' => $session->classType->name,
+            'instructorName' => $session->instructor?->name,
+            'bookedCount' => $session->booked_count,
+            'capacity' => $session->capacity,
+            'isCancelled' => $session->status === ClassSessionStatus::Cancelled,
+            'hasStarted' => now()->greaterThanOrEqualTo($session->starts_at),
         ];
     }
 

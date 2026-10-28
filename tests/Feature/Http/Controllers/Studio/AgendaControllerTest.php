@@ -90,10 +90,47 @@ it('focuses the day in ?fecha=, shows its week and keeps the view asked for', fu
 
 it('falls back to today for a date or view it cannot read', function () {
     $this->actingAs(frontDeskOf($this->studio))
-        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-13-45x', 'vista' => 'mes']))
+        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-13-45x', 'vista' => 'año']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('focus.date', '2026-11-02')
             ->where('view', null));
+});
+
+it('shows the month as whole weeks from Monday, with each class in its day', function () {
+    agendaClass($this->studio, $this->fernanda, '2026-10-01 07:00');
+    agendaClass($this->studio, $this->fernanda, '2026-10-31 22:30');
+    agendaClass($this->studio, $this->fernanda, '2026-10-20 19:00', ['status' => 'cancelled']);
+    agendaClass($this->studio, $this->fernanda, '2026-09-30 19:00');
+
+    $this->actingAs(frontDeskOf($this->studio))
+        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-10-15', 'vista' => 'mes']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('view', 'mes')
+            ->where('month.start', '2026-10-01')
+            ->where('month.label', 'Octubre 2026')
+            ->where('month.rangeLabel', '1 – 31 oct')
+            ->where('month.previous', '2026-09-01')
+            ->where('month.next', '2026-11-01')
+            ->where('month.sessionCount', 2)
+            ->has('month.weeks', 5)
+            ->where('month.weeks.0.0', fn ($day) => $day['date'] === '2026-09-28' && $day['inMonth'] === false)
+            ->where('month.weeks.0.2.sessions.0.startsAt', '19:00')
+            ->where('month.weeks.0.3', fn ($day) => $day['date'] === '2026-10-01' && $day['inMonth'] === true && count($day['sessions']) === 1)
+            ->where('month.weeks.4.5', fn ($day) => $day['date'] === '2026-10-31' && $day['sessions'][0]['startsAt'] === '22:30')
+            ->where('month.weeks.4.6.date', '2026-11-01'));
+});
+
+it('draws six weeks when the month needs them, and no month in the other views', function () {
+    $this->actingAs(frontDeskOf($this->studio))
+        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-08-10', 'vista' => 'mes']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('month.weeks', 6)
+            ->where('month.weeks.0.0.date', '2026-07-27')
+            ->where('month.weeks.5.6.date', '2026-09-06'));
+
+    $this->actingAs(frontDeskOf($this->studio))
+        ->get(route('studios.agenda.index', [$this->studio, 'vista' => 'semana']))
+        ->assertInertia(fn (Assert $page) => $page->where('month', null));
 });
 
 it('opens a class with who comes, the team to add and the instructors', function () {
