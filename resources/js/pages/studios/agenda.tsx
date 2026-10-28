@@ -1,3 +1,4 @@
+import type { Page } from '@inertiajs/core';
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -49,6 +50,7 @@ import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
+import type { FlashToast } from '@/types/ui';
 
 type Week = {
     start: string;
@@ -114,6 +116,16 @@ type FoundStudent = {
 
 /** Only the week and the panel reload; the rest of the page stays. */
 const WEEK_RELOAD = ['week', 'days', 'session'];
+
+/**
+ * Whether the action went through. A booking rule that says no comes back
+ * as a redirect with an error toast, which Inertia still calls a success.
+ */
+function wentThrough(page: Page): boolean {
+    const toast = page.flash?.toast as FlashToast | undefined;
+
+    return toast?.type !== 'error';
+}
 
 function weekUrl(slug: string, start: string): string {
     return agendaIndex.url(slug, { query: { semana: start } });
@@ -209,6 +221,18 @@ function BookStudentDialog({
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [students, setStudents] = useState<FoundStudent[] | null>(null);
+    const [failed, setFailed] = useState(false);
+
+    // Closing starts the next search from scratch.
+    function changeOpen(next: boolean) {
+        setOpen(next);
+
+        if (!next) {
+            setSearch('');
+            setStudents(null);
+            setFailed(false);
+        }
+    }
 
     useEffect(() => {
         if (!open) {
@@ -226,11 +250,30 @@ function BookStudentDialog({
                     signal: controller.signal,
                 },
             )
-                .then((response) => response.json())
-                .then((data: { students: FoundStudent[] }) =>
-                    setStudents(data.students),
-                )
-                .catch(() => {});
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    return response.json() as Promise<{
+                        students: FoundStudent[];
+                    }>;
+                })
+                .then((data) => {
+                    setFailed(false);
+                    setStudents(data.students);
+                })
+                .catch((error: unknown) => {
+                    if (
+                        error instanceof DOMException &&
+                        error.name === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    setFailed(true);
+                    setStudents([]);
+                });
         }, 250);
 
         return () => {
@@ -240,17 +283,7 @@ function BookStudentDialog({
     }, [open, search, slug, session.id]);
 
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(next) => {
-                setOpen(next);
-
-                if (!next) {
-                    setSearch('');
-                    setStudents(null);
-                }
-            }}
-        >
+        <Dialog open={open} onOpenChange={changeOpen}>
             <DialogTrigger asChild>
                 <Button>
                     <UserPlus />
@@ -285,7 +318,12 @@ function BookStudentDialog({
                     aria-live="polite"
                     className="grid max-h-72 overflow-y-auto"
                 >
-                    {students === null ? (
+                    {failed ? (
+                        <p className="py-4 text-sm text-muted-foreground">
+                            No pudimos buscar. Recarga la página e inténtalo de
+                            nuevo.
+                        </p>
+                    ) : students === null ? (
                         <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
                             <Spinner /> Buscando…
                         </p>
@@ -324,7 +362,11 @@ function BookStudentDialog({
                                                 session.id,
                                             ])}
                                             options={{ preserveScroll: true }}
-                                            onSuccess={() => setOpen(false)}
+                                            onSuccess={(page) => {
+                                                if (wentThrough(page)) {
+                                                    changeOpen(false);
+                                                }
+                                            }}
                                         >
                                             {({ processing }) => (
                                                 <>
@@ -542,7 +584,11 @@ function CancelBookingDialog({
                         attendee.id,
                     ])}
                     options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
+                    onSuccess={(page) => {
+                        if (wentThrough(page)) {
+                            setOpen(false);
+                        }
+                    }}
                     onError={(errors) => focusFirstError(errors)}
                     className="grid gap-4"
                 >
@@ -639,7 +685,11 @@ function CancelSessionDialog({
                 <Form
                     {...cancelSession.form([slug, session.id])}
                     options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
+                    onSuccess={(page) => {
+                        if (wentThrough(page)) {
+                            setOpen(false);
+                        }
+                    }}
                     onError={(errors) => focusFirstError(errors)}
                     className="grid gap-4"
                 >
