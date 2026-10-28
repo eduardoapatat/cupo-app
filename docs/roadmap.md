@@ -112,4 +112,5 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
 - [ ] Seeders de la demo y cuentas con acceso de un clic.
 - [ ] Modo demo y reinicio cada noche.
 - [ ] Correos reales, despliegue y el README final.
-- [ ] Repositorio público (con autorización explícita) e insignia del CI en el README. Hasta aquí, el repositorio es privado.
+- [x] Repositorio público: se adelantó al 28 de octubre de 2026, con autorización explícita, junto con su descripción y sus temas en GitHub.
+- [ ] Insignia del CI en el README.

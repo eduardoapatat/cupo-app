@@ -52,6 +52,6 @@ A fictional app (portfolio project) for small group-class studios for adults (pi
 
 - Never read or edit `.env*` files. If a variable must change, tell the user the name and value to set.
 - Commits: Conventional Commits in Spanish, imperative, lowercase, one logical change per commit.
-- Never push, amend or use `--no-verify` unless the user asks. The repository stays private until phase 7.
+- Never push, amend or use `--no-verify` unless the user asks. The repository is public: never commit secrets, real personal data or real brands.
 - Demo data is fictional: no real brands, people or personal data in code, seeders or history.
 - Ask before building anything not in the plan (pages, buttons, modes such as "view as"); do not assume.
