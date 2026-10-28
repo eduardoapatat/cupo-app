@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Bookings\BookSession;
+use App\Actions\Bookings\CancelBooking;
 use App\Actions\Bookings\CancelSession;
 use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
@@ -55,6 +56,18 @@ it('shows her upcoming classes in order, and her history without them', function
             ->where('history.data', fn ($history) => collect($history)->map(fn ($booking) => [$booking['id'], $booking['status']])->all() === [
                 [$cancelledByStudio->id, 'El estudio canceló la clase'],
             ]));
+});
+
+it('keeps her own late cancellation in the history when the studio cancels the class afterwards', function () {
+    $studio = Studio::factory()->create(['cancellation_window_hours' => 6]);
+    $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create();
+    $booking = bookingOf($javiera, $studio, '2026-11-02 16:00');
+    app(CancelBooking::class)->handle($booking, $javiera);
+    app(CancelSession::class)->handle($booking->classSession, User::factory()->create(), 'Corte de luz');
+
+    $this->actingAs($javiera)
+        ->get(route('studios.my-bookings.index', $studio))
+        ->assertInertia(fn (Assert $page) => $page->where('history.data.0.status', 'Cancelada tarde'));
 });
 
 it('cancels her own booking on time or late', function (string $now, BookingStatus $status, string $message) {

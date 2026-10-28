@@ -53,7 +53,7 @@ class MyBookingsController extends Controller
             ]),
             'history' => $history->through(fn (Booking $booking): array => [
                 ...$this->present($booking),
-                'status' => $booking->classSession->status === ClassSessionStatus::Cancelled && $booking->status->isCancelled()
+                'status' => $this->cancelledWithTheClass($booking)
                     ? 'El estudio canceló la clase'
                     : $booking->status->label(),
             ]),
@@ -76,6 +76,22 @@ class MyBookingsController extends Controller
         }
 
         return back(fallback: route('studios.my-bookings.index', $studio));
+    }
+
+    /**
+     * Whether the booking was cancelled because the studio cancelled the
+     * class (same person, same moment, see CancelSession), and not by the
+     * student before that.
+     */
+    private function cancelledWithTheClass(Booking $booking): bool
+    {
+        $session = $booking->classSession;
+
+        return $session->status === ClassSessionStatus::Cancelled
+            && $booking->cancelled_by_id === $session->cancelled_by_id
+            && $booking->cancelled_at !== null
+            && $session->cancelled_at !== null
+            && $booking->cancelled_at->equalTo($session->cancelled_at);
     }
 
     /**
