@@ -10,6 +10,7 @@ import {
 import { destroy as removeMember } from '@/actions/App/Http/Controllers/Studio/TeamMemberController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
+import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -174,14 +175,19 @@ function MemberRow({ slug, member }: { slug: string; member: Member }) {
     return (
         <TableRow>
             <TableCell className="max-w-0 sm:max-w-none">
-                <div className="grid min-w-0 leading-tight">
-                    <span className="truncate font-medium">{member.name}</span>
-                    <span
-                        className="truncate text-sm text-muted-foreground"
-                        title={member.email ?? undefined}
-                    >
-                        {member.email}
-                    </span>
+                <div className="flex min-w-0 items-center gap-3">
+                    <InitialsAvatar name={member.name} />
+                    <div className="grid min-w-0 leading-tight">
+                        <span className="truncate font-medium">
+                            {member.name}
+                        </span>
+                        <span
+                            className="truncate text-sm text-muted-foreground"
+                            title={member.email ?? undefined}
+                        >
+                            {member.email}
+                        </span>
+                    </div>
                 </div>
             </TableCell>
             <TableCell className="text-muted-foreground">
