@@ -12,6 +12,7 @@ use App\Http\Controllers\Studio\ClassTypeController;
 use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\MyBookingsController;
+use App\Http\Controllers\Studio\MySessionsController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
 use App\Http\Controllers\Studio\SessionCancellationController;
 use App\Http\Controllers\Studio\SessionInstructorController;
@@ -95,6 +96,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::delete('agenda/clases/{classSession}/reservas/{booking}', [AgendaBookingController::class, 'destroy'])->name('agenda.bookings.destroy');
                 Route::put('agenda/clases/{classSession}/instructor', [SessionInstructorController::class, 'update'])->name('agenda.instructor.update');
                 Route::post('agenda/clases/{classSession}/cancelar', [SessionCancellationController::class, 'store'])->name('agenda.cancel');
+
+                Route::get('mis-clases', [MySessionsController::class, 'index'])->name('my-sessions.index');
 
                 Route::get('reservar', [BookingController::class, 'index'])->name('book.index');
                 Route::post('reservar/{classSession}', [BookingController::class, 'store'])->name('book.store');

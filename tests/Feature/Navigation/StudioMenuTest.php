@@ -13,7 +13,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 dataset('menus', [
     'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Agenda', 'Alumnas', 'Clases', 'Equipo', 'Estudio']],
     'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja'], ['Inicio', 'Agenda', 'Alumnas']],
-    'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases'], ['Inicio']],
+    'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases'], ['Inicio', 'Mis clases']],
     'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan'], ['Inicio', 'Reservar', 'Mis reservas']],
 ]);
 
