@@ -1,17 +1,31 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Mail, MoreHorizontal, UserPlus } from 'lucide-react';
 import { useState } from 'react';
+import { index as teamIndex } from '@/actions/App/Http/Controllers/Studio/TeamController';
 import {
     destroy as cancelInvitation,
     resend as resendInvitation,
     store as storeInvitation,
 } from '@/actions/App/Http/Controllers/Studio/TeamInvitationController';
-import { index as teamIndex } from '@/actions/App/Http/Controllers/Studio/TeamController';
 import { destroy as removeMember } from '@/actions/App/Http/Controllers/Studio/TeamMemberController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -21,6 +35,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -30,6 +45,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
@@ -56,69 +72,99 @@ type Props = {
     roles: Option[];
 };
 
-function InviteForm({ slug, roles }: { slug: string; roles: Option[] }) {
+function InviteCard({ slug, roles }: { slug: string; roles: Option[] }) {
     return (
         <Form
             {...storeInvitation.form(slug)}
             resetOnSuccess
+            options={{ preserveScroll: true }}
             onError={(errors) => focusFirstError(errors)}
-            className="grid gap-4 sm:grid-cols-[1fr_12rem_auto] sm:items-start"
         >
             {({ processing, errors }) => (
-                <>
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Correo</Label>
-                        <Input
-                            id="email"
-                            {...fieldErrorProps('email', errors.email)}
-                            name="email"
-                            type="email"
-                            required
-                            autoComplete="off"
-                            placeholder="correo@ejemplo.com"
-                        />
-                        <InputError id="email-error" message={errors.email} />
-                    </div>
+                <Card className="gap-0 py-0">
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4 py-6">
+                        <div className="grid gap-1.5">
+                            <CardTitle>
+                                <h2>Invitar por correo</h2>
+                            </CardTitle>
+                            <CardDescription>
+                                Le llega un enlace para unirse. Si no tiene
+                                cuenta, la crea en el camino.
+                            </CardDescription>
+                        </div>
+                        <Button type="submit" disabled={processing}>
+                            {processing ? <Spinner /> : <UserPlus />}
+                            Invitar
+                        </Button>
+                    </CardHeader>
+                    <Separator />
+                    <CardContent className="grid gap-6 py-6 sm:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="email">Correo</Label>
+                            <div className="relative">
+                                <Mail
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                />
+                                <Input
+                                    id="email"
+                                    {...fieldErrorProps('email', errors.email)}
+                                    name="email"
+                                    type="email"
+                                    required
+                                    autoComplete="off"
+                                    placeholder="correo@ejemplo.com"
+                                    className="pl-9"
+                                />
+                            </div>
+                            <InputError
+                                id="email-error"
+                                message={errors.email}
+                            />
+                        </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="role">Rol</Label>
-                        <Select
-                            name="role"
-                            defaultValue={roles[0]?.value}
-                            required
-                        >
-                            <SelectTrigger
-                                id="role"
-                                {...fieldErrorProps('role', errors.role)}
-                                className="w-full"
+                        <div className="grid gap-2">
+                            <Label htmlFor="role">Rol</Label>
+                            <Select
+                                name="role"
+                                defaultValue={roles[0]?.value}
+                                required
                             >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {roles.map((role) => (
-                                    <SelectItem
-                                        key={role.value}
-                                        value={role.value}
-                                    >
-                                        {role.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError id="role-error" message={errors.role} />
-                    </div>
-
-                    <Button
-                        type="submit"
-                        disabled={processing}
-                        className="sm:mt-[1.375rem]"
-                    >
-                        {processing && <Spinner />}
-                        Invitar
-                    </Button>
-                </>
+                                <SelectTrigger
+                                    id="role"
+                                    {...fieldErrorProps('role', errors.role)}
+                                    className="w-full"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {roles.map((role) => (
+                                        <SelectItem
+                                            key={role.value}
+                                            value={role.value}
+                                        >
+                                            {role.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError id="role-error" message={errors.role} />
+                        </div>
+                    </CardContent>
+                </Card>
             )}
         </Form>
+    );
+}
+
+/** The «⋯» button of a row, named after the person or email it acts on. */
+function RowActionsTrigger({ label }: { label: string }) {
+    return (
+        <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={label}>
+                <MoreHorizontal />
+            </Button>
+        </DropdownMenuTrigger>
     );
 }
 
@@ -127,33 +173,45 @@ function MemberRow({ slug, member }: { slug: string; member: Member }) {
 
     return (
         <TableRow>
-            <TableCell className="font-medium">{member.name}</TableCell>
-            <TableCell
-                className="max-w-64 truncate text-muted-foreground"
-                title={member.email ?? undefined}
-            >
-                {member.email}
+            <TableCell className="max-w-0 sm:max-w-none">
+                <div className="grid min-w-0 leading-tight">
+                    <span className="truncate font-medium">{member.name}</span>
+                    <span
+                        className="truncate text-sm text-muted-foreground"
+                        title={member.email ?? undefined}
+                    >
+                        {member.email}
+                    </span>
+                </div>
             </TableCell>
-            <TableCell>{member.role}</TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-muted-foreground">
+                {member.role}
+            </TableCell>
+            <TableCell className="w-12 text-right">
                 {member.removable && (
-                    <ConfirmDialog
-                        open={confirming}
-                        onOpenChange={setConfirming}
-                        trigger={
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                aria-label={`Quitar a ${member.name} del equipo`}
-                            >
-                                Quitar
-                            </Button>
-                        }
-                        title={`¿Quitar a ${member.name} del equipo?`}
-                        description="Pierde el acceso al estudio de inmediato. Para que vuelva, envíale una invitación nueva."
-                        action={removeMember.form([slug, member.id])}
-                        confirmLabel="Quitar del equipo"
-                    />
+                    <>
+                        <DropdownMenu>
+                            <RowActionsTrigger
+                                label={`Acciones para ${member.name}`}
+                            />
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onSelect={() => setConfirming(true)}
+                                >
+                                    Quitar del equipo
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <ConfirmDialog
+                            open={confirming}
+                            onOpenChange={setConfirming}
+                            title={`¿Quitar a ${member.name} del equipo?`}
+                            description="Pierde el acceso al estudio de inmediato y sus clases quedan sin instructor. Para que vuelva, envíale una invitación nueva."
+                            action={removeMember.form([slug, member.id])}
+                            confirmLabel="Quitar del equipo"
+                        />
+                    </>
                 )}
             </TableCell>
         </TableRow>
@@ -171,58 +229,69 @@ function InvitationRow({
 
     return (
         <TableRow>
-            <TableCell className="max-w-64 truncate" title={invitation.email}>
-                {invitation.email}
-            </TableCell>
-            <TableCell>{invitation.role}</TableCell>
-            <TableCell>
-                {invitation.expired ? (
-                    <Badge variant="outline">Vencida</Badge>
-                ) : (
-                    <span className="text-muted-foreground">
-                        Vence el {invitation.expiresOn}
-                    </span>
-                )}
-            </TableCell>
-            <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                    <Form
-                        {...resendInvitation.form([slug, invitation.id])}
-                        options={{ preserveScroll: true }}
+            <TableCell className="max-w-0 sm:max-w-none">
+                <div className="grid min-w-0 leading-tight">
+                    <span
+                        className="truncate font-medium"
+                        title={invitation.email}
                     >
-                        {({ processing }) => (
-                            <Button
-                                type="submit"
-                                variant="outline"
-                                size="sm"
-                                disabled={processing}
-                                aria-label={`Reenviar la invitación a ${invitation.email}`}
-                            >
-                                {processing && <Spinner />}
-                                Reenviar
-                            </Button>
-                        )}
-                    </Form>
-                    <ConfirmDialog
-                        open={confirming}
-                        onOpenChange={setConfirming}
-                        trigger={
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                aria-label={`Cancelar la invitación a ${invitation.email}`}
-                            >
-                                Cancelar
-                            </Button>
-                        }
-                        title="¿Cancelar la invitación?"
-                        description={`El enlace que le llegó a ${invitation.email} dejará de servir.`}
-                        action={cancelInvitation.form([slug, invitation.id])}
-                        confirmLabel="Cancelar invitación"
-                    />
+                        {invitation.email}
+                    </span>
+                    <span className="truncate text-sm text-muted-foreground">
+                        {invitation.expired
+                            ? 'Venció; reenvíala para darle otros días'
+                            : `Vence el ${invitation.expiresOn}`}
+                    </span>
                 </div>
             </TableCell>
+            <TableCell className="text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2">
+                    {invitation.role}
+                    {invitation.expired && (
+                        <Badge variant="outline">Vencida</Badge>
+                    )}
+                </div>
+            </TableCell>
+            <TableCell className="w-12 text-right">
+                <DropdownMenu>
+                    <RowActionsTrigger
+                        label={`Acciones para la invitación a ${invitation.email}`}
+                    />
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link
+                                href={resendInvitation([slug, invitation.id])}
+                                as="button"
+                                preserveScroll
+                                className="w-full"
+                            >
+                                Reenviar invitación
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => setConfirming(true)}
+                        >
+                            Cancelar invitación
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <ConfirmDialog
+                    open={confirming}
+                    onOpenChange={setConfirming}
+                    title="¿Cancelar la invitación?"
+                    description={`El enlace que le llegó a ${invitation.email} dejará de servir.`}
+                    action={cancelInvitation.form([slug, invitation.id])}
+                    confirmLabel="Cancelar invitación"
+                />
+            </TableCell>
         </TableRow>
+    );
+}
+
+function Count({ value }: { value: number }) {
+    return (
+        <span className="text-muted-foreground tabular-nums">({value})</span>
     );
 }
 
@@ -237,64 +306,32 @@ export default function Team({ members, invitations, roles }: Props) {
         <>
             <Head title="Equipo" />
 
-            <div className="flex flex-col gap-10 px-4 py-6">
+            <div className="flex flex-col gap-8 px-4 py-6">
                 <Heading
                     title="Equipo"
                     description="Quienes atienden el mesón y dan clases en tu estudio. Las alumnas están en «Alumnas»."
                 />
 
-                <section className="grid gap-4">
-                    <Heading
-                        variant="small"
-                        title="Invitar a alguien"
-                        description="Le llega un correo con un enlace para unirse. Si no tiene cuenta, la crea en el camino."
-                    />
-                    <InviteForm slug={studio.slug} roles={roles} />
-                </section>
+                <InviteCard slug={studio.slug} roles={roles} />
 
-                <section className="grid gap-4">
-                    <Heading variant="small" title="Quiénes son" />
-                    <div className="overflow-x-auto rounded-lg border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nombre</TableHead>
-                                    <TableHead>Correo</TableHead>
-                                    <TableHead>Rol</TableHead>
-                                    <TableHead className="text-right">
-                                        <span className="sr-only">
-                                            Acciones
-                                        </span>
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {members.map((member) => (
-                                    <MemberRow
-                                        key={member.id}
-                                        slug={studio.slug}
-                                        member={member}
-                                    />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </section>
+                <Tabs defaultValue="members" className="gap-4">
+                    <TabsList variant="line">
+                        <TabsTrigger value="members">
+                            Equipo <Count value={members.length} />
+                        </TabsTrigger>
+                        <TabsTrigger value="invitations">
+                            Invitaciones pendientes{' '}
+                            <Count value={invitations.length} />
+                        </TabsTrigger>
+                    </TabsList>
 
-                <section className="grid gap-4">
-                    <Heading variant="small" title="Invitaciones pendientes" />
-                    {invitations.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No hay invitaciones sin aceptar.
-                        </p>
-                    ) : (
+                    <TabsContent value="members">
                         <div className="overflow-x-auto rounded-lg border">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Correo</TableHead>
+                                        <TableHead>Persona</TableHead>
                                         <TableHead>Rol</TableHead>
-                                        <TableHead>Estado</TableHead>
                                         <TableHead className="text-right">
                                             <span className="sr-only">
                                                 Acciones
@@ -303,18 +340,51 @@ export default function Team({ members, invitations, roles }: Props) {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {invitations.map((invitation) => (
-                                        <InvitationRow
-                                            key={invitation.id}
+                                    {members.map((member) => (
+                                        <MemberRow
+                                            key={member.id}
                                             slug={studio.slug}
-                                            invitation={invitation}
+                                            member={member}
                                         />
                                     ))}
                                 </TableBody>
                             </Table>
                         </div>
-                    )}
-                </section>
+                    </TabsContent>
+
+                    <TabsContent value="invitations">
+                        {invitations.length === 0 ? (
+                            <p className="rounded-lg border px-4 py-8 text-center text-sm text-muted-foreground">
+                                No hay invitaciones sin aceptar.
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto rounded-lg border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Correo</TableHead>
+                                            <TableHead>Rol</TableHead>
+                                            <TableHead className="text-right">
+                                                <span className="sr-only">
+                                                    Acciones
+                                                </span>
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {invitations.map((invitation) => (
+                                            <InvitationRow
+                                                key={invitation.id}
+                                                slug={studio.slug}
+                                                invitation={invitation}
+                                            />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
             </div>
         </>
     );
