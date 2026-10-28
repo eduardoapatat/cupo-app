@@ -39,3 +39,15 @@ it('does not cancel a class twice or once it started', function () {
     expect(fn () => app(CancelSession::class)->handle($upcoming->fresh(), User::factory()->create(), 'Otra vez'))
         ->toThrow(BookingRejected::class, 'Esta clase ya estaba cancelada.');
 });
+
+it('leaves no spot counted even when the class it got was stale', function () {
+    $session = ClassSession::factory()->create(['instructor_id' => User::factory()]);
+    $stale = ClassSession::find($session->id);
+    $javiera = User::factory()->create();
+    app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+
+    app(CancelSession::class)->handle($stale, User::factory()->create(), 'Feriado');
+
+    expect($session->fresh()->booked_count)->toBe(0)
+        ->and($session->bookings()->current()->count())->toBe(0);
+});

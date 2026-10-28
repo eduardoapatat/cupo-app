@@ -28,25 +28,41 @@ class CancelSession
             throw new BookingRejected(__('The class already started, so it can no longer be cancelled.'));
         }
 
-        DB::transaction(function () use ($session, $by, $reason): void {
-            // Updating the session first locks its row, so a booking that
-            // races this one either commits before (and is cancelled below)
-            // or finds the class cancelled.
-            $session->forceFill([
-                'status' => ClassSessionStatus::Cancelled,
-                'cancelled_at' => now(),
-                'cancelled_by_id' => $by->id,
-                'cancellation_reason' => $reason,
-                'booked_count' => 0,
-            ])->save();
+        $now = now();
 
+        DB::transaction(function () use ($session, $by, $reason, $now): void {
+            // A query, not save(): the model may be stale, and save() would
+            // skip a booked_count it believes is already 0. Updating the row
+            // first also locks it, so a booking that races this one either
+            // commits before (and is cancelled below) or finds the class
+            // cancelled.
+            $cancelled = ClassSession::query()
+                ->whereKey($session->id)
+                ->where('status', ClassSessionStatus::Scheduled)
+                ->update([
+                    'status' => ClassSessionStatus::Cancelled,
+                    'cancelled_at' => $now,
+                    'cancelled_by_id' => $by->id,
+                    'cancellation_reason' => $reason,
+                    'booked_count' => 0,
+                    'updated_at' => $now,
+                ]);
+
+            if ($cancelled === 0) {
+                throw new BookingRejected(__('This class was already cancelled.'));
+            }
+
+            // The same moment as the class, so «Mis reservas» can tell these
+            // apart from a booking the student had cancelled before.
             $session->bookings()->where('status', BookingStatus::Confirmed)->update([
                 'status' => BookingStatus::CancelledOnTime,
-                'cancelled_at' => now(),
+                'cancelled_at' => $now,
                 'cancelled_by_id' => $by->id,
                 'cancellation_reason' => __('The studio cancelled the class.'),
-                'updated_at' => now(),
+                'updated_at' => $now,
             ]);
         });
+
+        $session->refresh();
     }
 }
