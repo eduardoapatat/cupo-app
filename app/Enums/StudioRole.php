@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Navigation\HomeBlock;
 use App\Navigation\MenuItem;
 
 /**
@@ -123,6 +124,21 @@ enum StudioRole: string
                 MenuItem::MyBookings,
                 MenuItem::MyPlan,
             ],
+        };
+    }
+
+    /**
+     * What the role sees on arrival, in order (docs/roles-y-permisos.md).
+     *
+     * @return list<HomeBlock>
+     */
+    public function homeBlocks(): array
+    {
+        return match ($this) {
+            self::Owner => [HomeBlock::TodayOccupancy, HomeBlock::Alerts, HomeBlock::MonthIncome],
+            self::FrontDesk => [HomeBlock::TodaySessions, HomeBlock::Arrivals, HomeBlock::ReceiptsToReview, HomeBlock::CashRegister],
+            self::Instructor => [HomeBlock::TeachingToday],
+            self::Student => [HomeBlock::NextBooking, HomeBlock::ClassesLeft, HomeBlock::PlanExpiry],
         };
     }
 }
