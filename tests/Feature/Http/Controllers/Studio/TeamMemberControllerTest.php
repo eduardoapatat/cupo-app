@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\StudioRole;
+use App\Models\ClassSession;
 use App\Models\Membership;
+use App\Models\ScheduleSlot;
 use App\Models\Studio;
 use App\Models\User;
 
@@ -54,4 +56,19 @@ it('keeps removals in the hands of the owner', function () {
         ->assertForbidden();
 
     expect($instructor->fresh())->not->toBeNull();
+});
+
+it('leaves the schedule and the future sessions of a removed instructor without one', function () {
+    $studio = Studio::factory()->create();
+    $owner = User::factory()->memberOf($studio, StudioRole::Owner)->create();
+    $diego = User::factory()->memberOf($studio, StudioRole::Instructor)->create();
+    $slot = ScheduleSlot::factory()->for($studio)->create(['instructor_id' => $diego->id]);
+    $future = ClassSession::factory()->for($studio)->create(['instructor_id' => $diego->id]);
+    $past = ClassSession::factory()->for($studio)->startingAt(now()->subWeek())->create(['instructor_id' => $diego->id]);
+
+    $this->actingAs($owner)->delete(route('studios.team.members.destroy', [$studio, $diego->memberships()->sole()]));
+
+    expect($slot->fresh()->instructor_id)->toBeNull()
+        ->and($future->fresh()->instructor_id)->toBeNull()
+        ->and($past->fresh()->instructor_id)->toBe($diego->id);
 });
