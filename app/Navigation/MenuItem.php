@@ -80,6 +80,7 @@ enum MenuItem: string
     {
         return match ($this) {
             self::Home => 'studios.home',
+            self::Agenda => 'studios.agenda.index',
             self::Students => 'studios.students.index',
             self::Classes => 'studios.classes.index',
             self::Team => 'studios.team.index',

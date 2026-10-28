@@ -4,6 +4,8 @@ use App\Http\Controllers\AccountActivationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\Studio\AgendaBookingController;
+use App\Http\Controllers\Studio\AgendaController;
 use App\Http\Controllers\Studio\BookingController;
 use App\Http\Controllers\Studio\ClassesController;
 use App\Http\Controllers\Studio\ClassTypeController;
@@ -11,6 +13,8 @@ use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\MyBookingsController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
+use App\Http\Controllers\Studio\SessionCancellationController;
+use App\Http\Controllers\Studio\SessionInstructorController;
 use App\Http\Controllers\Studio\SettingsController;
 use App\Http\Controllers\Studio\StudentActivationController;
 use App\Http\Controllers\Studio\StudentController;
@@ -83,6 +87,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('clases/horario', [ScheduleSlotController::class, 'store'])->name('classes.slots.store');
                 Route::put('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'update'])->name('classes.slots.update');
                 Route::delete('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'destroy'])->name('classes.slots.destroy');
+
+                Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
+                Route::get('agenda/clases/{classSession}', [AgendaController::class, 'show'])->name('agenda.show');
+                Route::get('agenda/clases/{classSession}/alumnas', [AgendaController::class, 'students'])->name('agenda.students');
+                Route::post('agenda/clases/{classSession}/reservas', [AgendaBookingController::class, 'store'])->name('agenda.bookings.store');
+                Route::delete('agenda/clases/{classSession}/reservas/{booking}', [AgendaBookingController::class, 'destroy'])->name('agenda.bookings.destroy');
+                Route::put('agenda/clases/{classSession}/instructor', [SessionInstructorController::class, 'update'])->name('agenda.instructor.update');
+                Route::post('agenda/clases/{classSession}/cancelar', [SessionCancellationController::class, 'store'])->name('agenda.cancel');
 
                 Route::get('reservar', [BookingController::class, 'index'])->name('book.index');
                 Route::post('reservar/{classSession}', [BookingController::class, 'store'])->name('book.store');

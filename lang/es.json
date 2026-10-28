@@ -87,5 +87,12 @@
     "The studio cancelled the class.": "El estudio canceló la clase.",
     "You booked :class on :day at :time.": "Reservaste :class el :day a las :time.",
     "You cancelled your class. You keep it to use another day.": "Cancelaste tu clase a tiempo: no la pierdes.",
-    "You cancelled your class. It was after the free cancellation window, so the class counts as used.": "Cancelaste tu clase. Como fue después del plazo de cancelación gratis, la clase cuenta como usada."
+    "You cancelled your class. It was after the free cancellation window, so the class counts as used.": "Cancelaste tu clase. Como fue después del plazo de cancelación gratis, la clase cuenta como usada.",
+    "Write why you return the class.": "Escribe por qué le devuelves la clase.",
+    ":name is now in the class.": "Anotamos a :name en la clase.",
+    "We cancelled :name's booking on time.": "Cancelamos la reserva de :name a tiempo.",
+    "We cancelled :name's booking. It was after the free cancellation window, so the class counts as used.": "Cancelamos la reserva de :name. Fue después del plazo de cancelación gratis, así que la clase cuenta como usada.",
+    "This class can no longer change its instructor.": "A esta clase ya no se le puede cambiar el instructor.",
+    ":name teaches this class.": "Ahora :name da esta clase.",
+    "We cancelled the class. Its bookings were cancelled on time.": "Cancelamos la clase. Sus reservas quedaron canceladas a tiempo."
 }
