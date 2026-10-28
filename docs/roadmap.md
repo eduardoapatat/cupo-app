@@ -64,17 +64,25 @@ Para las fases siguientes:
 
 ## Fase 2: horario, sesiones y reservas
 
-- [ ] Tipos de clase y horario semanal (día, hora, cupo e instructor).
-- [ ] Generación de sesiones con el scheduler, y la agenda.
-- [ ] Reservas con cupos garantizados bajo concurrencia real (transacción con bloqueo o restricción en la base), con un test de varios procesos a la vez.
-- [ ] Lista de espera: «Inscribirme si se libera un lugar». El cupo liberado se reserva solo a la primera de la lista mientras falten al menos `waitlist_cutoff_hours` (por defecto, las 6 h de la ventana de cancelación). Más cerca del inicio, queda libre para cualquiera.
-- [ ] Reemplazo de instructor, cancelación de una sesión (avisa y devuelve clases) y asistencia.
-- [ ] Las reglas del estudio editables por la dueña: ventana de cancelación (6 h), cierre de reservas (1 h antes) y corte de la lista de espera.
-- [ ] Policies de «solo las suyas» para el instructor y la alumna.
+Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un cambio de horario no mueve las sesiones con reservas; en esta fase se reserva sin descontar clases; quitar a un instructor deja sus clases sin instructor, y esas no se pueden reservar; el equipo toma clases si recepción lo anota como «equipo»; en la asistencia solo se marca a quien faltó.
+
+- [x] **2.1 "Clases y horario"**:
+    - tipos de clase, horario semanal y sesiones, con sus garantías: el cupo con `CHECK`, sin solapes en la sala (`EXCLUDE`) y sin duplicados al generar;
+    - `sessions:generate` cada noche, con el desfase de cada fecha en Santiago (ADR 0006);
+    - la pantalla «Clases» y las reglas editables en «Estudio»;
+    - quitar a un instructor deja sus clases sin instructor.
+- [ ] **2.2 "Reservas"**:
+    - reservas con el cupo garantizado bajo concurrencia real (contador con `CHECK` y `UPDATE` condicional, ADR 0005) y un test de varios procesos a la vez;
+    - «Reservar» y «Mis reservas» para la alumna, la «Agenda» para recepción y la dueña (reservar por una alumna, anotar al equipo, reemplazo y cancelar la sesión) y «Mis clases» para el instructor;
+    - cancelación a tiempo o tarde según la ventana, y que la dueña pueda saltársela.
+- [ ] **2.3 "Lista de espera, asistencia e Inicio"**:
+    - la lista de espera con su corte, la asistencia (solo quien faltó) y el Inicio de cada rol con datos reales;
+    - el horario de Estudio Flow en los datos demo y el cierre de la fase.
 
 ## Fase 3: planes, créditos, pagos y caja
 
 - [ ] Planes (precio, créditos, vigencia y máximo diario; el ilimitado parte en 1 clase al día), compra de plan y movimientos de créditos.
+- [ ] Reservar pasa a exigir un plan vigente con clases disponibles y descuenta 1 clase (en la Fase 2 se reserva sin descontar). Cancelar a tiempo la devuelve.
 - [ ] Pagos en el mesón (efectivo, tarjeta con POS externo y transferencia), registrados en la caja de quien cobra.
 - [ ] Transferencias con comprobante (subida de archivos) que valida recepción o la dueña.
 - [ ] Caja por persona y día: apertura, cierre con totales por medio y la diferencia del efectivo. Anulaciones con motivo; una caja cerrada solo la toca la dueña.

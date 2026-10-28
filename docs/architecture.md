@@ -48,8 +48,10 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 | `app/Actions/Studios/`                         | `CreateStudio` (el estudio con las reglas por defecto y su dueña, en una transacción) y `JoinStudioAsStudent` (lo que hace el enlace de inscripción)                                                                                                                                           |
 | `app/Actions/Team/`                            | `InviteToStudio`, `SendInvitation` (también reenvía) y `AcceptInvitation` (con la fila bloqueada, para que un enlace no se use dos veces)                                                                                                                                                      |
 | `app/Actions/Students/`                        | `EnrollStudent` (inscribir en el mesón a quien no usa la app) y `SendActivation` (el enlace para que active su cuenta)                                                                                                                                                                         |
+| `app/Actions/Classes/`                         | `GenerateSessions` (las sesiones de los próximos días desde el horario) y `ApplyScheduleChange` (regenera las sesiones sin reservas tras un cambio de horario)                                                                                                                                 |
+| `app/Console/Commands/`                        | `sessions:generate`, programado cada noche en `routes/console.php`                                                                                                                                                                                                                             |
 | `app/Concerns/`                                | Reglas de validación compartidas para el perfil, la contraseña y la declaración de mayoría de edad, y `HasUniqueSlug` (el slug del estudio)                                                                                                                                                    |
-| `app/Enums/`                                   | `StudioRole` (los 4 roles, con sus permisos y su menú) y `StudioPermission` (una acción por fila de la matriz)                                                                                                                                                                                 |
+| `app/Enums/`                                   | `StudioRole` (los 4 roles, con sus permisos y su menú), `StudioPermission` (una acción por fila de la matriz), `Commune`, `Weekday` y `ClassSessionStatus`                                                                                                                                     |
 | `app/Navigation/`                              | `MenuItem`: los ítems del menú, con su etiqueta, el permiso que exigen y su ruta (o «Pronto»)                                                                                                                                                                                                  |
 | `app/Notifications/`                           | `StudioInvitation` (la invitación al equipo) y `ActivateAccount` (activar la cuenta de una alumna sin app), en cola y con enlaces firmados                                                                                                                                                     |
 | `app/Http/Controllers/`                        | `DashboardController` (`/inicio`), `StudioController` (crear el estudio), los enlaces públicos `InvitationController`, `EnrollmentController` y `AccountActivationController`, `Studio/` (las pantallas de cada estudio: Inicio, Estudio, Equipo y Alumnas) y `Settings/` (perfil y seguridad) |
@@ -136,6 +138,11 @@ erDiagram
     studios ||--o{ memberships : tiene
     studios ||--o{ invitations : invita
     users |o--o{ invitations : "invitó"
+    studios ||--o{ class_types : ofrece
+    class_types ||--o{ schedule_slots : "en el horario"
+    schedule_slots |o--o{ class_sessions : genera
+    class_types ||--o{ class_sessions : es
+    users |o--o{ class_sessions : dicta
 
     users {
         bigint id PK
@@ -155,6 +162,7 @@ erDiagram
         smallint booking_cutoff_minutes
         smallint waitlist_cutoff_hours
         smallint plan_expiry_warning_days
+        smallint booking_horizon_days "días de anticipación para reservar"
     }
     memberships {
         bigint id PK
@@ -171,20 +179,50 @@ erDiagram
         timestamptz expires_at
         timestamptz accepted_at "null mientras esté pendiente"
     }
+    class_types {
+        bigint id PK
+        bigint studio_id FK
+        varchar name "único por estudio, sin distinguir mayúsculas"
+        smallint duration_minutes
+        smallint capacity
+        boolean is_active "se desactiva, no se borra"
+    }
+    schedule_slots {
+        bigint id PK
+        bigint class_type_id FK
+        smallint weekday "ISO 1-7"
+        time starts_at "hora local de Santiago"
+        bigint instructor_id FK "null: sin instructor"
+    }
+    class_sessions {
+        bigint id PK
+        bigint schedule_slot_id FK "null si salió del horario"
+        timestamptz starts_at
+        timestamptz ends_at
+        tstzrange period "generada: [starts_at, ends_at)"
+        smallint capacity "copiado del tipo de clase"
+        smallint booked_count "nunca más que capacity"
+        bigint instructor_id FK "null: sin instructor"
+        varchar status "enum: scheduled, cancelled"
+    }
 ```
 
 Las garantías viven en PostgreSQL, no solo en PHP:
 
-| Garantía                                                                                                   | Dónde         | Qué evita                                                                            |
-| ---------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
-| `CHECK` del rol (generado por `$table->enum()`)                                                            | `memberships` | Un rol desconocido (SQLSTATE `23514`)                                                |
-| `UNIQUE (studio_id, user_id)`                                                                              | `memberships` | Dos roles para la misma persona en el mismo estudio (`23505`)                        |
-| `UNIQUE (studio_id) WHERE role = 'owner'`, con `DB::statement` porque Blueprint no tiene índices parciales | `memberships` | Una segunda dueña en el estudio (`23505`)                                            |
-| `UNIQUE (user_id) WHERE role = 'owner'`                                                                    | `memberships` | Que una persona sea dueña de dos estudios (`23505`): Cupo no maneja sucursales       |
-| `CHECK` de reglas no negativas                                                                             | `studios`     | Una ventana de cancelación, un cierre de reservas o un aviso negativos (`23514`)     |
-| `UNIQUE (studio_id, email) WHERE accepted_at IS NULL` y `CHECK (email = lower(email))`                     | `invitations` | Dos invitaciones pendientes al mismo correo, aunque cambien las mayúsculas (`23505`) |
-| `CHECK` del rol (`front_desk` o `instructor`)                                                              | `invitations` | Invitar a alguien como dueña o como alumna (`23514`)                                 |
-| Claves foráneas con `ON DELETE CASCADE`                                                                    | `memberships` | Membresías de un estudio o de una persona que ya no existen                          |
+| Garantía                                                                                                     | Dónde                           | Qué evita                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `CHECK` del rol (generado por `$table->enum()`)                                                              | `memberships`                   | Un rol desconocido (SQLSTATE `23514`)                                                                            |
+| `UNIQUE (studio_id, user_id)`                                                                                | `memberships`                   | Dos roles para la misma persona en el mismo estudio (`23505`)                                                    |
+| `UNIQUE (studio_id) WHERE role = 'owner'`, con `DB::statement` porque Blueprint no tiene índices parciales   | `memberships`                   | Una segunda dueña en el estudio (`23505`)                                                                        |
+| `UNIQUE (user_id) WHERE role = 'owner'`                                                                      | `memberships`                   | Que una persona sea dueña de dos estudios (`23505`): Cupo no maneja sucursales                                   |
+| `CHECK` de reglas no negativas                                                                               | `studios`                       | Una ventana de cancelación, un cierre de reservas o un aviso negativos (`23514`)                                 |
+| `UNIQUE (studio_id, email) WHERE accepted_at IS NULL` y `CHECK (email = lower(email))`                       | `invitations`                   | Dos invitaciones pendientes al mismo correo, aunque cambien las mayúsculas (`23505`)                             |
+| `CHECK` del rol (`front_desk` o `instructor`)                                                                | `invitations`                   | Invitar a alguien como dueña o como alumna (`23514`)                                                             |
+| `CHECK (booked_count >= 0 AND booked_count <= capacity)`                                                     | `class_sessions`                | Vender más cupos que los de la clase, venga de donde venga la escritura (`23514`). Ver el ADR 0005 _(punto 2.2)_ |
+| `EXCLUDE USING gist (studio_id WITH =, period WITH &&)` solo para las sesiones `scheduled`, con `btree_gist` | `class_sessions`                | Dos clases que se pisan en la única sala del estudio (`23P01`)                                                   |
+| `UNIQUE (schedule_slot_id, starts_at)`                                                                       | `class_sessions`                | Generar dos veces la misma clase                                                                                 |
+| `CHECK` de cupo y duración positivos, y día entre 1 y 7                                                      | `class_types`, `schedule_slots` | Clases imposibles (`23514`)                                                                                      |
+| Claves foráneas con `ON DELETE CASCADE`                                                                      | `memberships`                   | Membresías de un estudio o de una persona que ya no existen                                                      |
 
 ## Permisos y navegación
 
@@ -209,6 +247,7 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 | `/estudios/{slug}/alumnas`          | «Alumnas»: el enlace para compartir, inscribir en el mesón, la lista con su estado, editar a quien no usa la app y reenviarle la activación                                       |
 | `/inscripcion/{token}` (GET y POST) | Pública: el enlace de inscripción del estudio. Un token renovado responde 404                                                                                                     |
 | `/activar-cuenta/{id}` (GET y POST) | Pública y firmada: una alumna sin app crea su contraseña                                                                                                                          |
+| `/estudios/{slug}/clases`           | «Clases»: los tipos de clase y el horario semanal. Dos clases del mismo día no se pueden cruzar                                                                                   |
 
 ### El estudio actual y el menú
 
@@ -263,9 +302,20 @@ Ver `docs/decisions/0004-alumnas-sin-app.md`.
 | Rosa Fuentes    | (sin correo)           | Alumna de Estudio Flow sin app: no puede entrar  |
 | Paula Vidal     | `paula@example.com`    | Dueña de Estudio Sur                             |
 
-## Reservas _(Fase 2)_
+## Horario y sesiones
 
-Pendiente: cómo se generan las sesiones, cómo se garantiza el cupo bajo concurrencia y cómo funciona la lista de espera.
+Ver `docs/decisions/0006-sesiones-generadas-desde-el-horario.md`.
+
+- **El horario semanal** (`schedule_slots`) guarda el día y la hora local. **Las sesiones** (`class_sessions`) son las clases concretas que se reservan, en UTC.
+- **`GenerateSessions`** crea las sesiones de los próximos `booking_horizon_days` días (14 por defecto), con el desfase de cada fecha en Santiago. Corre cada noche (`sessions:generate`, a las 00:10) y también al cambiar el horario o las reglas. Es idempotente (`ON CONFLICT DO NOTHING`).
+- **Cambiar el horario** regenera solo las sesiones futuras sin reservas; las que ya tienen reservas quedan como estaban. Quitar una clase del horario mantiene sus sesiones con reservas.
+- **Una clase que ya no se da** se desactiva: deja de generar sesiones y sus sesiones vacías desaparecen.
+- **Quitar a un instructor** del equipo deja sin instructor sus horarios y sus sesiones futuras, en la misma transacción. Las alumnas no pueden reservar una sesión sin instructor _(punto 2.2)_.
+- **Las reglas** del estudio (ventana de cancelación, cierre de reservas, corte de la lista de espera y anticipación) se editan en «Estudio» → «Reglas» (`rules.manage`). Una anticipación mayor genera al tiro las sesiones de los días nuevos.
+
+## Reservas _(puntos 2.2 y 2.3)_
+
+Pendiente: cómo se garantiza el cupo bajo concurrencia, cómo funcionan la lista de espera y la asistencia.
 
 ## Créditos, pagos y caja _(Fase 3)_
 
