@@ -71,7 +71,7 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
     - `sessions:generate` cada noche, con el desfase de cada fecha en Santiago (ADR 0006);
     - la pantalla «Clases» y las reglas editables en «Estudio»;
     - quitar a un instructor deja sus clases sin instructor.
-- [ ] **2.2 "Reservas"**:
+- [x] **2.2 "Reservas"**:
     - reservas con el cupo garantizado bajo concurrencia real (contador con `CHECK` y `UPDATE` condicional, ADR 0005) y un test de varios procesos a la vez;
     - «Reservar» y «Mis reservas» para la alumna, la «Agenda» para recepción y la dueña (reservar por una alumna, anotar al equipo, reemplazo y cancelar la sesión) y «Mis clases» para el instructor;
     - cancelación a tiempo o tarde según la ventana, y que la dueña pueda saltársela.
