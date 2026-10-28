@@ -1,5 +1,6 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { CalendarX2, Check } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import {
     index as bookIndex,
     store as bookSession,
@@ -59,6 +60,16 @@ function DayStrip({
     days: Day[];
     selectedDate: string;
 }) {
+    const selectedRef = useRef<HTMLAnchorElement>(null);
+
+    // A day further ahead starts in view, not hidden past the edge.
+    useEffect(() => {
+        selectedRef.current?.scrollIntoView({
+            block: 'nearest',
+            inline: 'nearest',
+        });
+    }, [selectedDate]);
+
     return (
         <nav aria-label="Días" className="-mx-4 overflow-x-auto px-4 pb-1">
             <ul className="flex gap-2">
@@ -68,6 +79,7 @@ function DayStrip({
                     return (
                         <li key={day.date}>
                             <Link
+                                ref={isSelected ? selectedRef : undefined}
                                 href={bookIndex.url(slug, {
                                     query: { dia: day.date },
                                 })}
