@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Enums\BookingKind;
 use App\Enums\ClassSessionStatus;
 use App\Enums\StudioRole;
 use App\Http\Controllers\Controller;
@@ -172,7 +173,7 @@ class AgendaController extends Controller
             'attendees' => $attendees->map(fn (Booking $booking): array => [
                 'id' => $booking->id,
                 'name' => $booking->user->name,
-                'isStaff' => $booking->kind->value === 'staff',
+                'isStaff' => $booking->kind === BookingKind::Staff,
             ]),
             'teamOptions' => $staff
                 ->reject(fn (Membership $membership): bool => in_array($membership->user_id, $taken, true))

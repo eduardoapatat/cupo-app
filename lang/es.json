@@ -95,6 +95,10 @@
     "This class can no longer change its instructor.": "A esta clase ya no se le puede cambiar el instructor.",
     ":name teaches this class.": "Ahora :name da esta clase.",
     "We cancelled the class. Its bookings were cancelled on time.": "Cancelamos la clase. Sus reservas quedaron canceladas a tiempo.",
+    "at :time": "las :time",
+    "on :day at :time": "el :day a las :time",
+    "Today": "Hoy",
+    "The studio cancelled the class": "El estudio canceló la clase",
     ":name teaches this class and cannot take a spot in it.": ":name da esta clase, así que no puede ocupar un cupo en ella.",
     ":name already has a booking in this class. Cancel it first.": ":name ya tiene una reserva en esta clase. Cancélala primero."
 }

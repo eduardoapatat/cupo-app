@@ -121,6 +121,19 @@ class ClassSession extends Model
     }
 
     /**
+     * Until when cancelling keeps the class, in words: «las 13:00», or «el
+     * lunes 2 a las 19:00» when that falls on an earlier day.
+     */
+    public function freeCancellationLabel(): string
+    {
+        $deadline = $this->freeCancellationEndsAt()->timezone(config()->string('studio.timezone'));
+
+        return $deadline->isSameDay($this->localStartsAt())
+            ? __('at :time', ['time' => $deadline->format('H:i')])
+            : __('on :day at :time', ['day' => $deadline->translatedFormat('l j'), 'time' => $deadline->format('H:i')]);
+    }
+
+    /**
      * Sessions that still happen, from now on.
      *
      * @param  Builder<self>  $query

@@ -48,13 +48,13 @@ class MyBookingsController extends Controller
         return Inertia::render('studios/my-bookings', [
             'upcoming' => $upcoming->map(fn (Booking $booking): array => [
                 ...$this->present($booking),
-                'freeCancellationUntil' => BookingController::deadlineLabel($booking->classSession),
+                'freeCancellationUntil' => $booking->classSession->freeCancellationLabel(),
                 'cancelsOnTime' => now()->lessThanOrEqualTo($booking->classSession->freeCancellationEndsAt()),
             ]),
             'history' => $history->through(fn (Booking $booking): array => [
                 ...$this->present($booking),
                 'status' => $this->cancelledWithTheClass($booking)
-                    ? 'El estudio canceló la clase'
+                    ? __('The studio cancelled the class')
                     : $booking->status->label(),
             ]),
         ]);

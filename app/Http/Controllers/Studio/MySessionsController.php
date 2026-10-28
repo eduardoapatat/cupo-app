@@ -50,7 +50,7 @@ class MySessionsController extends Controller
                         'isCancelled' => $session->status === ClassSessionStatus::Cancelled,
                         'attendees' => $session->bookings
                             ->map(fn (Booking $booking): string => $booking->user->name)
-                            ->sort(fn (string $a, string $b): int => strcoll(mb_strtolower($a), mb_strtolower($b)))
+                            ->sortBy(fn (string $name): string => mb_strtolower($name))
                             ->values(),
                     ])->values(),
                 ])

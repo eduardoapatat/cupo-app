@@ -46,7 +46,7 @@ class BookingController extends Controller
         return Inertia::render('studios/book', [
             'days' => $days->map(fn (CarbonImmutable $day, int $offset): array => [
                 'date' => $day->toDateString(),
-                'weekday' => $offset === 0 ? 'Hoy' : Str::ucfirst(rtrim($day->translatedFormat('D'), '.')),
+                'weekday' => $offset === 0 ? __('Today') : Str::ucfirst(rtrim($day->translatedFormat('D'), '.')),
                 'dayOfMonth' => $day->day,
                 'sessionCount' => $sessionsByDay->get($day->toDateString(), collect())->count(),
             ])->values(),
@@ -115,21 +115,8 @@ class BookingController extends Controller
             'spotsLeft' => max(0, $session->capacity - $session->booked_count),
             'state' => $state,
             'bookingId' => $bookingId,
-            'freeCancellationUntil' => self::deadlineLabel($session),
+            'freeCancellationUntil' => $session->freeCancellationLabel(),
             'cancelsOnTime' => now()->lessThanOrEqualTo($session->freeCancellationEndsAt()),
         ];
-    }
-
-    /**
-     * Until when cancelling keeps the class, in words: «las 13:00», or «el
-     * lunes 2 a las 19:00» when that falls on an earlier day.
-     */
-    public static function deadlineLabel(ClassSession $session): string
-    {
-        $deadline = $session->freeCancellationEndsAt()->timezone(config()->string('studio.timezone'));
-
-        return $deadline->isSameDay($session->localStartsAt())
-            ? 'las '.$deadline->format('H:i')
-            : 'el '.$deadline->translatedFormat('l j \a \l\a\s H:i');
     }
 }
