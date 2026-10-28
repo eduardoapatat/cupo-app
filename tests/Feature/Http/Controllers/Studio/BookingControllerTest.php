@@ -119,3 +119,14 @@ it('keeps booking for students and hides other studios', function () {
         ->post(route('studios.book.store', [$other, $session]))
         ->assertNotFound();
 });
+
+it('counts a late class of the last day, whose UTC date is the next one', function () {
+    $studio = Studio::factory()->create(['booking_horizon_days' => 14]);
+    classAt($studio, '2026-11-15 22:30');
+
+    $this->actingAs(student($studio))
+        ->get(route('studios.book.index', [$studio, 'dia' => '2026-11-15']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('days.13.sessionCount', 1)
+            ->where('sessions.0.startsAt', '22:30'));
+});

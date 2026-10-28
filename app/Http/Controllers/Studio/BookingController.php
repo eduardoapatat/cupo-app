@@ -34,7 +34,7 @@ class BookingController extends Controller
 
         $sessions = $studio->classSessions()
             ->upcoming()
-            ->where('starts_at', '<', $today->addDays($studio->booking_horizon_days))
+            ->where('starts_at', '<', $today->addDays($studio->booking_horizon_days)->utc())
             ->with(['classType', 'instructor', 'studio'])
             ->orderBy('starts_at')
             ->get();
