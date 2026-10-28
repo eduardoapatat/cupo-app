@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Studio;
 
-use App\Enums\BookingKind;
+use App\Concerns\PresentsAttendees;
 use App\Enums\ClassSessionStatus;
 use App\Enums\StudioRole;
 use App\Http\Controllers\Controller;
-use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\Membership;
 use App\Models\Studio;
@@ -29,6 +28,8 @@ use Inertia\Response;
  */
 class AgendaController extends Controller
 {
+    use PresentsAttendees;
+
     #[Authorize('bookings.manage', 'studio')]
     public function index(Request $request, Studio $studio): Response
     {
@@ -262,10 +263,7 @@ class AgendaController extends Controller
      */
     private function presentSession(Studio $studio, ClassSession $session, User $user): array
     {
-        $attendees = $session->bookings()->current()->with('user')->get()
-            ->sortBy(fn (Booking $booking): string => mb_strtolower($booking->user->name))
-            ->values();
-        $taken = $attendees->pluck('user_id')->push($session->instructor_id)->filter()->all();
+        $taken = $session->bookings()->current()->pluck('user_id')->push($session->instructor_id)->filter()->all();
         $staff = $studio->memberships()
             ->whereIn('role', [StudioRole::Owner, StudioRole::FrontDesk, StudioRole::Instructor])
             ->with('user')
@@ -286,11 +284,9 @@ class AgendaController extends Controller
             'cancellationReason' => $session->cancellation_reason,
             'hasStarted' => now()->greaterThanOrEqualTo($session->starts_at),
             'cancelsOnTime' => now()->lessThanOrEqualTo($session->freeCancellationEndsAt()),
-            'attendees' => $attendees->map(fn (Booking $booking): array => [
-                'id' => $booking->id,
-                'name' => $booking->user->name,
-                'isStaff' => $booking->kind === BookingKind::Staff,
-            ]),
+            'attendees' => $this->presentAttendees($session),
+            'attendanceIsOpen' => $session->attendanceIsOpen(),
+            'attendanceClosesLabel' => $session->attendanceClosesLabel(),
             'waitlistIsOpen' => $session->status === ClassSessionStatus::Scheduled
                 && $session->instructor_id !== null
                 && now()->lessThan($session->waitlistClosesAt()),
@@ -312,6 +308,7 @@ class AgendaController extends Controller
                 'returnClass' => $user->can('bookings.override', $studio),
                 'substitute' => $user->can('sessions.substitute', $studio),
                 'cancel' => $user->can('sessions.cancel', $studio),
+                'markAttendance' => $user->can('markAttendance', $session),
             ],
         ];
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\Studio\AgendaBookingController;
 use App\Http\Controllers\Studio\AgendaController;
 use App\Http\Controllers\Studio\AgendaWaitlistController;
+use App\Http\Controllers\Studio\AttendanceController;
 use App\Http\Controllers\Studio\BookingController;
 use App\Http\Controllers\Studio\ClassesController;
 use App\Http\Controllers\Studio\ClassTypeController;
@@ -102,6 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::delete('agenda/clases/{classSession}/espera/{waitlistEntry}', [AgendaWaitlistController::class, 'destroy'])->name('agenda.waitlist.destroy');
 
                 Route::get('mis-clases', [MySessionsController::class, 'index'])->name('my-sessions.index');
+                Route::put('clases/{classSession}/asistencia/{booking}', [AttendanceController::class, 'update'])->name('attendance.update');
 
                 Route::get('reservar', [BookingController::class, 'index'])->name('book.index');
                 Route::post('reservar/{classSession}', [BookingController::class, 'store'])->name('book.store');

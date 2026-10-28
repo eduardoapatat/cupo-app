@@ -68,9 +68,12 @@ class MyBookingsController extends Controller
             ]),
             'history' => $history->through(fn (Booking $booking): array => [
                 ...$this->present($booking),
-                'status' => $this->cancelledWithTheClass($booking)
-                    ? __('The studio cancelled the class')
-                    : $booking->status->label(),
+                'status' => match (true) {
+                    $this->cancelledWithTheClass($booking) => __('The studio cancelled the class'),
+                    // Started and not marked: it ends up attended (attendance:close).
+                    $booking->status === BookingStatus::Confirmed => BookingStatus::Attended->label(),
+                    default => $booking->status->label(),
+                },
             ]),
         ]);
     }

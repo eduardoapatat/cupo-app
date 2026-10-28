@@ -149,7 +149,7 @@ it('opens a class with who comes, the team to add and the instructors', function
             ->where('session.attendees', fn ($attendees) => collect($attendees)->pluck('name')->all() === ['Javiera Morales'])
             ->where('session.teamOptions', [['value' => (string) $camila->id, 'label' => 'Camila Soto']])
             ->where('session.teachers', [['value' => (string) $this->fernanda->id, 'label' => 'Fernanda Díaz']])
-            ->where('session.can', ['returnClass' => false, 'substitute' => true, 'cancel' => true]));
+            ->where('session.can', ['returnClass' => false, 'substitute' => true, 'cancel' => true, 'markAttendance' => true]));
 });
 
 it('finds the students to book, marking who already has the class', function () {

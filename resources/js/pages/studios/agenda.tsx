@@ -29,6 +29,8 @@ import type {
     CalendarDay,
     CalendarSession,
 } from '@/components/agenda/types';
+import AttendanceList from '@/components/attendance-list';
+import type { Attendee } from '@/components/attendance-list';
 import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -68,8 +70,6 @@ import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
 
-type Attendee = { id: number; name: string; isStaff: boolean };
-
 type WaitingPerson = { id: number; name: string; position: number };
 
 type SessionDetail = {
@@ -87,12 +87,19 @@ type SessionDetail = {
     hasStarted: boolean;
     cancelsOnTime: boolean;
     attendees: Attendee[];
+    attendanceIsOpen: boolean;
+    attendanceClosesLabel: string;
     /** Whether a student can still join the waitlist, once the class is full. */
     waitlistIsOpen: boolean;
     waitlist: WaitingPerson[];
     teamOptions: Option[];
     teachers: Option[];
-    can: { returnClass: boolean; substitute: boolean; cancel: boolean };
+    can: {
+        returnClass: boolean;
+        substitute: boolean;
+        cancel: boolean;
+        markAttendance: boolean;
+    };
 };
 
 type Props = {
@@ -742,6 +749,7 @@ function SessionPanel({
     session: SessionDetail;
 }) {
     const canAct = !session.isCancelled && !session.hasStarted;
+    const marksAttendance = !session.isCancelled && session.hasStarted;
     const isFull = session.bookedCount >= session.capacity;
 
     return (
@@ -779,7 +787,9 @@ function SessionPanel({
                 )}
                 {!session.isCancelled && session.hasStarted && (
                     <p className="rounded-lg bg-muted p-3 text-sm">
-                        Esta clase ya empezó, así que ya no se puede cambiar.
+                        {session.attendanceIsOpen
+                            ? `La clase ya empezó. Marca a quien faltó, hasta ${session.attendanceClosesLabel}; el resto queda como presente.`
+                            : 'Esta clase ya terminó y su asistencia ya cerró.'}
                     </p>
                 )}
 
@@ -816,12 +826,25 @@ function SessionPanel({
                     className="grid grid-cols-[minmax(0,1fr)] gap-2"
                 >
                     <h3 id="attendees" className="text-sm font-medium">
-                        Quiénes vienen ({session.attendees.length})
+                        {marksAttendance ? 'Asistencia' : 'Quiénes vienen'} (
+                        {session.attendees.length})
                     </h3>
                     {session.attendees.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                            Nadie todavía.
+                            {marksAttendance
+                                ? 'Nadie tenía reserva.'
+                                : 'Nadie todavía.'}
                         </p>
+                    ) : marksAttendance ? (
+                        <AttendanceList
+                            slug={slug}
+                            sessionId={session.id}
+                            attendees={session.attendees}
+                            canMark={
+                                session.attendanceIsOpen &&
+                                session.can.markAttendance
+                            }
+                        />
                     ) : (
                         <ul className="divide-y">
                             {session.attendees.map((attendee) => (

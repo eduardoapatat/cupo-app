@@ -1,8 +1,9 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { CalendarX2, ChevronDown } from 'lucide-react';
 import { index as mySessionsIndex } from '@/actions/App/Http/Controllers/Studio/MySessionsController';
+import AttendanceList from '@/components/attendance-list';
+import type { Attendee } from '@/components/attendance-list';
 import Heading from '@/components/heading';
-import InitialsAvatar from '@/components/initials-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,22 +23,35 @@ type TeachingSession = {
     bookedCount: number;
     capacity: number;
     isCancelled: boolean;
-    attendees: string[];
+    hasStarted: boolean;
+    attendanceIsOpen: boolean;
+    attendanceClosesLabel: string;
+    attendees: Attendee[];
 };
 
 type Day = {
     date: string;
     label: string;
     isToday: boolean;
+    isYesterday: boolean;
     sessions: TeachingSession[];
 };
 
 type Props = { days: Day[] };
 
-function SessionCard({ session }: { session: TeachingSession }) {
+function SessionCard({
+    slug,
+    session,
+}: {
+    slug: string;
+    session: TeachingSession;
+}) {
+    // A class that started opens with its list, to mark who missed it.
+    const marksAttendance = session.hasStarted && !session.isCancelled;
+
     return (
         <li className="rounded-xl border p-4">
-            <Collapsible className="grid gap-3">
+            <Collapsible className="grid gap-3" defaultOpen={marksAttendance}>
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                     <div
                         className={cn(
@@ -78,21 +92,25 @@ function SessionCard({ session }: { session: TeachingSession }) {
                                     className="transition-transform group-data-[state=open]:rotate-180"
                                     aria-hidden="true"
                                 />
-                                Quiénes vienen ({session.attendees.length})
+                                {marksAttendance
+                                    ? `Asistencia (${session.attendees.length})`
+                                    : `Quiénes vienen (${session.attendees.length})`}
                             </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent>
-                            <ul className="grid gap-2 px-2">
-                                {session.attendees.map((name, index) => (
-                                    <li
-                                        key={`${name}-${index}`}
-                                        className="flex items-center gap-3"
-                                    >
-                                        <InitialsAvatar name={name} />
-                                        <span>{name}</span>
-                                    </li>
-                                ))}
-                            </ul>
+                        <CollapsibleContent className="grid gap-1 px-2">
+                            {marksAttendance && (
+                                <p className="text-sm text-muted-foreground">
+                                    {session.attendanceIsOpen
+                                        ? `Marca a quien faltó, hasta ${session.attendanceClosesLabel}. El resto queda como presente.`
+                                        : 'La asistencia ya cerró.'}
+                                </p>
+                            )}
+                            <AttendanceList
+                                slug={slug}
+                                sessionId={session.id}
+                                attendees={session.attendees}
+                                canMark={session.attendanceIsOpen}
+                            />
                         </CollapsibleContent>
                     </>
                 )}
@@ -106,7 +124,21 @@ function SessionCard({ session }: { session: TeachingSession }) {
     );
 }
 
+function dayTitle(day: Day): string {
+    if (day.isToday) {
+        return `Hoy, ${day.label}`;
+    }
+
+    return day.isYesterday ? `Ayer, ${day.label}` : day.label;
+}
+
 export default function MySessions({ days }: Props) {
+    const { studio } = usePage().props;
+
+    if (!studio) {
+        return null;
+    }
+
     return (
         <>
             <Head title="Mis clases" />
@@ -115,7 +147,7 @@ export default function MySessions({ days }: Props) {
                 <Heading
                     className="mb-0"
                     title="Mis clases"
-                    description="Las clases que das desde hoy, y quiénes vienen a cada una."
+                    description="Las clases que das y quiénes vienen. Desde que empieza una clase, marca a quien faltó."
                 />
 
                 {days.length === 0 ? (
@@ -142,12 +174,13 @@ export default function MySessions({ days }: Props) {
                                 id={`day-${day.date}`}
                                 className="text-sm font-medium first-letter:uppercase"
                             >
-                                {day.isToday ? `Hoy, ${day.label}` : day.label}
+                                {dayTitle(day)}
                             </h2>
                             <ul className="grid gap-3">
                                 {day.sessions.map((session) => (
                                     <SessionCard
                                         key={session.id}
+                                        slug={studio.slug}
                                         session={session}
                                     />
                                 ))}

@@ -14,3 +14,10 @@ Schedule::command('sessions:generate')
     ->dailyAt('00:10')
     ->timezone(config()->string('studio.timezone'))
     ->withoutOverlapping();
+
+// Every night, the classes whose attendance closed (the day after them)
+// count as attended for whoever nobody marked as a no-show.
+Schedule::command('attendance:close')
+    ->dailyAt('00:15')
+    ->timezone(config()->string('studio.timezone'))
+    ->withoutOverlapping();

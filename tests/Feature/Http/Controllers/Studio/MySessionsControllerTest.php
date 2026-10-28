@@ -27,13 +27,14 @@ function taughtClass(Studio $studio, ?User $instructor, string $localTime): Clas
     ]);
 }
 
-it('shows the instructor her own classes from today, with the names of who comes', function () {
+it('shows the instructor her own classes from yesterday, with the names of who comes', function () {
     $studio = Studio::factory()->create();
     $fernanda = User::factory()->memberOf($studio, StudioRole::Instructor)->create();
     $diego = User::factory()->memberOf($studio, StudioRole::Instructor)->create();
     $earlierToday = taughtClass($studio, $fernanda, '2026-11-02 07:00');
     $tomorrow = taughtClass($studio, $fernanda, '2026-11-03 19:00');
-    taughtClass($studio, $fernanda, '2026-11-01 19:00');
+    $yesterday = taughtClass($studio, $fernanda, '2026-11-01 19:00');
+    taughtClass($studio, $fernanda, '2026-10-31 19:00');
     taughtClass($studio, $diego, '2026-11-03 07:00');
     $rosa = User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes', 'phone' => '+56912345678']);
     $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
@@ -48,13 +49,20 @@ it('shows the instructor her own classes from today, with the names of who comes
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('studios/my-sessions')
-            ->where('days', fn ($days) => collect($days)->map(fn ($day) => [$day['date'], $day['isToday'], collect($day['sessions'])->pluck('id')->all()])->all() === [
-                ['2026-11-02', true, [$earlierToday->id]],
-                ['2026-11-03', false, [$tomorrow->id]],
+            ->where('days', fn ($days) => collect($days)->map(fn ($day) => [$day['date'], $day['isYesterday'], $day['isToday'], collect($day['sessions'])->pluck('id')->all()])->all() === [
+                ['2026-11-01', true, false, [$yesterday->id]],
+                ['2026-11-02', false, true, [$earlierToday->id]],
+                ['2026-11-03', false, false, [$tomorrow->id]],
             ])
-            ->where('days.1.label', 'martes 3 de noviembre')
-            ->where('days.1.sessions.0.attendees', ['Javiera Morales', 'Rosa Fuentes'])
-            ->where('days.1.sessions.0.bookedCount', 2));
+            ->where('days.2.label', 'martes 3 de noviembre')
+            ->where('days.2.sessions.0.attendees', fn ($attendees) => collect($attendees)->map(fn ($attendee) => [$attendee['name'], $attendee['noShow']])->all() === [
+                ['Javiera Morales', false],
+                ['Rosa Fuentes', false],
+            ])
+            ->where('days.2.sessions.0.bookedCount', 2)
+            ->where('days.0.sessions.0.attendanceIsOpen', true)
+            ->where('days.0.sessions.0.attendanceClosesLabel', 'hoy a las 23:59')
+            ->where('days.2.sessions.0.attendanceIsOpen', false));
 });
 
 it('is for whoever teaches, not for students', function () {

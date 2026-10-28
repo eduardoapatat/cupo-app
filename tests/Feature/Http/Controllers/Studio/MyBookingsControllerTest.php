@@ -3,6 +3,7 @@
 use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
 use App\Actions\Bookings\CancelSession;
+use App\Actions\Bookings\MarkNoShow;
 use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\StudioRole;
@@ -56,6 +57,23 @@ it('shows her upcoming classes in order, and her history without them', function
             ->where('upcoming.0.cancelsOnTime', true)
             ->where('history.data', fn ($history) => collect($history)->map(fn ($booking) => [$booking['id'], $booking['status']])->all() === [
                 [$cancelledByStudio->id, 'El estudio canceló la clase'],
+            ]));
+});
+
+it('shows a past class nobody marked as attended, and a marked one as missed', function () {
+    $studio = Studio::factory()->create();
+    $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create();
+    $attended = bookingOf($javiera, $studio, '2026-11-02 19:00');
+    $missed = bookingOf($javiera, $studio, '2026-11-02 20:00');
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 20:30', 'America/Santiago'));
+    app(MarkNoShow::class)->handle($missed, true);
+
+    $this->actingAs($javiera)
+        ->get(route('studios.my-bookings.index', $studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('history.data', fn ($history) => collect($history)->map(fn ($booking) => [$booking['id'], $booking['status']])->all() === [
+                [$missed->id, 'Faltó'],
+                [$attended->id, 'Asistió'],
             ]));
 });
 

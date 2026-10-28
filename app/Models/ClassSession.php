@@ -153,6 +153,40 @@ class ClassSession extends Model
     }
 
     /**
+     * The last moment to mark who missed it: the end of the day after the
+     * class, in the studio's time zone, so a forgotten mark can be fixed
+     * the next day. Then the attendance closes (attendance:close).
+     */
+    public function attendanceClosesAt(): CarbonImmutable
+    {
+        return $this->localStartsAt()->addDay()->endOfDay()->utc();
+    }
+
+    /**
+     * Whether its attendance can be marked now: from its start until
+     * attendanceClosesAt(), unless the studio cancelled it.
+     */
+    public function attendanceIsOpen(): bool
+    {
+        return $this->status === ClassSessionStatus::Scheduled
+            && now()->greaterThanOrEqualTo($this->starts_at)
+            && now()->lessThanOrEqualTo($this->attendanceClosesAt());
+    }
+
+    /**
+     * Until when its attendance can be marked, in words: «hoy a las 23:59»
+     * or «el martes 3 a las 23:59».
+     */
+    public function attendanceClosesLabel(): string
+    {
+        $closesAt = $this->attendanceClosesAt()->timezone(config()->string('studio.timezone'));
+
+        return $closesAt->isSameDay(now(config()->string('studio.timezone')))
+            ? __('today at :time', ['time' => $closesAt->format('H:i')])
+            : __('on :day at :time', ['day' => $closesAt->translatedFormat('l j'), 'time' => $closesAt->format('H:i')]);
+    }
+
+    /**
      * Sessions that still happen, from now on.
      *
      * @param  Builder<self>  $query
