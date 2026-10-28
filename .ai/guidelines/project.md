@@ -43,6 +43,7 @@ A fictional app (portfolio project) for small group-class studios for adults (pi
 ## UI rules
 
 - Only the starter kit's shadcn/ui components, as they are. Add missing ones with the shadcn CLI, unmodified; if the CLI writes `import { cn } from "cn"`, change it to `@/lib/utils` and do not accept the `cn` dependency it adds.
+- All shadcn components import Radix from the unified `radix-ui` package, as the new-york style does since February 2026 (migrated with `shadcn migrate radix`). Do not add `@radix-ui/react-*` packages; if a component ever arrives with one, run `pnpm dlx shadcn@latest migrate radix` and remove the package.
 - Achromatic system ("The Club Ledger" in `DESIGN.md`): no blue, red only for destructive actions and errors.
 - Every menu item of every role exists; items not built yet are dimmed with «Pronto».
 - The Impeccable skill (`/impeccable shape`, `harden`, `audit`) is used for UX, not for restyling. It is not versioned: install it per machine with `npx impeccable install --providers=claude --scope=project`. Its skill folder, agents and hooks stay out of git.
