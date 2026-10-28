@@ -102,3 +102,11 @@ it('opens bookings only within the studio horizon, counting days in Santiago', f
     expect(fn () => bookPlace(bookableSession(['studio_id' => $studio, 'starts_at' => $tooFar, 'ends_at' => $tooFar->addMinutes(50)]), User::factory()->create()))
         ->toThrow(BookingRejected::class, 'Esta clase todavía no se puede reservar: las reservas abren 14 días antes.');
 });
+
+it('does not let the instructor take a spot in her own class', function () {
+    $fernanda = User::factory()->create(['name' => 'Fernanda Díaz']);
+    $session = bookableSession(['instructor_id' => $fernanda->id]);
+
+    expect(fn () => bookPlace($session, $fernanda, BookingKind::Staff))
+        ->toThrow(BookingRejected::class, 'Fernanda Díaz da esta clase, así que no puede ocupar un cupo en ella.');
+});

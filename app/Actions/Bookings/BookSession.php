@@ -70,6 +70,10 @@ class BookSession
             throw new BookingRejected(__('This class has no instructor yet, so it cannot be booked.'));
         }
 
+        if ($session->instructor_id === $person->id) {
+            throw new BookingRejected(__(':name teaches this class and cannot take a spot in it.', ['name' => $person->name]));
+        }
+
         if (now()->greaterThanOrEqualTo($session->bookingClosesAt())) {
             throw new BookingRejected(__('Bookings for this class are closed.'));
         }

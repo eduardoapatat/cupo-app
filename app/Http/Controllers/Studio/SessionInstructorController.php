@@ -27,8 +27,15 @@ class SessionInstructorController extends Controller
             return back(fallback: route('studios.agenda.show', [$studio, $classSession]));
         }
 
-        $classSession->update(['instructor_id' => $request->integer('instructor_id')]);
         $instructor = User::findOrFail($request->integer('instructor_id'));
+
+        if ($classSession->bookings()->current()->where('user_id', $instructor->id)->exists()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __(':name already has a booking in this class. Cancel it first.', ['name' => $instructor->name])]);
+
+            return back(fallback: route('studios.agenda.show', [$studio, $classSession]));
+        }
+
+        $classSession->update(['instructor_id' => $instructor->id]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name teaches this class.', ['name' => $instructor->name])]);
 

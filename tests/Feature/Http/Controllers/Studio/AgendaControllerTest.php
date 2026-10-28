@@ -170,6 +170,18 @@ it('puts a substitute instructor in one class', function () {
     expect($session->fresh()->instructor_id)->toBe($diego->id);
 });
 
+it('does not make someone booked in the class its instructor', function () {
+    $session = agendaClass($this->studio, $this->fernanda, '2026-11-03 19:00');
+    $diego = User::factory()->memberOf($this->studio, StudioRole::Instructor)->create(['name' => 'Diego Herrera']);
+    app(BookSession::class)->handle($session, $diego, BookingKind::Staff, $diego);
+
+    $this->actingAs(frontDeskOf($this->studio))
+        ->put(route('studios.agenda.instructor.update', [$this->studio, $session]), ['instructor_id' => $diego->id])
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Diego Herrera ya tiene una reserva en esta clase. Cancélala primero.']);
+
+    expect($session->fresh()->instructor_id)->toBe($this->fernanda->id);
+});
+
 it('cancels a class with its reason', function () {
     $session = agendaClass($this->studio, $this->fernanda, '2026-11-03 19:00');
 

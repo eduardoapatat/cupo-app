@@ -94,5 +94,7 @@
     "We cancelled :name's booking. It was after the free cancellation window, so the class counts as used.": "Cancelamos la reserva de :name. Fue después del plazo de cancelación gratis, así que la clase cuenta como usada.",
     "This class can no longer change its instructor.": "A esta clase ya no se le puede cambiar el instructor.",
     ":name teaches this class.": "Ahora :name da esta clase.",
-    "We cancelled the class. Its bookings were cancelled on time.": "Cancelamos la clase. Sus reservas quedaron canceladas a tiempo."
+    "We cancelled the class. Its bookings were cancelled on time.": "Cancelamos la clase. Sus reservas quedaron canceladas a tiempo.",
+    ":name teaches this class and cannot take a spot in it.": ":name da esta clase, así que no puede ocupar un cupo en ella.",
+    ":name already has a booking in this class. Cancel it first.": ":name ya tiene una reserva en esta clase. Cancélala primero."
 }
