@@ -12,7 +12,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The studio's own data, edited by its owner from the «Estudio» item.
+ * The studio's own data and rules, edited by its owner from the «Estudio»
+ * item. The enrollment link lives in «Alumnas».
  */
 class SettingsController extends Controller
 {
@@ -29,7 +30,6 @@ class SettingsController extends Controller
                 'commune' => $studio->commune->value,
             ],
             'communes' => Commune::options(),
-            'enrollmentUrl' => route('enrollment.show', $studio->enrollment_token),
             'rules' => [
                 'cancellation_window_hours' => $studio->cancellation_window_hours,
                 'booking_cutoff_minutes' => $studio->booking_cutoff_minutes,

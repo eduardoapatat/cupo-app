@@ -15,7 +15,8 @@ it('shows the owner the studio data', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('studios/settings')
             ->where('details', ['slug' => $studio->slug, 'name' => 'Estudio Flow', 'commune' => 'nunoa'])
-            ->has('communes', count(Commune::cases())));
+            ->has('communes', count(Commune::cases()))
+            ->missing('enrollmentUrl'));
 });
 
 it('saves the name and the commune and keeps the slug', function () {
