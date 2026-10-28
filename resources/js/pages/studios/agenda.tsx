@@ -66,7 +66,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { fieldErrorProps, focusFirstError, wentThrough } from '@/lib/form';
-import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
 
@@ -913,26 +912,9 @@ export default function Agenda({
     const view: AgendaView = requestedView ?? (isMobile ? 'dia' : 'semana');
     // The panel keeps the last class while it slides out.
     const [shown, setShown] = useState(session);
-    // The calendar slides in from the side it moved to, so a new week or
-    // day is noticed.
-    const anchor =
-        view === 'mes' && month
-            ? month.start
-            : view === 'dia'
-              ? focus.date
-              : week.start;
-    const [lastAnchor, setLastAnchor] = useState(anchor);
-    const [direction, setDirection] = useState<'next' | 'previous' | null>(
-        null,
-    );
 
     if (session !== null && session !== shown) {
         setShown(session);
-    }
-
-    if (anchor !== lastAnchor) {
-        setDirection(anchor > lastAnchor ? 'next' : 'previous');
-        setLastAnchor(anchor);
     }
 
     if (!studio) {
@@ -995,33 +977,22 @@ export default function Agenda({
                     />
                 )}
 
-                <div
-                    key={`${view}-${anchor}`}
-                    className={cn(
-                        'motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0',
-                        direction === 'next' &&
-                            'motion-safe:slide-in-from-right-4',
-                        direction === 'previous' &&
-                            'motion-safe:slide-in-from-left-4',
-                    )}
-                >
-                    {view === 'mes' && month ? (
-                        <MonthGrid
-                            month={month}
-                            openSessionId={session?.id ?? null}
-                            sessionHref={sessionHref}
-                            onOpenDay={(date) => goTo(date, 'dia')}
-                        />
-                    ) : (
-                        <TimeGrid
-                            days={days}
-                            shownDays={shownDays}
-                            view={view === 'mes' ? 'semana' : view}
-                            openSessionId={session?.id ?? null}
-                            sessionHref={sessionHref}
-                        />
-                    )}
-                </div>
+                {view === 'mes' && month ? (
+                    <MonthGrid
+                        month={month}
+                        openSessionId={session?.id ?? null}
+                        sessionHref={sessionHref}
+                        onOpenDay={(date) => goTo(date, 'dia')}
+                    />
+                ) : (
+                    <TimeGrid
+                        days={days}
+                        shownDays={shownDays}
+                        view={view === 'mes' ? 'semana' : view}
+                        openSessionId={session?.id ?? null}
+                        sessionHref={sessionHref}
+                    />
+                )}
             </div>
 
             <Sheet
