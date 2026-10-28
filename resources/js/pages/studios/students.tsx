@@ -17,8 +17,8 @@ import {
     update as updateStudent,
 } from '@/actions/App/Http/Controllers/Studio/StudentController';
 import EnrollmentLinkField from '@/components/enrollment-link-field';
+import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,7 +41,6 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useInitials } from '@/hooks/use-initials';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
@@ -117,24 +116,6 @@ function studentsUrl(
     return studentId === null
         ? studentsIndex.url(slug, options)
         : studentShow.url([slug, studentId], options);
-}
-
-function StudentAvatar({
-    name,
-    className,
-}: {
-    name: string;
-    className?: string;
-}) {
-    const getInitials = useInitials();
-
-    return (
-        <Avatar className={cn('size-9', className)} aria-hidden="true">
-            <AvatarFallback className="font-medium">
-                {getInitials(name)}
-            </AvatarFallback>
-        </Avatar>
-    );
 }
 
 function ContactFields({
@@ -370,7 +351,7 @@ function StudentListItem({
                     selected && 'border-foreground bg-muted hover:bg-muted',
                 )}
             >
-                <StudentAvatar name={student.name} />
+                <InitialsAvatar name={student.name} />
                 <span className="grid min-w-0 leading-tight">
                     <span className="truncate font-medium">{student.name}</span>
                     <span className="truncate text-sm text-muted-foreground">
@@ -471,7 +452,7 @@ function StudentProfile({
             </Button>
 
             <header className="flex flex-wrap items-start gap-4">
-                <StudentAvatar
+                <InitialsAvatar
                     name={student.name}
                     className="size-14 text-lg"
                 />
