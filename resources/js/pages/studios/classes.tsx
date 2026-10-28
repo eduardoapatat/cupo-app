@@ -170,8 +170,18 @@ function EditClassTypeDialog({
     const [isActive, setIsActive] = useState(classType.isActive);
     const prefix = `class-type-${classType.id}-`;
 
+    // Opening the dialog again starts from the saved value, not from a
+    // change that was never saved.
+    function onOpenChange(next: boolean) {
+        if (next) {
+            setIsActive(classType.isActive);
+        }
+
+        setOpen(next);
+    }
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogTrigger asChild>
                 <Button
                     variant="ghost"
@@ -607,9 +617,14 @@ export default function Classes({
                                                                 weekdays={
                                                                     weekdays
                                                                 }
-                                                                classTypes={
-                                                                    activeTypes
-                                                                }
+                                                                classTypes={classTypes.filter(
+                                                                    (
+                                                                        classType,
+                                                                    ) =>
+                                                                        classType.isActive ||
+                                                                        classType.id ===
+                                                                            slot.classTypeId,
+                                                                )}
                                                                 teachers={
                                                                     teachers
                                                                 }

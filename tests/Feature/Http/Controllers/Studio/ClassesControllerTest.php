@@ -139,3 +139,18 @@ it('keeps each class inside its day', function () {
         ->post(route('studios.classes.slots.store', $this->studio), ['weekday' => 2, 'starts_at' => '23:30', 'class_type_id' => $this->pilates->id])
         ->assertSessionHasErrors(['starts_at' => 'La clase tiene que terminar antes de la medianoche.']);
 });
+
+it('lets a slot keep a class type that is no longer taught while its time changes', function () {
+    $slot = ScheduleSlot::factory()->for($this->studio)->create(['class_type_id' => $this->pilates->id, 'weekday' => 2, 'starts_at' => '19:00:00']);
+    $this->pilates->update(['is_active' => false]);
+
+    $this->actingAs($this->owner)
+        ->put(route('studios.classes.slots.update', [$this->studio, $slot]), ['weekday' => 2, 'starts_at' => '20:00', 'class_type_id' => $this->pilates->id])
+        ->assertSessionHasNoErrors();
+
+    expect($slot->fresh()->starts_at)->toBe('20:00:00');
+
+    $this->actingAs($this->owner)
+        ->post(route('studios.classes.slots.store', $this->studio), ['weekday' => 3, 'starts_at' => '19:00', 'class_type_id' => $this->pilates->id])
+        ->assertSessionHasErrors('class_type_id');
+});

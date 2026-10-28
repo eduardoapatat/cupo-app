@@ -22,8 +22,8 @@ class ScheduleSlotRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request. The class type
-     * must be one the studio still teaches, and the instructor someone who
-     * teaches there (an instructor or the owner).
+     * must be one the studio still teaches (or the slot's own), and the
+     * instructor someone who teaches there (an instructor or the owner).
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -37,7 +37,9 @@ class ScheduleSlotRequest extends FormRequest
             'class_type_id' => [
                 'required',
                 'integer',
-                Rule::exists('class_types', 'id')->where(fn (Builder $query) => $query->where('studio_id', $studio->id)->where('is_active', true)),
+                Rule::exists('class_types', 'id')->where(fn (Builder $query) => $query
+                    ->where('studio_id', $studio->id)
+                    ->where(fn (Builder $query) => $query->where('is_active', true)->orWhere('id', $this->currentClassTypeId()))),
             ],
             'instructor_id' => [
                 'nullable',
@@ -102,6 +104,17 @@ class ScheduleSlotRequest extends FormRequest
             'class_type_id' => $this->integer('class_type_id'),
             'instructor_id' => $this->filled('instructor_id') ? $this->integer('instructor_id') : null,
         ];
+    }
+
+    /**
+     * The class type of the slot being edited, which it may keep even if the
+     * studio no longer teaches it, so its time or instructor can change.
+     */
+    private function currentClassTypeId(): ?int
+    {
+        $editing = $this->route('scheduleSlot');
+
+        return $editing instanceof ScheduleSlot ? $editing->class_type_id : null;
     }
 
     /**
