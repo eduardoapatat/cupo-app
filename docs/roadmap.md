@@ -59,7 +59,7 @@ Decisiones de la fase: quien entra por el enlace queda como alumna al tiro; a un
 
 Para las fases siguientes:
 
-- **Fase 2:** decidir qué pasa si alguien del equipo también toma clases en su estudio (hoy, un solo rol por estudio), y qué pasa al quitar a un instructor que tiene clases agendadas (pedir un reemplazo antes, o no dejarlo quitar).
+- **Fase 2** _(resuelto)_: alguien del equipo toma clases si recepción lo anota como «equipo», y quitar a un instructor deja sus clases sin instructor, que no se pueden reservar hasta tener reemplazo.
 - **Fase 3:** los pagos y las cajas apuntan a la persona, no a la membresía, para que el historial conserve a quien cobró aunque ya no esté en el equipo.
 
 ## Fase 2: horario, sesiones y reservas
@@ -75,9 +75,10 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
     - reservas con el cupo garantizado bajo concurrencia real (contador con `CHECK` y `UPDATE` condicional, ADR 0005) y un test de varios procesos a la vez;
     - «Reservar» y «Mis reservas» para la alumna, la «Agenda» para recepción y la dueña (reservar por una alumna, anotar al equipo, reemplazo y cancelar la sesión) y «Mis clases» para el instructor;
     - cancelación a tiempo o tarde según la ventana, y que la dueña pueda saltársela.
-- [ ] **2.3 "Lista de espera, asistencia e Inicio"**:
-    - la lista de espera con su corte, la asistencia (solo quien faltó) y el Inicio de cada rol con datos reales;
-    - el horario de Estudio Flow en los datos demo y el cierre de la fase.
+- [x] **2.3 "Lista de espera, asistencia e Inicio"**:
+    - la lista de espera con su corte: el cupo liberado pasa a la primera de la fila en la misma transacción (ADR 0007), con un test de varios procesos; la alumna se anota desde «Reservar» y recepción desde la Agenda;
+    - la asistencia (solo quien faltó), hasta el fin del día siguiente, y `attendance:close` cada noche;
+    - el Inicio de cada rol con datos reales y el horario de Estudio Flow en los datos demo.
 
 ## Fase 3: planes, créditos, pagos y caja
 

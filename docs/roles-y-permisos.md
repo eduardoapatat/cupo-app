@@ -31,14 +31,14 @@ Cada permiso sale de uno de estos principios:
 
 ### Qué ve al entrar
 
-Cada rol llega al **Inicio** de su estudio. En la Fase 0 los bloques ya están, cada uno con la fase en que se llena.
+Cada rol llega al **Inicio** de su estudio. Los bloques salen de `StudioRole::homeBlocks()`, y cada uno exige el permiso de sus datos. Los de la Fase 3 se ven con «Pronto».
 
-| Rol        | Al entrar ve                                                                                                                                        |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dueña      | Ocupación de hoy _(Fase 2)_, alertas: comprobantes pendientes, cajas con diferencia y anulaciones del día _(Fase 3)_, e ingresos del mes _(Fase 3)_ |
-| Recepción  | Clases de hoy _(Fase 2)_, alumnas que llegan _(Fase 2)_, comprobantes por validar _(Fase 3)_ y el estado de su caja _(Fase 3)_                      |
-| Instructor | Sus clases de hoy, con quiénes vienen _(Fase 2)_                                                                                                    |
-| Alumna     | Su próxima clase _(Fase 2)_, cuántas clases le quedan _(Fase 3)_ y cuándo vence su plan _(Fase 3)_                                                  |
+| Rol        | Al entrar ve                                                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dueña      | Ocupación de hoy, alertas: comprobantes pendientes, cajas con diferencia y anulaciones del día _(Fase 3)_, e ingresos del mes _(Fase 3)_      |
+| Recepción  | Clases de hoy, alumnas que llegan (a la clase en curso o a la próxima), comprobantes por validar _(Fase 3)_ y el estado de su caja _(Fase 3)_ |
+| Instructor | Sus clases de hoy, con quiénes vienen y la asistencia                                                                                         |
+| Alumna     | Su próxima clase (y si está en alguna lista de espera), cuántas clases le quedan _(Fase 3)_ y cuándo vence su plan _(Fase 3)_                 |
 
 ### Menú
 
@@ -68,34 +68,34 @@ El número es la posición del ítem en el menú de ese rol. La dueña ve sus pr
 
 ✅ permitido · ❌ denegado · — no aplica: la acción es de autoservicio, así que se trata como denegada.
 
-| Área         | Acción                                                                      | Código                  | Dueña | Recepción |    Instructor     |      Alumna       |
-| ------------ | --------------------------------------------------------------------------- | ----------------------- | :---: | :-------: | :---------------: | :---------------: |
-| Negocio      | Planes y precios                                                            | `plans.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Horario semanal y tipos de clase                                            | `schedule.manage`       |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Reglas (ventana de cancelación, anticipación)                               | `rules.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Reportes e ingresos                                                         | `reports.view`          |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Datos del estudio y enlace de inscripción                                   | `studio.manage`         |  ✅   |    ❌     |        ❌         |        ❌         |
-| Personal     | Invitar o quitar recepción e instructores                                   | `staff.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
-| Alumnas      | Inscribir en el local y editar contacto                                     | `students.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Ver teléfono y correo de una alumna                                         | `students.view_contact` |  ✅   |    ✅     |        ❌         |        ❌         |
-| Cobros       | Vender un plan a precio de lista                                            | `plans.sell`            |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Descuentos o regalar clases                                                 | `plans.discount`        |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Validar o rechazar un comprobante                                           | `payments.review`       |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Anular un pago de la caja abierta de hoy (con motivo)                       | `payments.void_open`    |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Anular un pago ya cerrado o devolver plata                                  | `payments.void_closed`  |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Abrir y cerrar la caja del día                                              | `cash.operate`          |  ✅   |    ✅     |        ❌         |        ❌         |
-| Clases       | Reservar o cancelar por una alumna o anotar al equipo, dentro de las reglas | `bookings.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Saltarse la regla de cancelación y devolver la clase                        | `bookings.override`     |  ✅   |    ❌     |        ❌         |        ❌         |
-|              | Poner un reemplazo si un instructor se enferma                              | `sessions.substitute`   |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Cancelar una sesión (avisa y devuelve clases)                               | `sessions.cancel`       |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Ver clases y asistentes (solo nombres)                                      | `sessions.view`         |  ✅   |    ✅     | ✅ solo las suyas |        ❌         |
-|              | Marcar asistencia                                                           | `attendance.mark`       |  ✅   |    ✅     | ✅ solo las suyas |        ❌         |
-| Autoservicio | Comprar un plan en línea (Webpay) o subir comprobante                       | `self.buy_plan`         |   —   |     —     |         —         |        ✅         |
-|              | Reservar, cancelar y anotarse en lista de espera                            | `self.book`             |   —   |     —     |         —         |   ✅ las suyas    |
-|              | Ver sus clases restantes, reservas y pagos                                  | `self.view`             |   —   |     —     |         —         | ✅ solo los suyos |
+| Área         | Acción                                                                                                      | Código                  | Dueña | Recepción |    Instructor     |      Alumna       |
+| ------------ | ----------------------------------------------------------------------------------------------------------- | ----------------------- | :---: | :-------: | :---------------: | :---------------: |
+| Negocio      | Planes y precios                                                                                            | `plans.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Horario semanal y tipos de clase                                                                            | `schedule.manage`       |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Reglas (ventana de cancelación, anticipación)                                                               | `rules.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Reportes e ingresos                                                                                         | `reports.view`          |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Datos del estudio y enlace de inscripción                                                                   | `studio.manage`         |  ✅   |    ❌     |        ❌         |        ❌         |
+| Personal     | Invitar o quitar recepción e instructores                                                                   | `staff.manage`          |  ✅   |    ❌     |        ❌         |        ❌         |
+| Alumnas      | Inscribir en el local y editar contacto                                                                     | `students.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Ver teléfono y correo de una alumna                                                                         | `students.view_contact` |  ✅   |    ✅     |        ❌         |        ❌         |
+| Cobros       | Vender un plan a precio de lista                                                                            | `plans.sell`            |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Descuentos o regalar clases                                                                                 | `plans.discount`        |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Validar o rechazar un comprobante                                                                           | `payments.review`       |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Anular un pago de la caja abierta de hoy (con motivo)                                                       | `payments.void_open`    |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Anular un pago ya cerrado o devolver plata                                                                  | `payments.void_closed`  |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Abrir y cerrar la caja del día                                                                              | `cash.operate`          |  ✅   |    ✅     |        ❌         |        ❌         |
+| Clases       | Reservar o cancelar por una alumna, anotarla en la lista de espera o anotar al equipo, dentro de las reglas | `bookings.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Saltarse la regla de cancelación y devolver la clase                                                        | `bookings.override`     |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Poner un reemplazo si un instructor se enferma                                                              | `sessions.substitute`   |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Cancelar una sesión (avisa y devuelve clases)                                                               | `sessions.cancel`       |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Ver clases y asistentes (solo nombres)                                                                      | `sessions.view`         |  ✅   |    ✅     | ✅ solo las suyas |        ❌         |
+|              | Marcar asistencia                                                                                           | `attendance.mark`       |  ✅   |    ✅     | ✅ solo las suyas |        ❌         |
+| Autoservicio | Comprar un plan en línea (Webpay) o subir comprobante                                                       | `self.buy_plan`         |   —   |     —     |         —         |        ✅         |
+|              | Reservar, cancelar y anotarse en lista de espera                                                            | `self.book`             |   —   |     —     |         —         |   ✅ las suyas    |
+|              | Ver sus clases restantes, reservas y pagos                                                                  | `self.view`             |   —   |     —     |         —         | ✅ solo los suyos |
 
 ## Cómo se aplica en el código
 
 - **Por acción, no por rol:** cada código de la matriz es un caso del enum `StudioPermission`, y `StudioRole::permissions()` arma cada columna. Se registra un Gate por permiso, con la firma `(User, Studio)`. Así, sumar un rol es sumar un caso al enum con sus permisos y su menú, sin `if rol === ...` en ningún lado. El menú de cada rol sale de `StudioRole::menu()`.
-- **«Solo las suyas»:** el Gate dice si el rol puede hacer la acción en el estudio. Que el instructor vea solo **sus** sesiones, o la alumna solo **sus** reservas, lo filtran las Policies de cada recurso cuando ese recurso exista _(Fases 2 y 3)_.
+- **«Solo las suyas»:** el Gate dice si el rol puede hacer la acción en el estudio, y la Policy de cada recurso filtra lo suyo. La alumna cancela solo **sus** reservas y sale solo de **sus** listas de espera (`BookingPolicy`, `WaitlistEntryPolicy`; lo ajeno responde 404). «Mis clases» filtra por instructor. La asistencia la marca quien da la clase, o quien tiene `bookings.manage` (`ClassSessionPolicy::markAttendance`), sin mirar el rol: otro instructor recibe 403.
 - **404 para otros estudios:** un recurso de un estudio ajeno responde 404 (`Response::denyAsNotFound()`), para no revelar que existe. Si es del estudio pero el rol no tiene el permiso, responde 403.

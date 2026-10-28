@@ -42,7 +42,7 @@ El detalle, con el menú y la matriz de permisos, está en [`docs/roles-y-permis
 
 ## Estado
 
-Fases 0 y 1 cerradas: el proyecto, el menú de los cuatro roles, crear el estudio, invitar al equipo, el enlace de inscripción, las alumnas sin app y el selector de estudio. La **Fase 2** va en curso: ya están el horario, las clases con fecha y las reservas con el cupo garantizado bajo concurrencia (la alumna reserva, recepción maneja la agenda y el instructor ve sus clases). Falta la lista de espera, la asistencia y el Inicio con datos reales. El avance está en [`docs/roadmap.md`](docs/roadmap.md).
+Fases 0, 1 y 2 cerradas: el proyecto, el menú de los cuatro roles, crear el estudio, invitar al equipo, el enlace de inscripción, las alumnas sin app y el selector de estudio; el horario, las clases con fecha y las reservas con el cupo garantizado bajo concurrencia, la lista de espera que toma sola el cupo liberado, la asistencia (solo quien faltó) y el Inicio de cada rol con datos reales. Sigue la **Fase 3**: planes, créditos, pagos y caja. El avance está en [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Stack
 
