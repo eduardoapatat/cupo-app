@@ -55,7 +55,10 @@ export function StudioFields({ communes, studio, errors }: StudioFieldsProps) {
                     </SelectTrigger>
                     <SelectContent>
                         {communes.map((commune) => (
-                            <SelectItem key={commune.value} value={commune.value}>
+                            <SelectItem
+                                key={commune.value}
+                                value={commune.value}
+                            >
                                 {commune.label}
                             </SelectItem>
                         ))}
