@@ -1,3 +1,6 @@
+import type { Page } from '@inertiajs/core';
+import type { FlashToast } from '@/types/ui';
+
 /**
  * Accessibility props that tie a field to its error message (rendered by
  * InputError with the id `${id}-error`) and to any help text, and mark it
@@ -30,4 +33,14 @@ export function focusFirstError(
     if (firstKey) {
         document.getElementById(ids[firstKey] ?? firstKey)?.focus();
     }
+}
+
+/**
+ * Whether the action went through. A rule that says no comes back as a
+ * redirect with an error toast, which Inertia still calls a success.
+ */
+export function wentThrough(page: Page): boolean {
+    const toast = page.flash?.toast as FlashToast | undefined;
+
+    return toast?.type !== 'error';
 }

@@ -1,4 +1,3 @@
-import type { Page } from '@inertiajs/core';
 import { Form, Head, router, usePage } from '@inertiajs/react';
 import { ListPlus, Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -64,11 +63,10 @@ import {
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { fieldErrorProps, focusFirstError } from '@/lib/form';
+import { fieldErrorProps, focusFirstError, wentThrough } from '@/lib/form';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
-import type { FlashToast } from '@/types/ui';
 
 type Attendee = { id: number; name: string; isStaff: boolean };
 
@@ -130,16 +128,6 @@ const CALENDAR_RELOAD = [
 
 function agendaQuery(date: string, view: AgendaView) {
     return { query: { fecha: date, vista: view } };
-}
-
-/**
- * Whether the action went through. A booking rule that says no comes back
- * as a redirect with an error toast, which Inertia still calls a success.
- */
-function wentThrough(page: Page): boolean {
-    const toast = page.flash?.toast as FlashToast | undefined;
-
-    return toast?.type !== 'error';
 }
 
 /**
