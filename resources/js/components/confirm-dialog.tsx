@@ -1,4 +1,5 @@
 import { Form } from '@inertiajs/react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,7 +27,9 @@ type ConfirmDialogProps = {
 };
 
 /**
- * Asks before a destructive request. The red button only lives here.
+ * Asks before a destructive request. The red button only lives here. It
+ * closes once the request succeeds, also when the page stays the same
+ * (for example after renewing the enrollment link).
  */
 export default function ConfirmDialog({
     trigger,
@@ -37,14 +40,26 @@ export default function ConfirmDialog({
     action,
     confirmLabel,
 }: ConfirmDialogProps) {
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const isOpen = open ?? uncontrolledOpen;
+
+    function setOpen(next: boolean) {
+        setUncontrolledOpen(next);
+        onOpenChange?.(next);
+    }
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={isOpen} onOpenChange={setOpen}>
             {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
             <DialogContent>
                 <DialogTitle>{title}</DialogTitle>
                 <DialogDescription>{description}</DialogDescription>
 
-                <Form {...action} options={{ preserveScroll: true }}>
+                <Form
+                    {...action}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                >
                     {({ processing }) => (
                         <DialogFooter className="gap-2">
                             <DialogClose asChild>
