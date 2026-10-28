@@ -75,6 +75,28 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * People whose name (ignoring case and accents) or email contains the
+     * search, or whose phone contains its digits. LIKE wildcards are
+     * searched literally.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeMatchingSearch(Builder $query, string $search): void
+    {
+        $pattern = '%'.addcslashes($search, '%_\\').'%';
+        $digits = preg_replace('/\D/', '', $search) ?? '';
+
+        $query->where(function (Builder $query) use ($pattern, $digits): void {
+            $query->whereRaw('unaccent(users.name) ilike unaccent(?)', [$pattern])
+                ->orWhere('users.email', 'ilike', $pattern);
+
+            if (strlen($digits) >= 3) {
+                $query->orWhere('users.phone', 'like', '%'.$digits.'%');
+            }
+        });
+    }
+
+    /**
      * @return HasMany<Membership, $this>
      */
     public function memberships(): HasMany

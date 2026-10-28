@@ -305,7 +305,7 @@ Ver `docs/decisions/0004-alumnas-sin-app.md`.
 
 ### Buscar alumnas
 
-- «Alumnas» filtra por estado (`StudentStatus`: con app, activación enviada y sin app) con un `Select` y `?estado=con-app`, y busca con `?buscar=` en el nombre o el correo, sin distinguir mayúsculas ni tildes (la extensión `unaccent` de PostgreSQL), y en el celular por sus dígitos. Los comodines de `LIKE` se buscan tal cual.
+- «Alumnas» filtra por estado (`StudentStatus`: con app, activación enviada y sin app) con un `Select` y `?estado=con-app`, y busca con `?buscar=` en el nombre o el correo, sin distinguir mayúsculas ni tildes (la extensión `unaccent` de PostgreSQL), y en el celular por sus dígitos. Los comodines de `LIKE` se buscan tal cual. La búsqueda es el scope `User::matchingSearch()`, que también usa la Agenda.
 - Las cantidades de cada estado respetan la búsqueda y salen en una sola consulta (`count(*) filter (where …)`).
 - La lista llega de a 30 con `Inertia::scroll()` y el `InfiniteScroll` de Inertia carga más al bajar, sin cambiar la URL. Abrir una ficha recarga solo `student`, así que la lista no pierde lo ya cargado.
 - Inscribir abre la ficha de la nueva alumna. Editar y reenviar la activación vuelven a la misma ficha, con su búsqueda y su filtro.

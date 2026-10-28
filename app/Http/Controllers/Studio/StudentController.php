@@ -11,7 +11,6 @@ use App\Http\Requests\Studio\StudentRequest;
 use App\Models\Membership;
 use App\Models\Studio;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
@@ -112,7 +111,7 @@ class StudentController extends Controller
             ->join('users', 'users.id', '=', 'memberships.user_id');
 
         if ($search !== '') {
-            $this->whereMatches($query, $search);
+            $query->whereHas('user', fn (Builder $user) => $user->matchingSearch($search));
         }
 
         $countsSql = 'count(*) as total';
@@ -163,26 +162,5 @@ class StudentController extends Controller
             'status' => StudentStatus::for($membership->user)->value,
             'enrolledOn' => $membership->created_at?->timezone(config()->string('studio.timezone'))->translatedFormat('j \d\e F \d\e Y'),
         ];
-    }
-
-    /**
-     * Match the search in the name (ignoring case and accents) or the email,
-     * and its digits in the phone. LIKE wildcards are searched literally.
-     *
-     * @param  HasMany<Membership, Studio>  $query
-     */
-    private function whereMatches(HasMany $query, string $search): void
-    {
-        $pattern = '%'.addcslashes($search, '%_\\').'%';
-        $digits = preg_replace('/\D/', '', $search) ?? '';
-
-        $query->where(function (Builder $query) use ($pattern, $digits): void {
-            $query->whereRaw('unaccent(users.name) ilike unaccent(?)', [$pattern])
-                ->orWhere('users.email', 'ilike', $pattern);
-
-            if (strlen($digits) >= 3) {
-                $query->orWhere('users.phone', 'like', '%'.$digits.'%');
-            }
-        });
     }
 }
