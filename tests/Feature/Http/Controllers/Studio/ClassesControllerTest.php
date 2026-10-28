@@ -133,3 +133,9 @@ it('keeps «Clases» in the hands of the owner and inside her studio', function 
         ->delete(route('studios.classes.slots.destroy', [$this->studio, $elsewhere]))
         ->assertNotFound();
 });
+
+it('keeps each class inside its day', function () {
+    $this->actingAs($this->owner)
+        ->post(route('studios.classes.slots.store', $this->studio), ['weekday' => 2, 'starts_at' => '23:30', 'class_type_id' => $this->pilates->id])
+        ->assertSessionHasErrors(['starts_at' => 'La clase tiene que terminar antes de la medianoche.']);
+});

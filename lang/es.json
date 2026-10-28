@@ -72,5 +72,6 @@
     "We added the class to the schedule.": "Agregamos la clase al horario.",
     "We saved the schedule. Classes that already have bookings stay as they were.": "Guardamos el horario. Las clases que ya tienen reservas quedan como estaban.",
     "We took the class off the schedule. Classes that already have bookings stay.": "Sacamos la clase del horario. Las clases que ya tienen reservas se mantienen.",
-    "We saved the rules. They apply from now on.": "Guardamos las reglas. Rigen desde ahora."
+    "We saved the rules. They apply from now on.": "Guardamos las reglas. Rigen desde ahora.",
+    "The class must end by midnight.": "La clase tiene que terminar antes de la medianoche."
 }

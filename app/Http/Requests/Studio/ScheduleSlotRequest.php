@@ -60,6 +60,12 @@ class ScheduleSlotRequest extends FormRequest
                     return;
                 }
 
+                if ($this->endsAfterMidnight()) {
+                    $validator->errors()->add('starts_at', __('The class must end by midnight.'));
+
+                    return;
+                }
+
                 $overlapping = $this->overlappingSlot();
 
                 if ($overlapping !== null) {
@@ -96,6 +102,17 @@ class ScheduleSlotRequest extends FormRequest
             'class_type_id' => $this->integer('class_type_id'),
             'instructor_id' => $this->filled('instructor_id') ? $this->integer('instructor_id') : null,
         ];
+    }
+
+    /**
+     * Whether the class would run into the next day. Each day's classes are
+     * checked against each other only, so the schedule keeps them inside it.
+     */
+    private function endsAfterMidnight(): bool
+    {
+        $data = $this->slotData();
+
+        return $this->minutes($data['starts_at']) + ClassType::findOrFail($data['class_type_id'])->duration_minutes > 24 * 60;
     }
 
     /**
