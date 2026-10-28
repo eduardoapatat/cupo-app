@@ -247,7 +247,7 @@ Todo usa mecanismos nativos de Laravel, sin middleware propio de roles ni super 
 | `/estudios/{slug}/alumnas`          | «Alumnas»: el enlace para compartir, inscribir en el mesón, la lista con su estado, editar a quien no usa la app y reenviarle la activación                                       |
 | `/inscripcion/{token}` (GET y POST) | Pública: el enlace de inscripción del estudio. Un token renovado responde 404                                                                                                     |
 | `/activar-cuenta/{id}` (GET y POST) | Pública y firmada: una alumna sin app crea su contraseña                                                                                                                          |
-| `/estudios/{slug}/clases`           | «Clases»: los tipos de clase y el horario semanal. Dos clases del mismo día no se pueden cruzar                                                                                   |
+| `/estudios/{slug}/clases`           | «Clases»: el horario semanal como tablero por día (cada clase se edita en un panel lateral) y los tipos de clase. Dos clases del mismo día no se pueden cruzar                    |
 
 ### El estudio actual y el menú
 

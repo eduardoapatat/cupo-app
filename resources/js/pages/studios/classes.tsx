@@ -1,5 +1,6 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { index as classesIndex } from '@/actions/App/Http/Controllers/Studio/ClassesController';
 import {
     store as storeClassType,
@@ -15,6 +16,13 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -33,16 +41,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
+import { Separator } from '@/components/ui/separator';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { Spinner } from '@/components/ui/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
+import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
 
@@ -75,7 +86,13 @@ type Props = {
 
 type Errors = Partial<Record<string, string>>;
 
+/** What the side panel works on: a class of the schedule, or a new one on a day. */
+type SlotTarget = { slot: Slot } | { weekday: string };
+
 const NO_INSTRUCTOR = 'none';
+
+const ROOM_RULE =
+    'Una sola sala: dos clases del mismo día no se pueden cruzar.';
 
 /** 19:00 plus 50 minutes → 19:50, for the time range of a class. */
 function endTime(startsAt: string, minutes: number): string {
@@ -241,17 +258,60 @@ function EditClassTypeDialog({
     );
 }
 
+function AddClassTypeDialog({ slug }: { slug: string }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus />
+                    Agregar tipo de clase
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogTitle>Agregar tipo de clase</DialogTitle>
+                <DialogDescription>
+                    La duración y el cupo valen para todas las clases de este
+                    tipo en el horario.
+                </DialogDescription>
+                <Form
+                    {...storeClassType.form(slug)}
+                    resetOnSuccess
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                    onError={(errors) => focusFirstError(errors)}
+                    className="grid gap-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <ClassTypeFields errors={errors} />
+                            <DialogFooter>
+                                <Button type="submit" disabled={processing}>
+                                    {processing && <Spinner />}
+                                    Agregar
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function SlotFields({
     errors,
     slot,
-    prefix = '',
+    weekday,
     weekdays,
     classTypes,
     teachers,
 }: {
     errors: Errors;
     slot?: Slot;
-    prefix?: string;
+    /** The day a new class starts on. */
+    weekday: string;
     weekdays: Option[];
     classTypes: ClassType[];
     teachers: Option[];
@@ -261,57 +321,48 @@ function SlotFields({
     );
 
     return (
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6">
             <div className="grid gap-2">
-                <Label htmlFor={`${prefix}weekday`}>Día</Label>
+                <Label htmlFor="weekday">Día</Label>
                 <Select
                     name="weekday"
-                    defaultValue={String(slot?.weekday ?? 1)}
+                    defaultValue={slot ? String(slot.weekday) : weekday}
                     required
                 >
                     <SelectTrigger
-                        id={`${prefix}weekday`}
-                        {...fieldErrorProps(`${prefix}weekday`, errors.weekday)}
+                        id="weekday"
+                        {...fieldErrorProps('weekday', errors.weekday)}
                         className="w-full"
                     >
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        {weekdays.map((weekday) => (
-                            <SelectItem
-                                key={weekday.value}
-                                value={weekday.value}
-                            >
-                                {weekday.label}
+                        {weekdays.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-                <InputError
-                    id={`${prefix}weekday-error`}
-                    message={errors.weekday}
-                />
+                <InputError id="weekday-error" message={errors.weekday} />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={`${prefix}starts_at`}>Hora</Label>
+                <Label htmlFor="starts_at">Hora</Label>
                 <Input
-                    id={`${prefix}starts_at`}
-                    {...fieldErrorProps(`${prefix}starts_at`, errors.starts_at)}
+                    id="starts_at"
+                    {...fieldErrorProps('starts_at', errors.starts_at)}
                     name="starts_at"
                     type="time"
                     step={300}
                     defaultValue={slot?.startsAt ?? '19:00'}
                     required
                 />
-                <InputError
-                    id={`${prefix}starts_at-error`}
-                    message={errors.starts_at}
-                />
+                <InputError id="starts_at-error" message={errors.starts_at} />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={`${prefix}class_type_id`}>Clase</Label>
+                <Label htmlFor="class_type_id">Clase</Label>
                 <Select
                     name="class_type_id"
                     defaultValue={
@@ -322,9 +373,9 @@ function SlotFields({
                     required
                 >
                     <SelectTrigger
-                        id={`${prefix}class_type_id`}
+                        id="class_type_id"
                         {...fieldErrorProps(
-                            `${prefix}class_type_id`,
+                            'class_type_id',
                             errors.class_type_id,
                         )}
                         className="w-full"
@@ -343,13 +394,13 @@ function SlotFields({
                     </SelectContent>
                 </Select>
                 <InputError
-                    id={`${prefix}class_type_id-error`}
+                    id="class_type_id-error"
                     message={errors.class_type_id}
                 />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={`${prefix}instructor_id`}>Instructor</Label>
+                <Label htmlFor="instructor_id">Instructor</Label>
                 {/* Radix Select has no empty value, so «sin instructor» goes as ''. */}
                 <input
                     type="hidden"
@@ -358,9 +409,9 @@ function SlotFields({
                 />
                 <Select value={instructor} onValueChange={setInstructor}>
                     <SelectTrigger
-                        id={`${prefix}instructor_id`}
+                        id="instructor_id"
                         {...fieldErrorProps(
-                            `${prefix}instructor_id`,
+                            'instructor_id',
                             errors.instructor_id,
                         )}
                         className="w-full"
@@ -382,7 +433,7 @@ function SlotFields({
                     </SelectContent>
                 </Select>
                 <InputError
-                    id={`${prefix}instructor_id-error`}
+                    id="instructor_id-error"
                     message={errors.instructor_id}
                 />
             </div>
@@ -390,63 +441,165 @@ function SlotFields({
     );
 }
 
-function EditSlotDialog({
+/**
+ * The side panel to add a class to the schedule or change one, so the week
+ * stays in sight behind it.
+ */
+function SlotSheet({
     slug,
-    slot,
-    ...options
+    target,
+    open,
+    onOpenChange,
+    onCloseAutoFocus,
+    weekdays,
+    classTypes,
+    teachers,
 }: {
     slug: string;
-    slot: Slot;
+    target: SlotTarget;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onCloseAutoFocus: (event: Event) => void;
     weekdays: Option[];
     classTypes: ClassType[];
     teachers: Option[];
 }) {
-    const [open, setOpen] = useState(false);
+    const slot = 'slot' in target ? target.slot : undefined;
+    const dayLabel = (value: number) =>
+        weekdays
+            .find((weekday) => weekday.value === String(value))
+            ?.label.toLowerCase();
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Editar ${slot.classTypeName} de las ${slot.startsAt}`}
-                >
-                    Editar
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogTitle>
-                    {slot.classTypeName} de las {slot.startsAt}
-                </DialogTitle>
-                <DialogDescription>
-                    Las clases que ya tienen reservas quedan como estaban; el
-                    cambio rige desde las siguientes.
-                </DialogDescription>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent
+                className="overflow-y-auto"
+                onCloseAutoFocus={onCloseAutoFocus}
+            >
+                <SheetHeader>
+                    <SheetTitle>
+                        {slot
+                            ? `${slot.classTypeName} · ${dayLabel(slot.weekday)} ${slot.startsAt}`
+                            : 'Agregar al horario'}
+                    </SheetTitle>
+                    <SheetDescription>
+                        {slot
+                            ? 'Las clases que ya tienen reservas quedan como estaban; el cambio rige desde las siguientes.'
+                            : ROOM_RULE}
+                    </SheetDescription>
+                </SheetHeader>
+
                 <Form
-                    {...updateSlot.form([slug, slot.id])}
+                    {...(slot
+                        ? updateSlot.form([slug, slot.id])
+                        : storeSlot.form(slug))}
                     options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
-                    className="grid gap-6"
+                    onSuccess={() => onOpenChange(false)}
+                    onError={(errors) => focusFirstError(errors)}
+                    className="grid gap-6 px-4"
                 >
                     {({ processing, errors }) => (
                         <>
                             <SlotFields
                                 errors={errors}
                                 slot={slot}
-                                prefix={`slot-${slot.id}-`}
-                                {...options}
+                                weekday={
+                                    'weekday' in target ? target.weekday : '1'
+                                }
+                                weekdays={weekdays}
+                                // A class keeps its type in the list even if that
+                                // type is no longer taught.
+                                classTypes={classTypes.filter(
+                                    (classType) =>
+                                        classType.isActive ||
+                                        classType.id === slot?.classTypeId,
+                                )}
+                                teachers={teachers}
                             />
-                            <DialogFooter>
+                            <div>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}
-                                    Guardar
+                                    {slot ? 'Guardar' : 'Agregar al horario'}
                                 </Button>
-                            </DialogFooter>
+                            </div>
                         </>
                     )}
                 </Form>
-            </DialogContent>
-        </Dialog>
+
+                {/* Outside the form above: the confirmation has a form of its own. */}
+                {slot && (
+                    <SheetFooter>
+                        <Separator className="mb-2" />
+                        <ConfirmDialog
+                            trigger={
+                                <Button
+                                    variant="ghost"
+                                    className="justify-start"
+                                >
+                                    Quitar del horario
+                                </Button>
+                            }
+                            title="¿Quitar esta clase del horario?"
+                            description="Dejan de generarse sus clases. Las que ya tienen reservas se mantienen."
+                            action={destroySlot.form([slug, slot.id])}
+                            confirmLabel="Quitar del horario"
+                        />
+                    </SheetFooter>
+                )}
+            </SheetContent>
+        </Sheet>
+    );
+}
+
+function SlotButton({
+    slot,
+    dayLabel,
+    isTypeActive,
+    onSelect,
+}: {
+    slot: Slot;
+    dayLabel: string;
+    isTypeActive: boolean;
+    onSelect: () => void;
+}) {
+    return (
+        <Button
+            variant="outline"
+            onClick={onSelect}
+            aria-label={`Editar ${slot.classTypeName} del ${dayLabel} a las ${slot.startsAt}`}
+            className={cn(
+                'h-auto w-full flex-col items-start gap-0.5 px-3 py-2 text-left font-normal whitespace-normal',
+                // Dashed until it has an instructor: it cannot be booked yet.
+                slot.instructorName === null && 'border-dashed',
+            )}
+        >
+            <span className="font-medium tabular-nums">
+                {slot.startsAt}–{endTime(slot.startsAt, slot.durationMinutes)}
+            </span>
+            <span>{slot.classTypeName}</span>
+            <span className="text-muted-foreground">
+                {slot.instructorName ?? 'Sin instructor'}
+            </span>
+            {!isTypeActive && (
+                <Badge variant="outline" className="mt-1">
+                    Ya no se da
+                </Badge>
+            )}
+        </Button>
+    );
+}
+
+function weeklyCount(count: number): string {
+    if (count === 0) {
+        return 'Sin clases en el horario';
+    }
+
+    return count === 1 ? '1 clase a la semana' : `${count} clases a la semana`;
+}
+
+function Count({ value }: { value: number }) {
+    return (
+        <span className="text-muted-foreground tabular-nums">({value})</span>
     );
 }
 
@@ -458,248 +611,223 @@ export default function Classes({
     bookingHorizonDays,
 }: Props) {
     const { studio } = usePage().props;
+    const [tab, setTab] = useState(
+        classTypes.length === 0 ? 'types' : 'schedule',
+    );
+    const [target, setTarget] = useState<SlotTarget | null>(null);
+    const [sheetOpen, setSheetOpen] = useState(false);
+    // The panel has no trigger of its own, so it hands the focus back to the
+    // button that opened it.
+    const openerRef = useRef<HTMLElement | null>(null);
 
     if (!studio) {
         return null;
     }
 
     const activeTypes = classTypes.filter((classType) => classType.isActive);
-    const days = weekdays
-        .map((weekday) => ({
-            ...weekday,
-            slots: slots.filter(
-                (slot) => String(slot.weekday) === weekday.value,
-            ),
-        }))
-        .filter((day) => day.slots.length > 0);
+    const activeTypeIds = new Set(activeTypes.map((classType) => classType.id));
+    const days = weekdays.map((weekday) => ({
+        ...weekday,
+        slots: slots.filter((slot) => String(slot.weekday) === weekday.value),
+    }));
+
+    // The target outlives the panel so it can slide out with its content; a
+    // class taken off the schedule closes it.
+    const isSheetOpen =
+        sheetOpen &&
+        target !== null &&
+        (!('slot' in target) ||
+            slots.some((slot) => slot.id === target.slot.id));
+
+    function openSheet(next: SlotTarget) {
+        openerRef.current =
+            document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null;
+        setTarget(next);
+        setSheetOpen(true);
+    }
 
     return (
         <>
             <Head title="Clases" />
 
-            <div className="flex flex-col gap-12 px-4 py-6">
+            <div className="flex flex-col gap-8 px-4 py-6">
                 <Heading
                     className="mb-0"
                     title="Clases"
                     description={`Las clases que da tu estudio y su horario semanal. De aquí salen las clases que tus alumnas reservan, hasta ${bookingHorizonDays} días antes.`}
                 />
 
-                <section className="grid gap-4">
-                    <Heading variant="small" title="Tipos de clase" />
-                    {classTypes.length > 0 && (
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Clase</TableHead>
-                                        <TableHead>Duración</TableHead>
-                                        <TableHead>Cupo</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">
-                                            <span className="sr-only">
-                                                Acciones
-                                            </span>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {classTypes.map((classType) => (
-                                        <TableRow key={classType.id}>
-                                            <TableCell className="font-medium">
-                                                {classType.name}
-                                            </TableCell>
-                                            <TableCell className="tabular-nums">
-                                                {classType.durationMinutes} min
-                                            </TableCell>
-                                            <TableCell className="tabular-nums">
-                                                {classType.capacity} personas
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        classType.isActive
-                                                            ? 'secondary'
-                                                            : 'outline'
-                                                    }
-                                                >
-                                                    {classType.isActive
-                                                        ? 'Se da'
-                                                        : 'Ya no se da'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <EditClassTypeDialog
-                                                    slug={studio.slug}
-                                                    classType={classType}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    )}
+                <Tabs value={tab} onValueChange={setTab} className="gap-4">
+                    <TabsList variant="line">
+                        <TabsTrigger value="schedule">
+                            Horario <Count value={slots.length} />
+                        </TabsTrigger>
+                        <TabsTrigger value="types">
+                            Tipos de clase <Count value={classTypes.length} />
+                        </TabsTrigger>
+                    </TabsList>
 
-                    <Form
-                        {...storeClassType.form(studio.slug)}
-                        resetOnSuccess
-                        options={{ preserveScroll: true }}
-                        onError={(errors) => focusFirstError(errors)}
-                        className="grid max-w-xl gap-6"
-                    >
-                        {({ processing, errors }) => (
-                            <>
-                                <ClassTypeFields errors={errors} />
-                                <div>
-                                    <Button
-                                        type="submit"
-                                        variant={
-                                            classTypes.length > 0
-                                                ? 'secondary'
-                                                : 'default'
-                                        }
-                                        disabled={processing}
-                                    >
-                                        {processing && <Spinner />}
-                                        Agregar tipo de clase
-                                    </Button>
-                                </div>
-                            </>
-                        )}
-                    </Form>
-                </section>
-
-                <section className="grid gap-4">
-                    <Heading
-                        variant="small"
-                        title="Horario semanal"
-                        description="Una sola sala: dos clases del mismo día no se pueden cruzar."
-                    />
-
-                    {days.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            Todavía no hay clases en el horario.
-                        </p>
-                    ) : (
-                        days.map((day) => (
-                            <div key={day.value} className="grid gap-2">
-                                <h3 className="text-sm font-medium">
-                                    {day.label}
-                                </h3>
-                                <div className="overflow-x-auto rounded-lg border">
-                                    <Table>
-                                        <TableBody>
-                                            {day.slots.map((slot) => (
-                                                <TableRow key={slot.id}>
-                                                    <TableCell className="w-32 tabular-nums">
-                                                        {slot.startsAt}–
-                                                        {endTime(
-                                                            slot.startsAt,
-                                                            slot.durationMinutes,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium">
-                                                        {slot.classTypeName}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {slot.instructorName ?? (
-                                                            <Badge variant="outline">
-                                                                Sin instructor
-                                                            </Badge>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <EditSlotDialog
-                                                                slug={
-                                                                    studio.slug
-                                                                }
-                                                                slot={slot}
-                                                                weekdays={
-                                                                    weekdays
-                                                                }
-                                                                classTypes={classTypes.filter(
-                                                                    (
-                                                                        classType,
-                                                                    ) =>
-                                                                        classType.isActive ||
-                                                                        classType.id ===
-                                                                            slot.classTypeId,
-                                                                )}
-                                                                teachers={
-                                                                    teachers
-                                                                }
-                                                            />
-                                                            <ConfirmDialog
-                                                                trigger={
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        aria-label={`Quitar ${slot.classTypeName} de las ${slot.startsAt} del horario`}
-                                                                    >
-                                                                        Quitar
-                                                                    </Button>
-                                                                }
-                                                                title="¿Quitar esta clase del horario?"
-                                                                description="Dejan de generarse sus clases. Las que ya tienen reservas se mantienen."
-                                                                action={destroySlot.form(
-                                                                    [
-                                                                        studio.slug,
-                                                                        slot.id,
-                                                                    ],
-                                                                )}
-                                                                confirmLabel="Quitar del horario"
-                                                            />
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </div>
-                        ))
-                    )}
-
-                    {activeTypes.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            Agrega primero un tipo de clase para armar el
-                            horario.
-                        </p>
-                    ) : (
-                        <Form
-                            {...storeSlot.form(studio.slug)}
-                            options={{ preserveScroll: true }}
-                            onError={(errors) => focusFirstError(errors)}
-                            className="grid max-w-xl gap-6"
-                        >
-                            {({ processing, errors }) => (
-                                <>
-                                    <Heading
-                                        variant="small"
-                                        title="Agregar al horario"
-                                    />
-                                    <SlotFields
-                                        errors={errors}
-                                        weekdays={weekdays}
-                                        classTypes={activeTypes}
-                                        teachers={teachers}
-                                    />
-                                    <div>
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                        >
-                                            {processing && <Spinner />}
-                                            Agregar al horario
-                                        </Button>
-                                    </div>
-                                </>
+                    <TabsContent value="schedule" className="grid gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <p className="text-sm text-muted-foreground">
+                                {activeTypes.length === 0
+                                    ? 'Agrega primero un tipo de clase para armar el horario.'
+                                    : ROOM_RULE}
+                            </p>
+                            {activeTypes.length === 0 ? (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setTab('types')}
+                                >
+                                    Ir a tipos de clase
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={() => openSheet({ weekday: '1' })}
+                                >
+                                    <Plus />
+                                    Agregar al horario
+                                </Button>
                             )}
-                        </Form>
-                    )}
-                </section>
+                        </div>
+
+                        <div className="grid gap-4 xl:grid-cols-7">
+                            {days.map((day) => {
+                                const dayLabel = day.label.toLowerCase();
+
+                                return (
+                                    <section
+                                        key={day.value}
+                                        aria-labelledby={`day-${day.value}`}
+                                        className="grid content-start gap-2 rounded-lg bg-muted/50 p-2"
+                                    >
+                                        <h2
+                                            id={`day-${day.value}`}
+                                            className="flex items-baseline justify-between gap-2 px-1 text-sm font-medium"
+                                        >
+                                            {day.label}
+                                            {day.slots.length > 0 && (
+                                                <span className="text-muted-foreground tabular-nums">
+                                                    {day.slots.length}
+                                                </span>
+                                            )}
+                                        </h2>
+
+                                        {day.slots.length === 0 ? (
+                                            <p className="px-1 text-sm text-muted-foreground">
+                                                Sin clases
+                                            </p>
+                                        ) : (
+                                            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-1">
+                                                {day.slots.map((slot) => (
+                                                    <SlotButton
+                                                        key={slot.id}
+                                                        slot={slot}
+                                                        dayLabel={dayLabel}
+                                                        isTypeActive={activeTypeIds.has(
+                                                            slot.classTypeId,
+                                                        )}
+                                                        onSelect={() =>
+                                                            openSheet({ slot })
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {activeTypes.length > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="justify-start"
+                                                aria-label={`Agregar una clase el ${dayLabel}`}
+                                                onClick={() =>
+                                                    openSheet({
+                                                        weekday: day.value,
+                                                    })
+                                                }
+                                            >
+                                                <Plus />
+                                                Agregar
+                                            </Button>
+                                        )}
+                                    </section>
+                                );
+                            })}
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="types" className="grid gap-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <p className="text-sm text-muted-foreground">
+                                {classTypes.length === 0
+                                    ? 'Todavía no hay tipos de clase. Agrega el primero, como Pilates mat de 50 minutos para 10 personas.'
+                                    : 'Cada clase del horario es de un tipo, con su duración y su cupo.'}
+                            </p>
+                            <AddClassTypeDialog slug={studio.slug} />
+                        </div>
+
+                        {classTypes.length > 0 && (
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {classTypes.map((classType) => (
+                                    <Card key={classType.id} className="gap-4">
+                                        <CardHeader className="flex flex-row items-start justify-between gap-2">
+                                            <div className="grid gap-1.5">
+                                                <CardTitle>
+                                                    <h2>{classType.name}</h2>
+                                                </CardTitle>
+                                                <CardDescription className="tabular-nums">
+                                                    {classType.durationMinutes}{' '}
+                                                    min · {classType.capacity}{' '}
+                                                    personas
+                                                </CardDescription>
+                                            </div>
+                                            <EditClassTypeDialog
+                                                slug={studio.slug}
+                                                classType={classType}
+                                            />
+                                        </CardHeader>
+                                        <CardContent className="flex flex-wrap items-center gap-2 text-sm">
+                                            <span className="tabular-nums">
+                                                {weeklyCount(
+                                                    slots.filter(
+                                                        (slot) =>
+                                                            slot.classTypeId ===
+                                                            classType.id,
+                                                    ).length,
+                                                )}
+                                            </span>
+                                            {!classType.isActive && (
+                                                <Badge variant="outline">
+                                                    Ya no se da
+                                                </Badge>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
             </div>
+
+            {target && (
+                <SlotSheet
+                    slug={studio.slug}
+                    target={target}
+                    open={isSheetOpen}
+                    onOpenChange={setSheetOpen}
+                    onCloseAutoFocus={(event) => {
+                        event.preventDefault();
+                        openerRef.current?.focus();
+                    }}
+                    weekdays={weekdays}
+                    classTypes={classTypes}
+                    teachers={teachers}
+                />
+            )}
         </>
     );
 }
