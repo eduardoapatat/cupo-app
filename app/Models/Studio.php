@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -160,5 +161,16 @@ class Studio extends Model
     public function classSessions(): HasMany
     {
         return $this->hasMany(ClassSession::class);
+    }
+
+    /**
+     * Every booking of the studio's sessions, so a booking in a URL under
+     * /estudios/{slug} is looked up within the studio (scoped bindings).
+     *
+     * @return HasManyThrough<Booking, ClassSession, $this>
+     */
+    public function bookings(): HasManyThrough
+    {
+        return $this->hasManyThrough(Booking::class, ClassSession::class);
     }
 }

@@ -49,6 +49,7 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 | `app/Actions/Team/`                            | `InviteToStudio`, `SendInvitation` (también reenvía) y `AcceptInvitation` (con la fila bloqueada, para que un enlace no se use dos veces)                                                                                                                                                                                  |
 | `app/Actions/Students/`                        | `EnrollStudent` (inscribir en el mesón a quien no usa la app) y `SendActivation` (el enlace para que active su cuenta)                                                                                                                                                                                                     |
 | `app/Actions/Classes/`                         | `GenerateSessions` (las sesiones de los próximos días desde el horario) y `ApplyScheduleChange` (regenera las sesiones sin reservas tras un cambio de horario)                                                                                                                                                             |
+| `app/Actions/Bookings/`                        | `BookSession` (ocupa un cupo con el `UPDATE` condicional), `CancelBooking` (a tiempo o tarde), `CancelSession` (el estudio cancela una clase) y `BookingRejected`, la regla que dijo que no                                                                                                                                |
 | `app/Console/Commands/`                        | `sessions:generate`, programado cada noche en `routes/console.php`                                                                                                                                                                                                                                                         |
 | `app/Concerns/`                                | Reglas de validación compartidas para el perfil, la contraseña y la declaración de mayoría de edad, y `HasUniqueSlug` (el slug del estudio)                                                                                                                                                                                |
 | `app/Enums/`                                   | `StudioRole` (los 4 roles, con sus permisos y su menú), `StudioPermission` (una acción por fila de la matriz), `Commune`, `Weekday` y `ClassSessionStatus`                                                                                                                                                                 |
@@ -57,7 +58,7 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 | `app/Http/Controllers/`                        | `DashboardController` (`/inicio`), `StudioController` (crear el estudio), los enlaces públicos `InvitationController`, `EnrollmentController` y `AccountActivationController`, `Studio/` (las pantallas de cada estudio: Inicio, Estudio, Equipo y Alumnas) y `Settings/` (perfil y seguridad)                             |
 | `app/Http/Requests/`                           | Validación de los formularios, con mensajes en español: `StudioRequest` (crear y editar el estudio) y `Settings/` (Configuración)                                                                                                                                                                                          |
 | `app/Http/Middleware/`                         | `HandleInertiaRequests` (props compartidas, incluido el estudio con su menú), `RememberCurrentStudio` (el estudio actual) y `HandleAppearance` (tema)                                                                                                                                                                      |
-| `app/Models/`                                  | `User`, `Studio`, `Membership` e `Invitation`, con casts a enums, relaciones y scopes (`pending`)                                                                                                                                                                                                                          |
+| `app/Models/`                                  | `User`, `Studio`, `Membership`, `Invitation`, `ClassType`, `ScheduleSlot`, `ClassSession` y `Booking`, con casts a enums, relaciones y scopes (`pending`, `upcoming`, `current`)                                                                                                                                           |
 | `app/Policies/`                                | `StudioPolicy`, que Laravel descubre sola: solo los miembros entran a un estudio                                                                                                                                                                                                                                           |
 | `app/Providers/`                               | `AppServiceProvider` (fechas, contraseñas, un Gate por permiso, verbos en español y páginas de error) y `FortifyServiceProvider` (vistas)                                                                                                                                                                                  |
 | `config/studio.php`                            | La zona horaria y las reglas por defecto de cada estudio nuevo                                                                                                                                                                                                                                                             |
@@ -67,7 +68,7 @@ Los roles y lo que puede hacer cada uno están en `docs/roles-y-permisos.md`.
 | `resources/js/layouts/`, `components/`, `lib/` | Layouts y componentes. `studio-nav.tsx` dibuja el menú del estudio y `studio-form.tsx` los campos del estudio (`StudioFields`) y el formulario de crearlo; `lib/form.ts` enlaza cada campo con su error (`aria-invalid`, `aria-describedby`) y lleva el foco al primero; `components/ui/` son los de shadcn, sin modificar |
 | `resources/js/actions/`, `routes/`             | Funciones de Wayfinder **generadas** (están en `.gitignore`); no se editan a mano                                                                                                                                                                                                                                          |
 | `routes/web.php`, `studio.php`, `settings.php` | Rutas web, del estudio y de Configuración. Las de autenticación las registra Fortify                                                                                                                                                                                                                                       |
-| `tests/Feature/`                               | Tests contra PostgreSQL: la matriz de permisos (`Authorization/`), el menú (`Navigation/`), la base (`Models/`), las policies, las pantallas (`Http/`), el seeder, la autenticación y las páginas de error                                                                                                                 |
+| `tests/Feature/`                               | Tests contra PostgreSQL: la matriz de permisos (`Authorization/`), el menú (`Navigation/`), la base (`Models/`), las policies, las pantallas (`Http/`), las acciones (`Actions/`), el seeder, la autenticación y las páginas de error. Aparte, `tests/Concurrency/` reserva con procesos reales                            |
 | `docs/`                                        | Esta documentación, la hoja de ruta, los roles y permisos, y las decisiones (`docs/decisions/`)                                                                                                                                                                                                                            |
 
 Lo que viene, según el plan (cada fase lo agrega a esta tabla):
@@ -100,7 +101,8 @@ La interfaz es solo en español:
 
 ### Tests
 
-- Pest corre contra PostgreSQL, en la base `testing` del mismo contenedor (`phpunit.xml`), nunca contra SQLite. Así se prueban de verdad las garantías de la base: `CHECK`, índices únicos parciales y, en la Fase 2, el cupo bajo concurrencia.
+- Pest corre contra PostgreSQL, en la base `testing` del mismo contenedor (`phpunit.xml`), nunca contra SQLite. Así se prueban de verdad las garantías de la base: `CHECK`, índices únicos parciales y el cupo bajo concurrencia.
+- `tests/Concurrency/` lanza reservas en procesos PHP reales (`Concurrency::run` con el driver `process`), cada uno con su conexión. Como los procesos tienen que ver los datos confirmados, esa carpeta usa `DatabaseTruncation` en vez de `RefreshDatabase` y vacía las tablas al terminar.
 - `composer test` corre Pint, PHPStan y Pest.
 - `composer ci:check` agrega oxlint/oxfmt y `tsc`. Es lo que corre GitHub Actions.
 
@@ -116,17 +118,17 @@ Los 403, 404, 500 y 503 de una visita renderizan la página `error`, en español
 
 Cupo guarda lo mínimo para operar (minimización de datos desde el día 1):
 
-| Entidad                                        | Datos                                                                                                         | Nota                                                                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Persona                                        | Nombre, teléfono y correo (opcional si la inscribe recepción)                                                 | Sin RUT, fecha de nacimiento ni datos de salud. Al unirse declara ser mayor de 18                    |
-| Estudio                                        | Nombre, comuna, enlace de inscripción y reglas                                                                | Hora de Santiago y CLP como enteros                                                                  |
-| Membresía                                      | Persona, estudio y rol                                                                                        | El rol vive aquí                                                                                     |
-| Tipo de clase y horario semanal                | Nombre, duración, cupo, día, hora e instructor                                                                | Del horario se generan las sesiones (scheduler)                                                      |
-| Sesión                                         | Fecha y hora (UTC), cupo, instructor y estado                                                                 | La clase concreta, por ejemplo la del martes a las 19:00                                             |
-| Reserva                                        | Sesión, alumna, estado (confirmada, cancelada a tiempo, cancelada tarde, asistió, no asistió) y quién la hizo | Una reserva activa por alumna y sesión                                                               |
-| Plan, compra de plan y movimientos de créditos | Precio, créditos, vigencia, máximo diario, saldo y vencimiento                                                | Cada reserva descuenta 1 crédito y cancelar a tiempo lo devuelve. Los movimientos quedan registrados |
-| Pago                                           | Monto, medio, comprobante, estado, quién lo registró y la caja                                                | Pendiente → por validar → aprobado, rechazado o anulado                                              |
-| Caja                                           | Quién, apertura y cierre, totales por medio y efectivo declarado frente al esperado                           | Cerrada no se modifica; después solo la dueña anula                                                  |
+| Entidad                                        | Datos                                                                                                                       | Nota                                                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Persona                                        | Nombre, teléfono y correo (opcional si la inscribe recepción)                                                               | Sin RUT, fecha de nacimiento ni datos de salud. Al unirse declara ser mayor de 18                    |
+| Estudio                                        | Nombre, comuna, enlace de inscripción y reglas                                                                              | Hora de Santiago y CLP como enteros                                                                  |
+| Membresía                                      | Persona, estudio y rol                                                                                                      | El rol vive aquí                                                                                     |
+| Tipo de clase y horario semanal                | Nombre, duración, cupo, día, hora e instructor                                                                              | Del horario se generan las sesiones (scheduler)                                                      |
+| Sesión                                         | Fecha y hora (UTC), cupo, instructor y estado                                                                               | La clase concreta, por ejemplo la del martes a las 19:00                                             |
+| Reserva                                        | Sesión, persona (alumna o equipo), estado (confirmada, cancelada a tiempo, cancelada tarde, asistió, faltó) y quién la hizo | Una reserva vigente por persona y sesión                                                             |
+| Plan, compra de plan y movimientos de créditos | Precio, créditos, vigencia, máximo diario, saldo y vencimiento                                                              | Cada reserva descuenta 1 crédito y cancelar a tiempo lo devuelve. Los movimientos quedan registrados |
+| Pago                                           | Monto, medio, comprobante, estado, quién lo registró y la caja                                                              | Pendiente → por validar → aprobado, rechazado o anulado                                              |
+| Caja                                           | Quién, apertura y cierre, totales por medio y efectivo declarado frente al esperado                                         | Cerrada no se modifica; después solo la dueña anula                                                  |
 
 **Por qué no se guardan datos de salud ni de menores.** La Ley 21.719 de protección de datos personales tiene su vigencia fijada para el 1 de diciembre de 2026, aunque hay un proyecto para postergarla a 2027. Esa ley exige consentimiento expreso para los datos sensibles, como los de salud, y el de su representante para los de menores de 16 años. Cupo no los necesita para operar, así que no los pide ni los guarda.
 
@@ -143,6 +145,8 @@ erDiagram
     schedule_slots |o--o{ class_sessions : genera
     class_types ||--o{ class_sessions : es
     users |o--o{ class_sessions : dicta
+    class_sessions ||--o{ bookings : tiene
+    users ||--o{ bookings : reserva
 
     users {
         bigint id PK
@@ -205,24 +209,34 @@ erDiagram
         bigint instructor_id FK "null: sin instructor"
         varchar status "enum: scheduled, cancelled"
     }
+    bookings {
+        bigint id PK
+        bigint class_session_id FK
+        bigint user_id FK
+        varchar kind "enum: student, staff"
+        varchar status "enum: confirmed, cancelled_on_time, cancelled_late, attended, no_show"
+        timestamptz cancelled_at "solo si está cancelada"
+    }
 ```
 
 Las garantías viven en PostgreSQL, no solo en PHP:
 
-| Garantía                                                                                                     | Dónde                           | Qué evita                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `CHECK` del rol (generado por `$table->enum()`)                                                              | `memberships`                   | Un rol desconocido (SQLSTATE `23514`)                                                                            |
-| `UNIQUE (studio_id, user_id)`                                                                                | `memberships`                   | Dos roles para la misma persona en el mismo estudio (`23505`)                                                    |
-| `UNIQUE (studio_id) WHERE role = 'owner'`, con `DB::statement` porque Blueprint no tiene índices parciales   | `memberships`                   | Una segunda dueña en el estudio (`23505`)                                                                        |
-| `UNIQUE (user_id) WHERE role = 'owner'`                                                                      | `memberships`                   | Que una persona sea dueña de dos estudios (`23505`): Cupo no maneja sucursales                                   |
-| `CHECK` de reglas no negativas                                                                               | `studios`                       | Una ventana de cancelación, un cierre de reservas o un aviso negativos (`23514`)                                 |
-| `UNIQUE (studio_id, email) WHERE accepted_at IS NULL` y `CHECK (email = lower(email))`                       | `invitations`                   | Dos invitaciones pendientes al mismo correo, aunque cambien las mayúsculas (`23505`)                             |
-| `CHECK` del rol (`front_desk` o `instructor`)                                                                | `invitations`                   | Invitar a alguien como dueña o como alumna (`23514`)                                                             |
-| `CHECK (booked_count >= 0 AND booked_count <= capacity)`                                                     | `class_sessions`                | Vender más cupos que los de la clase, venga de donde venga la escritura (`23514`). Ver el ADR 0005 _(punto 2.2)_ |
-| `EXCLUDE USING gist (studio_id WITH =, period WITH &&)` solo para las sesiones `scheduled`, con `btree_gist` | `class_sessions`                | Dos clases que se pisan en la única sala del estudio (`23P01`)                                                   |
-| `UNIQUE (schedule_slot_id, starts_at)`                                                                       | `class_sessions`                | Generar dos veces la misma clase                                                                                 |
-| `CHECK` de cupo y duración positivos, y día entre 1 y 7                                                      | `class_types`, `schedule_slots` | Clases imposibles (`23514`)                                                                                      |
-| Claves foráneas con `ON DELETE CASCADE`                                                                      | `memberships`                   | Membresías de un estudio o de una persona que ya no existen                                                      |
+| Garantía                                                                                                     | Dónde                           | Qué evita                                                                                          |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `CHECK` del rol (generado por `$table->enum()`)                                                              | `memberships`                   | Un rol desconocido (SQLSTATE `23514`)                                                              |
+| `UNIQUE (studio_id, user_id)`                                                                                | `memberships`                   | Dos roles para la misma persona en el mismo estudio (`23505`)                                      |
+| `UNIQUE (studio_id) WHERE role = 'owner'`, con `DB::statement` porque Blueprint no tiene índices parciales   | `memberships`                   | Una segunda dueña en el estudio (`23505`)                                                          |
+| `UNIQUE (user_id) WHERE role = 'owner'`                                                                      | `memberships`                   | Que una persona sea dueña de dos estudios (`23505`): Cupo no maneja sucursales                     |
+| `CHECK` de reglas no negativas                                                                               | `studios`                       | Una ventana de cancelación, un cierre de reservas o un aviso negativos (`23514`)                   |
+| `UNIQUE (studio_id, email) WHERE accepted_at IS NULL` y `CHECK (email = lower(email))`                       | `invitations`                   | Dos invitaciones pendientes al mismo correo, aunque cambien las mayúsculas (`23505`)               |
+| `CHECK` del rol (`front_desk` o `instructor`)                                                                | `invitations`                   | Invitar a alguien como dueña o como alumna (`23514`)                                               |
+| `CHECK (booked_count >= 0 AND booked_count <= capacity)`                                                     | `class_sessions`                | Vender más cupos que los de la clase, venga de donde venga la escritura (`23514`). Ver el ADR 0005 |
+| `EXCLUDE USING gist (studio_id WITH =, period WITH &&)` solo para las sesiones `scheduled`, con `btree_gist` | `class_sessions`                | Dos clases que se pisan en la única sala del estudio (`23P01`)                                     |
+| `UNIQUE (schedule_slot_id, starts_at)`                                                                       | `class_sessions`                | Generar dos veces la misma clase                                                                   |
+| `UNIQUE (class_session_id, user_id)` para las reservas no canceladas                                         | `bookings`                      | Dos reservas vigentes de la misma persona en una clase, por ejemplo con un doble toque (`23505`)   |
+| `CHECK` de que una reserva está cancelada si y solo si tiene `cancelled_at`                                  | `bookings`                      | Una cancelación sin fecha, o una fecha de cancelación en una reserva vigente (`23514`)             |
+| `CHECK` de cupo y duración positivos, y día entre 1 y 7                                                      | `class_types`, `schedule_slots` | Clases imposibles (`23514`)                                                                        |
+| Claves foráneas con `ON DELETE CASCADE`                                                                      | `memberships`                   | Membresías de un estudio o de una persona que ya no existen                                        |
 
 ## Permisos y navegación
 
@@ -323,7 +337,15 @@ Ver `docs/decisions/0006-sesiones-generadas-desde-el-horario.md`.
 
 ## Reservas _(puntos 2.2 y 2.3)_
 
-Pendiente: cómo se garantiza el cupo bajo concurrencia, cómo funcionan la lista de espera y la asistencia.
+Ver `docs/decisions/0005-cupo-garantizado-con-contador.md`.
+
+- **El cupo** se ocupa en `BookSession` con `UPDATE class_sessions SET booked_count = booked_count + 1 WHERE … AND booked_count < capacity`, en la misma transacción que crea la reserva. Si no actualiza ninguna fila, la clase está llena. El `CHECK` del contador lo respalda. `tests/Concurrency/` lo prueba con 15 procesos contra 10 cupos.
+- **Reservar** exige, en este orden: que la clase no esté cancelada, que tenga instructor, que no haya pasado el cierre (`booking_cutoff_minutes` antes) y que esté dentro de la anticipación (desde hoy hasta hoy + `booking_horizon_days` − 1, en hora de Santiago). Una persona tiene una sola reserva vigente por clase; después de cancelar puede volver a reservar.
+- **El equipo** también ocupa un cupo: recepción o la dueña lo anotan como `staff`.
+- **Cancelar** (`CancelBooking`) es a tiempo si faltan al menos `cancellation_window_hours`, y tarde después. La dueña puede devolver la clase igual (`bookings.override`), con motivo. Una clase que ya empezó no se cancela. El cambio de estado es condicional, así que cancelar dos veces libera un solo cupo.
+- **Cancelar una clase** (`CancelSession`, `sessions.cancel`) la deja `cancelled` con su motivo, cancela a tiempo sus reservas y deja el contador en 0.
+- **En la Fase 2** reservar no descuenta clases; desde la Fase 3 exige un plan vigente.
+- Pendiente _(punto 2.3)_: la lista de espera y la asistencia.
 
 ## Créditos, pagos y caja _(Fase 3)_
 

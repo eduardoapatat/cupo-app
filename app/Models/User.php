@@ -83,6 +83,14 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
      * The user's role in the given studio, or null when they are not a
      * member. It reads the loaded memberships, so repeated checks in one
      * request run a single query.

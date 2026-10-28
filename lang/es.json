@@ -73,5 +73,16 @@
     "We saved the schedule. Classes that already have bookings stay as they were.": "Guardamos el horario. Las clases que ya tienen reservas quedan como estaban.",
     "We took the class off the schedule. Classes that already have bookings stay.": "Sacamos la clase del horario. Las clases que ya tienen reservas se mantienen.",
     "We saved the rules. They apply from now on.": "Guardamos las reglas. Rigen desde ahora.",
-    "The class must end by midnight.": "La clase tiene que terminar antes de la medianoche."
+    "The class must end by midnight.": "La clase tiene que terminar antes de la medianoche.",
+    "This class was cancelled.": "Esta clase se canceló.",
+    "This class is full.": "Esta clase está llena.",
+    ":name already has this class booked.": ":name ya tiene esta clase reservada.",
+    "This class has no instructor yet, so it cannot be booked.": "Esta clase todavía no tiene instructor, así que no se puede reservar.",
+    "Bookings for this class are closed.": "Las reservas de esta clase ya cerraron.",
+    "This class cannot be booked yet: bookings open :days days ahead.": "Esta clase todavía no se puede reservar: las reservas abren :days días antes.",
+    "This booking is no longer active.": "Esta reserva ya no está vigente.",
+    "The class already started, so the booking can no longer be cancelled.": "La clase ya empezó, así que la reserva ya no se puede cancelar.",
+    "This class was already cancelled.": "Esta clase ya estaba cancelada.",
+    "The class already started, so it can no longer be cancelled.": "La clase ya empezó, así que ya no se puede cancelar.",
+    "The studio cancelled the class.": "El estudio canceló la clase."
 }
