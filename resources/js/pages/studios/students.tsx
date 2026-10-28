@@ -1,24 +1,26 @@
-import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { MoreHorizontal, Search, UserPlus } from 'lucide-react';
+import {
+    Form,
+    Head,
+    InfiniteScroll,
+    Link,
+    router,
+    usePage,
+} from '@inertiajs/react';
+import { ArrowLeft, Link2, Search, UserPlus, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { store as resendActivation } from '@/actions/App/Http/Controllers/Studio/StudentActivationController';
 import {
     index as studentsIndex,
+    show as studentShow,
     store as enrollStudent,
     update as updateStudent,
 } from '@/actions/App/Http/Controllers/Studio/StudentController';
 import EnrollmentLinkField from '@/components/enrollment-link-field';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -28,33 +30,20 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useInitials } from '@/hooks/use-initials';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
+import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio } from '@/types';
 
@@ -69,20 +58,15 @@ type Student = {
     enrolledOn: string | null;
 };
 
-type Paginated<T> = {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    prev_page_url: string | null;
-    next_page_url: string | null;
-    total: number;
-};
+type Filters = { search: string; status: string | null };
 
 type Props = {
-    students: Paginated<Student>;
-    filters: { search: string; status: string | null };
+    students: { data: Student[] };
+    filters: Filters;
     counts: Record<'all' | StudentStatus, number>;
     enrollmentUrl: string;
+    /** The student whose profile is open, if any. */
+    student: Student | null;
 };
 
 const STATUS_LABELS: Record<StudentStatus, string> = {
@@ -93,8 +77,12 @@ const STATUS_LABELS: Record<StudentStatus, string> = {
 
 const ALL = 'todas';
 
-/** The tabs, with the value each one puts in the URL (`?estado=`). */
-const TABS: { value: string; label: string; count: 'all' | StudentStatus }[] = [
+/** The status filter, with the value each option puts in the URL (`?estado=`). */
+const STATUS_FILTERS: {
+    value: string;
+    label: string;
+    count: 'all' | StudentStatus;
+}[] = [
     { value: ALL, label: 'Todas', count: 'all' },
     { value: 'con-app', label: 'Con app', count: 'app' },
     {
@@ -110,6 +98,43 @@ function formatPhone(phone: string | null): string {
     const match = phone?.match(/^\+56(9)(\d{4})(\d{4})$/);
 
     return match ? `+56 ${match[1]} ${match[2]} ${match[3]}` : (phone ?? '');
+}
+
+/** The list or a profile, keeping the search and the filter in the URL. */
+function studentsUrl(
+    slug: string,
+    studentId: number | null,
+    search: string,
+    status: string | null,
+): string {
+    const options = {
+        query: {
+            buscar: search.trim() || undefined,
+            estado: status && status !== ALL ? status : undefined,
+        },
+    };
+
+    return studentId === null
+        ? studentsIndex.url(slug, options)
+        : studentShow.url([slug, studentId], options);
+}
+
+function StudentAvatar({
+    name,
+    className,
+}: {
+    name: string;
+    className?: string;
+}) {
+    const getInitials = useInitials();
+
+    return (
+        <Avatar className={cn('size-9', className)} aria-hidden="true">
+            <AvatarFallback className="font-medium">
+                {getInitials(name)}
+            </AvatarFallback>
+        </Avatar>
+    );
 }
 
 function ContactFields({
@@ -192,9 +217,9 @@ function EnrollDialog({ slug }: { slug: string }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
+                <Button size="sm" className="flex-1">
                     <UserPlus />
-                    Inscribir alumna
+                    Inscribir
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -250,277 +275,282 @@ function EnrollDialog({ slug }: { slug: string }) {
     );
 }
 
-function ResendActivationForm({
+function ShareLinkDialog({ url }: { url: string }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1">
+                    <Link2 />
+                    Compartir enlace
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogTitle>Que se inscriban solas</DialogTitle>
+                <DialogDescription>
+                    Comparte el enlace del estudio: quien entra por él crea su
+                    cuenta y queda como alumna.
+                </DialogDescription>
+                <EnrollmentLinkField url={url} />
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function EditStudentDialog({
     slug,
     student,
 }: {
     slug: string;
     student: Student;
 }) {
+    const [open, setOpen] = useState(false);
+    const prefix = `student-${student.id}-`;
+
     return (
-        <Form
-            {...resendActivation.form([slug, student.id])}
-            options={{ preserveScroll: true }}
-        >
-            {({ processing }) => (
-                <Button type="submit" variant="secondary" disabled={processing}>
-                    {processing && <Spinner />}
-                    Reenviar activación
-                </Button>
-            )}
-        </Form>
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">Editar datos</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogTitle>Datos de {student.name}</DialogTitle>
+                <DialogDescription>
+                    Mientras no use la app, recepción mantiene sus datos al día.
+                </DialogDescription>
+                <Form
+                    {...updateStudent.form([slug, student.id])}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                    onError={(errors) =>
+                        focusFirstError(errors, {
+                            name: `${prefix}name`,
+                            phone: `${prefix}phone`,
+                            email: `${prefix}email`,
+                        })
+                    }
+                    className="grid gap-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <ContactFields errors={errors} student={student} />
+                            <DialogFooter>
+                                <Button type="submit" disabled={processing}>
+                                    {processing && <Spinner />}
+                                    Guardar
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </Form>
+            </DialogContent>
+        </Dialog>
     );
 }
 
-/** A part of the profile that arrives later, dimmed like «Pronto» blocks. */
-function UpcomingSection({
-    title,
-    description,
+function StudentListItem({
+    student,
+    href,
+    selected,
 }: {
-    title: string;
-    description: string;
+    student: Student;
+    href: string;
+    selected: boolean;
+}) {
+    const phone = formatPhone(student.phone);
+
+    return (
+        <li>
+            <Link
+                href={href}
+                only={['student']}
+                preserveState
+                preserveScroll
+                aria-current={selected ? 'page' : undefined}
+                className={cn(
+                    'flex items-center gap-3 border-l-2 border-transparent px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset',
+                    selected && 'border-foreground bg-muted hover:bg-muted',
+                )}
+            >
+                <StudentAvatar name={student.name} />
+                <span className="grid min-w-0 leading-tight">
+                    <span className="truncate font-medium">{student.name}</span>
+                    <span className="truncate text-sm text-muted-foreground">
+                        {STATUS_LABELS[student.status]}
+                        {phone && (
+                            <span className="tabular-nums"> · {phone}</span>
+                        )}
+                    </span>
+                </span>
+            </Link>
+        </li>
+    );
+}
+
+function ProfileRow({
+    label,
+    children,
+}: {
+    label: string;
+    children: ReactNode;
 }) {
     return (
-        <section className="grid gap-1">
-            <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-medium">{title}</h3>
-                <Badge variant="outline">Pronto</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{description}</p>
-        </section>
+        <div className="grid gap-1 py-3 sm:grid-cols-[8rem_1fr] sm:gap-4">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="grid justify-items-start gap-3 text-sm">
+                {children}
+            </dd>
+        </div>
+    );
+}
+
+function AppStatus({ slug, student }: { slug: string; student: Student }) {
+    if (student.status === 'app') {
+        return <p>Usa la app: ella mantiene sus datos.</p>;
+    }
+
+    if (student.status === 'no_app') {
+        return (
+            <p>
+                No usa la app: recepción mantiene sus datos. Si anotas su
+                correo, le llega el enlace para activarla.
+            </p>
+        );
+    }
+
+    return (
+        <>
+            <p>
+                Le enviamos el enlace para activar su cuenta a{' '}
+                <span className="break-all">{student.email}</span>. ¿No le
+                llegó? Revisa que el correo esté bien y vuelve a enviárselo.
+            </p>
+            <Form
+                {...resendActivation.form([slug, student.id])}
+                options={{ preserveScroll: true }}
+            >
+                {({ processing }) => (
+                    <Button
+                        type="submit"
+                        variant="secondary"
+                        size="sm"
+                        disabled={processing}
+                    >
+                        {processing && <Spinner />}
+                        Reenviar activación
+                    </Button>
+                )}
+            </Form>
+        </>
     );
 }
 
 /**
- * The student's profile in a side panel, so the list stays in sight. Her
- * bookings and plan join it in later phases.
+ * The student's profile. Her bookings (2.2) and her plan and payments
+ * (phase 3) arrive as tabs of their own.
  */
-function StudentSheet({
+function StudentProfile({
     slug,
     student,
-    open,
-    onOpenChange,
-    onCloseAutoFocus,
+    backHref,
 }: {
     slug: string;
     student: Student;
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onCloseAutoFocus: (event: Event) => void;
+    backHref: string;
 }) {
-    const prefix = `student-${student.id}-`;
-
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent
-                className="overflow-y-auto"
-                onCloseAutoFocus={onCloseAutoFocus}
+        <article className="grid max-w-3xl min-w-0 gap-6 p-4 md:p-6">
+            <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="-ml-2 w-fit md:hidden"
             >
-                <SheetHeader>
-                    <SheetTitle>{student.name}</SheetTitle>
-                    <SheetDescription>
-                        {STATUS_LABELS[student.status]}
-                        {student.enrolledOn &&
-                            ` · Alumna desde el ${student.enrolledOn}`}
-                    </SheetDescription>
-                </SheetHeader>
+                <Link href={backHref} only={['student']} preserveState>
+                    <ArrowLeft />
+                    Alumnas
+                </Link>
+            </Button>
 
-                <div className="grid gap-6 px-4 pb-4">
-                    {student.status === 'app' ? (
-                        <div className="grid gap-4">
-                            <dl className="grid gap-3 text-sm">
-                                <div className="grid gap-0.5">
-                                    <dt className="text-muted-foreground">
-                                        Celular
-                                    </dt>
-                                    <dd className="tabular-nums">
-                                        {formatPhone(student.phone) ||
-                                            'Sin celular'}
-                                    </dd>
-                                </div>
-                                <div className="grid gap-0.5">
-                                    <dt className="text-muted-foreground">
-                                        Correo
-                                    </dt>
-                                    <dd className="break-all">
-                                        {student.email}
-                                    </dd>
-                                </div>
-                            </dl>
-                            <p className="text-sm text-muted-foreground">
-                                Usa la app: ella mantiene sus datos.
-                            </p>
-                        </div>
-                    ) : (
-                        <>
-                            <Form
-                                {...updateStudent.form([slug, student.id])}
-                                options={{ preserveScroll: true }}
-                                onSuccess={() => onOpenChange(false)}
-                                onError={(errors) =>
-                                    focusFirstError(errors, {
-                                        name: `${prefix}name`,
-                                        phone: `${prefix}phone`,
-                                        email: `${prefix}email`,
-                                    })
-                                }
-                                className="grid gap-6"
-                            >
-                                {({ processing, errors }) => (
-                                    <>
-                                        <ContactFields
-                                            errors={errors}
-                                            student={student}
-                                        />
-                                        <div>
-                                            <Button
-                                                type="submit"
-                                                disabled={processing}
-                                            >
-                                                {processing && <Spinner />}
-                                                Guardar
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
-                            </Form>
-
-                            {/* Outside the form above: it is a form of its own. */}
-                            {student.status === 'activation_sent' && (
-                                <div className="grid gap-2">
-                                    <p className="text-sm text-muted-foreground">
-                                        ¿No le llegó el enlace? Revisa que su
-                                        correo esté bien y vuelve a enviárselo.
-                                    </p>
-                                    <div>
-                                        <ResendActivationForm
-                                            slug={slug}
-                                            student={student}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    <Separator />
-
-                    <UpcomingSection
-                        title="Reservas"
-                        description="Sus próximas clases y las pasadas. Llega en el punto 2.2."
-                    />
-                    <UpcomingSection
-                        title="Plan y clases"
-                        description="Su plan, cuántas clases le quedan y cuándo vence. Llega en la Fase 3."
-                    />
+            <header className="flex flex-wrap items-start gap-4">
+                <StudentAvatar
+                    name={student.name}
+                    className="size-14 text-lg"
+                />
+                <div className="grid min-w-0 flex-1 gap-1.5">
+                    <h2 className="text-xl font-semibold tracking-tight break-words">
+                        {student.name}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <Badge
+                            variant={
+                                student.status === 'app'
+                                    ? 'secondary'
+                                    : 'outline'
+                            }
+                        >
+                            {STATUS_LABELS[student.status]}
+                        </Badge>
+                        {student.enrolledOn && (
+                            <span>Alumna desde el {student.enrolledOn}</span>
+                        )}
+                    </div>
                 </div>
-            </SheetContent>
-        </Sheet>
-    );
-}
-
-function StatusBadge({
-    status,
-    className,
-}: {
-    status: StudentStatus;
-    className?: string;
-}) {
-    return (
-        <Badge
-            variant={status === 'app' ? 'secondary' : 'outline'}
-            className={className}
-        >
-            {STATUS_LABELS[status]}
-        </Badge>
-    );
-}
-
-function StudentRow({
-    slug,
-    student,
-    onOpen,
-}: {
-    slug: string;
-    student: Student;
-    onOpen: () => void;
-}) {
-    return (
-        <TableRow>
-            <TableCell className="max-w-0 sm:max-w-none">
-                <div className="grid min-w-0 justify-items-start leading-tight">
-                    <Button
-                        variant="link"
-                        data-student-trigger={student.id}
-                        onClick={onOpen}
-                        aria-label={`Ver la ficha de ${student.name}`}
-                        className="h-auto max-w-full justify-start p-0 text-foreground"
-                    >
-                        <span className="truncate">{student.name}</span>
-                    </Button>
-                    <span className="max-w-full truncate text-sm text-muted-foreground tabular-nums md:hidden">
-                        {formatPhone(student.phone)}
-                    </span>
-                    <span
-                        className="max-w-full truncate text-sm text-muted-foreground"
-                        title={student.email ?? undefined}
-                    >
-                        {student.email ?? 'Sin correo'}
-                    </span>
-                    <StatusBadge
-                        status={student.status}
-                        className="mt-1.5 sm:hidden"
-                    />
-                </div>
-            </TableCell>
-            <TableCell className="hidden tabular-nums md:table-cell">
-                {formatPhone(student.phone)}
-            </TableCell>
-            <TableCell className="hidden sm:table-cell">
-                <StatusBadge status={student.status} />
-            </TableCell>
-            <TableCell className="w-12 text-right">
                 {student.status !== 'app' && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Acciones para ${student.name}`}
-                            >
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={onOpen}>
-                                Editar datos
-                            </DropdownMenuItem>
-                            {student.status === 'activation_sent' && (
-                                <DropdownMenuItem asChild>
-                                    <Link
-                                        href={resendActivation([
-                                            slug,
-                                            student.id,
-                                        ])}
-                                        as="button"
-                                        preserveScroll
-                                        className="w-full"
-                                    >
-                                        Reenviar activación
-                                    </Link>
-                                </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <EditStudentDialog
+                        key={student.id}
+                        slug={slug}
+                        student={student}
+                    />
                 )}
-            </TableCell>
-        </TableRow>
+            </header>
+
+            <Tabs defaultValue="data" className="min-w-0 gap-4">
+                {/* Swipes sideways when it does not fit; the padding keeps the underline. */}
+                <div className="overflow-x-auto pb-1.5">
+                    <TabsList variant="line">
+                        <TabsTrigger value="data">Datos</TabsTrigger>
+                        <TabsTrigger value="bookings" disabled>
+                            Reservas <Badge variant="outline">Pronto</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="plan" disabled>
+                            Plan y pagos <Badge variant="outline">Pronto</Badge>
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="data">
+                    <dl className="divide-y">
+                        <ProfileRow label="Celular">
+                            <span className="tabular-nums">
+                                {formatPhone(student.phone) || 'Sin celular'}
+                            </span>
+                        </ProfileRow>
+                        <ProfileRow label="Correo">
+                            <span className="break-all">
+                                {student.email ?? 'Sin correo'}
+                            </span>
+                        </ProfileRow>
+                        <ProfileRow label="App">
+                            <AppStatus slug={slug} student={student} />
+                        </ProfileRow>
+                    </dl>
+                </TabsContent>
+            </Tabs>
+        </article>
     );
 }
 
-function Count({ value }: { value: number }) {
+function NoStudentSelected() {
     return (
-        <span className="text-muted-foreground tabular-nums">({value})</span>
+        <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+            <Users
+                aria-hidden="true"
+                className="size-8 text-muted-foreground"
+            />
+            <p className="font-medium">Elige una alumna para ver su ficha</p>
+            <p className="max-w-xs text-sm text-muted-foreground">
+                Aquí ves sus datos y, pronto, sus reservas y su plan.
+            </p>
+        </div>
     );
 }
 
@@ -529,12 +559,11 @@ export default function Students({
     filters,
     counts,
     enrollmentUrl,
+    student,
 }: Props) {
     const { studio } = usePage().props;
     const [search, setSearch] = useState(filters.search);
-    const [tab, setTab] = useState(filters.status ?? ALL);
-    const [selected, setSelected] = useState<Student | null>(null);
-    const [sheetOpen, setSheetOpen] = useState(false);
+    const [status, setStatus] = useState(filters.status ?? ALL);
     const searchTimer = useRef<number | undefined>(undefined);
 
     useEffect(() => () => window.clearTimeout(searchTimer.current), []);
@@ -544,23 +573,20 @@ export default function Students({
     }
 
     const slug = studio.slug;
+    const selectedId = student?.id ?? null;
 
-    /** Reload the list from its first page, keeping the rest of the page. */
-    function visit(nextSearch: string, nextTab: string) {
+    /** Reload the list from its first page for a new search or filter. */
+    function visit(nextSearch: string, nextStatus: string) {
         window.clearTimeout(searchTimer.current);
         router.get(
-            studentsIndex.url(slug, {
-                query: {
-                    buscar: nextSearch.trim() || undefined,
-                    estado: nextTab === ALL ? undefined : nextTab,
-                },
-            }),
+            studentsUrl(slug, selectedId, nextSearch, nextStatus),
             {},
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
                 only: ['students', 'filters', 'counts'],
+                reset: ['students'],
             },
         );
     }
@@ -568,104 +594,98 @@ export default function Students({
     function onSearchChange(value: string) {
         setSearch(value);
         window.clearTimeout(searchTimer.current);
-        searchTimer.current = window.setTimeout(() => visit(value, tab), 300);
+        searchTimer.current = window.setTimeout(
+            () => visit(value, status),
+            300,
+        );
     }
 
-    function onTabChange(value: string) {
-        setTab(value);
+    function onStatusChange(value: string) {
+        setStatus(value);
         visit(search, value);
     }
-
-    // The panel shows the student's latest data; if she leaves the list
-    // (another page or filter), it closes.
-    const current = selected
-        ? (students.data.find((student) => student.id === selected.id) ?? null)
-        : null;
 
     const isFiltered = filters.search !== '' || filters.status !== null;
 
     return (
         <>
-            <Head title="Alumnas" />
+            <Head title={student ? `${student.name} · Alumnas` : 'Alumnas'} />
 
-            <div className="flex flex-col gap-8 px-4 py-6">
-                <Heading
-                    className="mb-0"
-                    title="Alumnas"
-                    description="Quienes toman clases en el estudio. Las que usan la app manejan sus propios datos."
-                />
-
-                <Card className="gap-0 py-0">
-                    <CardHeader className="py-6">
-                        <CardTitle>
-                            <h2>Que se inscriban solas</h2>
-                        </CardTitle>
-                        <CardDescription>
-                            Comparte el enlace del estudio: quien entra por él
-                            crea su cuenta y queda como alumna.
-                        </CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="py-6">
-                        <EnrollmentLinkField url={enrollmentUrl} />
-                    </CardContent>
-                </Card>
-
-                <Tabs value={tab} onValueChange={onTabChange} className="gap-4">
-                    {/* Swipes sideways on a phone; the padding keeps the underline. */}
-                    <div className="-mx-4 overflow-x-auto px-4 pb-1.5">
-                        <TabsList variant="line">
-                            {TABS.map((option) => (
-                                <TabsTrigger
-                                    key={option.value}
-                                    value={option.value}
-                                >
-                                    {option.label}{' '}
-                                    <Count value={counts[option.count]} />
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
+            <div className="flex flex-col md:h-[calc(100svh-5rem)] md:flex-row">
+                {/* On a phone, one screen at a time: the list or a profile. */}
+                <section
+                    aria-labelledby="students-title"
+                    className={cn(
+                        'flex min-h-0 flex-col md:w-72 md:shrink-0 md:border-r lg:w-80 xl:w-96',
+                        student && 'hidden md:flex',
+                    )}
+                >
+                    <div className="grid gap-3 border-b p-4">
+                        <h1
+                            id="students-title"
+                            className="text-xl font-semibold tracking-tight"
+                        >
+                            Alumnas{' '}
+                            <span className="font-normal text-muted-foreground tabular-nums">
+                                ({counts.all})
+                            </span>
+                        </h1>
+                        <div className="flex gap-2">
+                            <EnrollDialog slug={slug} />
+                            <ShareLinkDialog url={enrollmentUrl} />
+                        </div>
+                        <div className="relative">
+                            <Search
+                                aria-hidden="true"
+                                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                            />
+                            <Label htmlFor="student-search" className="sr-only">
+                                Buscar alumnas
+                            </Label>
+                            <Input
+                                id="student-search"
+                                // Not type="search": its native clear button comes in blue.
+                                type="text"
+                                enterKeyHint="search"
+                                value={search}
+                                onChange={(event) =>
+                                    onSearchChange(event.target.value)
+                                }
+                                autoComplete="off"
+                                maxLength={100}
+                                placeholder="Nombre, celular o correo"
+                                className="pl-9"
+                            />
+                        </div>
+                        <Select value={status} onValueChange={onStatusChange}>
+                            <SelectTrigger
+                                aria-label="Filtrar por estado"
+                                className="w-full"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {STATUS_FILTERS.map((option) => (
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label} ({counts[option.count]})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    <TabsContent value={tab} className="grid gap-4">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="relative w-full sm:max-w-xs">
-                                <Search
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                                />
-                                <Label
-                                    htmlFor="student-search"
-                                    className="sr-only"
-                                >
-                                    Buscar alumnas
-                                </Label>
-                                <Input
-                                    id="student-search"
-                                    // Not type="search": its native clear button comes in blue.
-                                    type="text"
-                                    enterKeyHint="search"
-                                    value={search}
-                                    onChange={(event) =>
-                                        onSearchChange(event.target.value)
-                                    }
-                                    autoComplete="off"
-                                    maxLength={100}
-                                    placeholder="Buscar por nombre, celular o correo"
-                                    className="pl-9"
-                                />
-                            </div>
-                            <EnrollDialog slug={slug} />
-                        </div>
-
-                        {students.total === 0 ? (
-                            <div className="grid justify-items-center gap-3 rounded-lg border px-4 py-8 text-center">
+                    <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+                        {students.data.length === 0 ? (
+                            <div className="grid justify-items-center gap-3 px-4 py-8 text-center">
                                 <p className="text-sm text-muted-foreground">
                                     {!isFiltered
                                         ? 'Todavía no hay alumnas. Comparte el enlace o inscribe a la primera en el mesón.'
                                         : filters.search !== ''
                                           ? `No encontramos alumnas con «${filters.search}».`
-                                          : 'No hay alumnas en esta pestaña.'}
+                                          : 'No hay alumnas con este estado.'}
                                 </p>
                                 {filters.search !== '' && (
                                     <Button
@@ -673,7 +693,7 @@ export default function Students({
                                         size="sm"
                                         onClick={() => {
                                             setSearch('');
-                                            visit('', tab);
+                                            visit('', status);
                                         }}
                                     >
                                         Limpiar búsqueda
@@ -681,110 +701,60 @@ export default function Students({
                                 )}
                             </div>
                         ) : (
-                            <>
-                                <div className="overflow-x-auto rounded-lg border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Alumna</TableHead>
-                                                <TableHead className="hidden md:table-cell">
-                                                    Celular
-                                                </TableHead>
-                                                <TableHead className="hidden sm:table-cell">
-                                                    Estado
-                                                </TableHead>
-                                                <TableHead className="text-right">
-                                                    <span className="sr-only">
-                                                        Acciones
-                                                    </span>
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {students.data.map((student) => (
-                                                <StudentRow
-                                                    key={student.id}
-                                                    slug={slug}
-                                                    student={student}
-                                                    onOpen={() => {
-                                                        setSelected(student);
-                                                        setSheetOpen(true);
-                                                    }}
-                                                />
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-
-                                {students.last_page > 1 && (
-                                    <nav
-                                        aria-label="Páginas de alumnas"
-                                        className="flex items-center justify-between gap-4 text-sm"
-                                    >
-                                        <span className="text-muted-foreground">
-                                            Página {students.current_page} de{' '}
-                                            {students.last_page}
-                                        </span>
-                                        <div className="flex gap-2">
-                                            {students.prev_page_url && (
-                                                <Button
-                                                    asChild
-                                                    variant="outline"
-                                                    size="sm"
-                                                >
-                                                    <Link
-                                                        href={
-                                                            students.prev_page_url
-                                                        }
-                                                        preserveScroll
-                                                    >
-                                                        Anterior
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                            {students.next_page_url && (
-                                                <Button
-                                                    asChild
-                                                    variant="outline"
-                                                    size="sm"
-                                                >
-                                                    <Link
-                                                        href={
-                                                            students.next_page_url
-                                                        }
-                                                        preserveScroll
-                                                    >
-                                                        Siguiente
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </nav>
-                                )}
-                            </>
+                            <InfiniteScroll
+                                data="students"
+                                as="ul"
+                                onlyNext
+                                preserveUrl
+                                aria-label="Alumnas"
+                                className="divide-y"
+                                loading={
+                                    <p className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                                        <Spinner />
+                                        Cargando más alumnas
+                                    </p>
+                                }
+                            >
+                                {students.data.map((item) => (
+                                    <StudentListItem
+                                        key={item.id}
+                                        student={item}
+                                        selected={item.id === selectedId}
+                                        href={studentsUrl(
+                                            slug,
+                                            item.id,
+                                            filters.search,
+                                            filters.status,
+                                        )}
+                                    />
+                                ))}
+                            </InfiniteScroll>
                         )}
-                    </TabsContent>
-                </Tabs>
-            </div>
+                    </div>
+                </section>
 
-            {selected && (
-                <StudentSheet
-                    slug={slug}
-                    student={current ?? selected}
-                    open={sheetOpen && current !== null}
-                    onOpenChange={setSheetOpen}
-                    onCloseAutoFocus={(event) => {
-                        // The panel has no trigger of its own: the focus goes
-                        // back to the student's name in the list.
-                        event.preventDefault();
-                        document
-                            .querySelector<HTMLElement>(
-                                `[data-student-trigger="${selected.id}"]`,
-                            )
-                            ?.focus();
-                    }}
-                />
-            )}
+                <div
+                    className={cn(
+                        'min-w-0 flex-1 md:overflow-y-auto',
+                        !student && 'hidden md:block',
+                    )}
+                >
+                    {student ? (
+                        <StudentProfile
+                            slug={slug}
+                            student={student}
+                            backHref={studentsUrl(
+                                slug,
+                                null,
+                                filters.search,
+                                filters.status,
+                            )}
+                        />
+                    ) : (
+                        <NoStudentSelected />
+                    )}
+                </div>
+            </div>
         </>
     );
 }
@@ -794,6 +764,14 @@ Students.layout = (props: Props & { studio: CurrentStudio | null }) => ({
         { title: 'Inicio', href: dashboard() },
         ...(props.studio
             ? [{ title: 'Alumnas', href: studentsIndex(props.studio.slug) }]
+            : []),
+        ...(props.studio && props.student
+            ? [
+                  {
+                      title: props.student.name,
+                      href: studentShow([props.studio.slug, props.student.id]),
+                  },
+              ]
             : []),
     ],
 });
