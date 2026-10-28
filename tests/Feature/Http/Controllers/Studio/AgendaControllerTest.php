@@ -45,7 +45,7 @@ function ownerOf(Studio $studio): User
     return User::factory()->memberOf($studio, StudioRole::Owner)->create(['name' => 'Carla Rojas']);
 }
 
-it('shows the week from Monday to Sunday, with a late Sunday class in its day', function () {
+it('shows the week from Monday to Sunday, with each class at its local time and a late Sunday class in its day', function () {
     agendaClass($this->studio, $this->fernanda, '2026-11-03 19:00');
     agendaClass($this->studio, $this->fernanda, '2026-11-08 22:00');
     agendaClass($this->studio, $this->fernanda, '2026-11-09 07:00');
@@ -55,15 +55,45 @@ it('shows the week from Monday to Sunday, with a late Sunday class in its day', 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('studios/agenda')
+            ->where('today', ['date' => '2026-11-02', 'weekday' => 'LUN', 'dayOfMonth' => 2])
+            ->where('focus', ['date' => '2026-11-02', 'label' => 'lunes 2 de noviembre'])
             ->where('week.start', '2026-11-02')
+            ->where('week.label', '2 nov – 8 nov')
+            ->where('week.monthLabel', 'Noviembre 2026')
             ->where('week.previous', '2026-10-26')
             ->where('week.next', '2026-11-09')
-            ->where('week.isCurrent', true)
+            ->where('week.sessionCount', 2)
+            ->where('view', null)
             ->where('days.0.isToday', true)
-            ->where('days.1.sessions.0.startsAt', '19:00')
-            ->where('days.6.label', 'Dom 8')
-            ->where('days.6.sessions.0.startsAt', '22:00')
+            ->where('days.1.sessions.0', fn ($card) => $card['startsAt'] === '19:00'
+                && $card['endsAt'] === '19:50'
+                && $card['startMinutes'] === 19 * 60
+                && $card['durationMinutes'] === 50)
+            ->where('days.6.weekday', 'Dom')
+            ->where('days.6.sessions.0.startMinutes', 22 * 60)
             ->where('session', null));
+});
+
+it('focuses the day in ?fecha=, shows its week and keeps the view asked for', function () {
+    $this->actingAs(frontDeskOf($this->studio))
+        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-12-30', 'vista' => 'dia']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('focus.date', '2026-12-30')
+            ->where('week.start', '2026-12-28')
+            ->where('week.monthLabel', 'Diciembre 2026 – enero 2027')
+            ->where('view', 'dia'));
+
+    $this->actingAs(frontDeskOf($this->studio))
+        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-10-29']))
+        ->assertInertia(fn (Assert $page) => $page->where('week.monthLabel', 'Octubre – noviembre 2026'));
+});
+
+it('falls back to today for a date or view it cannot read', function () {
+    $this->actingAs(frontDeskOf($this->studio))
+        ->get(route('studios.agenda.index', [$this->studio, 'fecha' => '2026-13-45x', 'vista' => 'mes']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('focus.date', '2026-11-02')
+            ->where('view', null));
 });
 
 it('opens a class with who comes, the team to add and the instructors', function () {
@@ -75,6 +105,7 @@ it('opens a class with who comes, the team to add and the instructors', function
     $this->actingAs($camila)
         ->get(route('studios.agenda.show', [$this->studio, $session]))
         ->assertInertia(fn (Assert $page) => $page
+            ->where('focus.date', '2026-11-03')
             ->where('week.start', '2026-11-02')
             ->where('session.id', $session->id)
             ->where('session.date', 'martes 3 de noviembre')

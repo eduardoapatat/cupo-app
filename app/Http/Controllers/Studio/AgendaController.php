@@ -32,7 +32,8 @@ class AgendaController extends Controller
     public function index(Request $request, Studio $studio): Response
     {
         return Inertia::render('studios/agenda', [
-            ...$this->weekProps($studio, $this->weekStart($request, null)),
+            ...$this->calendarProps($studio, $this->focusDay($request, null)),
+            'view' => $this->requestedView($request),
             'session' => null,
         ]);
     }
@@ -44,7 +45,8 @@ class AgendaController extends Controller
     public function show(Request $request, Studio $studio, ClassSession $classSession, #[CurrentUser] User $user): Response
     {
         return Inertia::render('studios/agenda', [
-            ...$this->weekProps($studio, $this->weekStart($request, $classSession)),
+            ...$this->calendarProps($studio, $this->focusDay($request, $classSession)),
+            'view' => $this->requestedView($request),
             'session' => $this->presentSession($studio, $classSession, $user),
         ]);
     }
@@ -79,27 +81,44 @@ class AgendaController extends Controller
     }
 
     /**
-     * The Monday of the week in ?semana=AAAA-MM-DD, of the class shown, or
-     * of today.
+     * The view in ?vista=dia|semana, or null to let the screen choose: the
+     * day on a phone, the week elsewhere.
      */
-    private function weekStart(Request $request, ?ClassSession $session): CarbonImmutable
+    private function requestedView(Request $request): ?string
+    {
+        $view = $request->string('vista')->toString();
+
+        return in_array($view, ['dia', 'semana'], true) ? $view : null;
+    }
+
+    /**
+     * The day in focus: ?fecha=AAAA-MM-DD, the day of the class shown, or
+     * today. The day view shows it; the week view, its week.
+     */
+    private function focusDay(Request $request, ?ClassSession $session): CarbonImmutable
     {
         $timezone = config()->string('studio.timezone');
-        $requested = $request->string('semana')->toString();
+        $requested = $request->string('fecha')->toString();
 
         $day = preg_match('/^\d{4}-\d{2}-\d{2}$/', $requested) === 1
             ? CarbonImmutable::createFromFormat('!Y-m-d', $requested, $timezone)
             : null;
 
-        return ($day ?: $session?->localStartsAt() ?? now($timezone))->startOfWeek(CarbonImmutable::MONDAY);
+        return ($day ?: $session?->localStartsAt() ?? now($timezone))->startOfDay();
     }
 
     /**
+     * The week around the day in focus, as the calendar draws it: each
+     * class with its start in minutes after local midnight and its length.
+     *
      * @return array<string, mixed>
      */
-    private function weekProps(Studio $studio, CarbonImmutable $start): array
+    private function calendarProps(Studio $studio, CarbonImmutable $focus): array
     {
-        $today = now(config()->string('studio.timezone'))->startOfDay();
+        $timezone = config()->string('studio.timezone');
+        $today = now($timezone)->startOfDay();
+        $start = $focus->startOfWeek(CarbonImmutable::MONDAY);
+        $end = $start->addDays(6);
         $sessions = $studio->classSessions()
             ->where('starts_at', '>=', $start->utc())
             ->where('starts_at', '<', $start->addWeek()->utc())
@@ -108,19 +127,30 @@ class AgendaController extends Controller
             ->get();
 
         return [
+            'today' => [
+                'date' => $today->toDateString(),
+                'weekday' => mb_strtoupper(rtrim($today->translatedFormat('D'), '.')),
+                'dayOfMonth' => $today->day,
+            ],
+            'focus' => [
+                'date' => $focus->toDateString(),
+                'label' => $focus->translatedFormat('l j \d\e F'),
+            ],
             'week' => [
                 'start' => $start->toDateString(),
-                'label' => $start->translatedFormat('j \d\e F').' – '.$start->addDays(6)->translatedFormat('j \d\e F'),
+                'label' => rtrim($start->translatedFormat('j M'), '.').' – '.rtrim($end->translatedFormat('j M'), '.'),
+                'monthLabel' => $this->monthLabel($start, $end),
                 'previous' => $start->subWeek()->toDateString(),
                 'next' => $start->addWeek()->toDateString(),
-                'isCurrent' => $start->isSameDay($today->startOfWeek(CarbonImmutable::MONDAY)),
+                'sessionCount' => $sessions->where('status', ClassSessionStatus::Scheduled)->count(),
             ],
-            'days' => collect(range(0, 6))->map(function (int $offset) use ($start, $today, $sessions): array {
+            'days' => collect(range(0, 6))->map(function (int $offset) use ($start, $today, $sessions, $timezone): array {
                 $day = $start->addDays($offset);
 
                 return [
                     'date' => $day->toDateString(),
-                    'label' => Str::ucfirst(rtrim($day->translatedFormat('D'), '.')).' '.$day->day,
+                    'weekday' => Str::ucfirst(rtrim($day->translatedFormat('D'), '.')),
+                    'dayOfMonth' => $day->day,
                     'longLabel' => $day->translatedFormat('l j'),
                     'isToday' => $day->isSameDay($today),
                     'sessions' => $sessions
@@ -128,6 +158,9 @@ class AgendaController extends Controller
                         ->map(fn (ClassSession $session): array => [
                             'id' => $session->id,
                             'startsAt' => $session->localStartsAt()->format('H:i'),
+                            'endsAt' => $session->ends_at->timezone($timezone)->format('H:i'),
+                            'startMinutes' => $session->localStartsAt()->hour * 60 + $session->localStartsAt()->minute,
+                            'durationMinutes' => (int) $session->starts_at->diffInMinutes($session->ends_at),
                             'classTypeName' => $session->classType->name,
                             'instructorName' => $session->instructor?->name,
                             'bookedCount' => $session->booked_count,
@@ -139,6 +172,21 @@ class AgendaController extends Controller
                 ];
             }),
         ];
+    }
+
+    /**
+     * «Octubre 2026», or both months when the week crosses one:
+     * «Octubre – noviembre 2026», «Diciembre 2026 – enero 2027».
+     */
+    private function monthLabel(CarbonImmutable $start, CarbonImmutable $end): string
+    {
+        if ($start->isSameMonth($end)) {
+            return Str::ucfirst($start->translatedFormat('F Y'));
+        }
+
+        return $start->isSameYear($end)
+            ? Str::ucfirst($start->translatedFormat('F')).' – '.$end->translatedFormat('F Y')
+            : Str::ucfirst($start->translatedFormat('F Y')).' – '.$end->translatedFormat('F Y');
     }
 
     /**

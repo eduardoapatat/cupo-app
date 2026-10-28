@@ -1,6 +1,6 @@
 import type { Page } from '@inertiajs/core';
-import { Form, Head, Link, router, usePage } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Search, UserPlus } from 'lucide-react';
+import { Form, Head, router, usePage } from '@inertiajs/react';
+import { Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
     destroy as cancelAgendaBooking,
@@ -13,10 +13,20 @@ import {
 } from '@/actions/App/Http/Controllers/Studio/AgendaController';
 import { store as cancelSession } from '@/actions/App/Http/Controllers/Studio/SessionCancellationController';
 import { update as substituteInstructor } from '@/actions/App/Http/Controllers/Studio/SessionInstructorController';
+import AgendaHeader from '@/components/agenda/agenda-header';
+import DayStrip from '@/components/agenda/day-strip';
+import TimeGrid from '@/components/agenda/time-grid';
+import type {
+    AgendaFocus,
+    AgendaToday,
+    AgendaView,
+    AgendaWeek,
+    CalendarDay,
+} from '@/components/agenda/types';
 import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -46,38 +56,12 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
 import type { FlashToast } from '@/types/ui';
-
-type Week = {
-    start: string;
-    label: string;
-    previous: string;
-    next: string;
-    isCurrent: boolean;
-};
-
-type SessionCard = {
-    id: number;
-    startsAt: string;
-    classTypeName: string;
-    instructorName: string | null;
-    bookedCount: number;
-    capacity: number;
-    isCancelled: boolean;
-    hasStarted: boolean;
-};
-
-type Day = {
-    date: string;
-    label: string;
-    longLabel: string;
-    isToday: boolean;
-    sessions: SessionCard[];
-};
 
 type Attendee = { id: number; name: string; isStaff: boolean };
 
@@ -102,8 +86,12 @@ type SessionDetail = {
 };
 
 type Props = {
-    week: Week;
-    days: Day[];
+    today: AgendaToday;
+    focus: AgendaFocus;
+    week: AgendaWeek;
+    days: CalendarDay[];
+    /** The view asked for in the URL, or null to let the screen choose. */
+    view: AgendaView | null;
     session: SessionDetail | null;
 };
 
@@ -114,8 +102,12 @@ type FoundStudent = {
     alreadyBooked: boolean;
 };
 
-/** Only the week and the panel reload; the rest of the page stays. */
-const WEEK_RELOAD = ['week', 'days', 'session'];
+/** What reloads when the Agenda moves: the calendar and the panel, nothing else. */
+const CALENDAR_RELOAD = ['today', 'focus', 'week', 'days', 'view', 'session'];
+
+function agendaQuery(date: string, view: AgendaView) {
+    return { query: { fecha: date, vista: view } };
+}
 
 /**
  * Whether the action went through. A booking rule that says no comes back
@@ -125,86 +117,6 @@ function wentThrough(page: Page): boolean {
     const toast = page.flash?.toast as FlashToast | undefined;
 
     return toast?.type !== 'error';
-}
-
-function weekUrl(slug: string, start: string): string {
-    return agendaIndex.url(slug, { query: { semana: start } });
-}
-
-function occupancy(session: { bookedCount: number; capacity: number }) {
-    return `${session.bookedCount}/${session.capacity}`;
-}
-
-function SessionLink({
-    slug,
-    weekStart,
-    session,
-    isOpen,
-    dayLabel,
-}: {
-    slug: string;
-    weekStart: string;
-    session: SessionCard;
-    isOpen: boolean;
-    dayLabel: string;
-}) {
-    const isFull = session.bookedCount >= session.capacity;
-
-    return (
-        <Link
-            href={agendaShow.url([slug, session.id], {
-                query: { semana: weekStart },
-            })}
-            only={['session']}
-            preserveState
-            preserveScroll
-            data-session-id={session.id}
-            aria-current={isOpen ? 'true' : undefined}
-            aria-label={`${session.classTypeName} del ${dayLabel} a las ${session.startsAt}, ${
-                session.isCancelled
-                    ? 'cancelada'
-                    : `${session.bookedCount} de ${session.capacity} cupos`
-            }`}
-            className={cn(
-                buttonVariants({ variant: 'outline' }),
-                'h-auto w-full flex-col items-stretch gap-0.5 px-3 py-2 text-left font-normal whitespace-normal',
-                // Dashed until it has an instructor: it cannot be booked yet.
-                session.instructorName === null && 'border-dashed',
-                isOpen && 'border-foreground',
-                (session.isCancelled || session.hasStarted) &&
-                    'text-muted-foreground',
-            )}
-        >
-            <span className="flex items-baseline justify-between gap-2">
-                <span
-                    className={cn(
-                        'font-medium tabular-nums',
-                        session.isCancelled && 'line-through',
-                    )}
-                >
-                    {session.startsAt}
-                </span>
-                {session.isCancelled ? (
-                    <span className="text-xs">Cancelada</span>
-                ) : (
-                    <span
-                        className={cn(
-                            'text-xs tabular-nums',
-                            isFull ? 'font-medium' : 'text-muted-foreground',
-                        )}
-                    >
-                        {isFull ? 'Llena' : occupancy(session)}
-                    </span>
-                )}
-            </span>
-            <span className={cn(session.isCancelled && 'line-through')}>
-                {session.classTypeName}
-            </span>
-            <span className="text-muted-foreground">
-                {session.instructorName ?? 'Sin instructor'}
-            </span>
-        </Link>
-    );
 }
 
 /**
@@ -857,26 +769,64 @@ function SessionPanel({
     );
 }
 
-export default function Agenda({ week, days, session }: Props) {
+export default function Agenda({
+    today,
+    focus,
+    week,
+    days,
+    view: requestedView,
+    session,
+}: Props) {
     const { studio } = usePage().props;
+    const isMobile = useIsMobile();
+    const view: AgendaView = requestedView ?? (isMobile ? 'dia' : 'semana');
     // The panel keeps the last class while it slides out.
     const [shown, setShown] = useState(session);
+    // The calendar slides in from the side it moved to, so a new week or
+    // day is noticed.
+    const anchor = view === 'dia' ? focus.date : week.start;
+    const [lastAnchor, setLastAnchor] = useState(anchor);
+    const [direction, setDirection] = useState<'next' | 'previous' | null>(
+        null,
+    );
 
     if (session !== null && session !== shown) {
         setShown(session);
+    }
+
+    if (anchor !== lastAnchor) {
+        setDirection(anchor > lastAnchor ? 'next' : 'previous');
+        setLastAnchor(anchor);
     }
 
     if (!studio) {
         return null;
     }
 
-    function closePanel() {
-        if (!studio) {
-            return;
-        }
+    const slug = studio.slug;
+    const shownDays =
+        view === 'dia' ? days.filter((day) => day.date === focus.date) : days;
+    const dayCount =
+        days
+            .find((day) => day.date === focus.date)
+            ?.sessions.filter((card) => !card.isCancelled).length ?? 0;
 
+    function goTo(date: string, nextView: AgendaView) {
         router.get(
-            weekUrl(studio.slug, week.start),
+            agendaIndex.url(slug, agendaQuery(date, nextView)),
+            {},
+            {
+                only: CALENDAR_RELOAD,
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }
+
+    function closePanel() {
+        router.get(
+            agendaIndex.url(slug, agendaQuery(focus.date, view)),
             {},
             { only: ['session'], preserveState: true, preserveScroll: true },
         );
@@ -886,107 +836,46 @@ export default function Agenda({ week, days, session }: Props) {
         <>
             <Head title="Agenda" />
 
-            <div className="flex flex-col gap-6 px-4 py-6">
-                <header className="flex flex-wrap items-end justify-between gap-4">
-                    <div className="grid gap-0.5">
-                        <h1 className="text-xl font-semibold tracking-tight">
-                            Agenda
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            Las clases de la semana y quiénes vienen.
-                        </p>
-                    </div>
+            <div className="flex flex-col gap-4 px-4 py-6">
+                <AgendaHeader
+                    today={today}
+                    week={week}
+                    focus={focus}
+                    view={view}
+                    dayCount={dayCount}
+                    goTo={goTo}
+                />
 
-                    <nav
-                        aria-label="Semanas"
-                        className="flex items-center gap-2"
-                    >
-                        <Button variant="outline" size="icon" asChild>
-                            <Link
-                                href={weekUrl(studio.slug, week.previous)}
-                                only={WEEK_RELOAD}
-                                preserveState
-                                aria-label="Semana anterior"
-                            >
-                                <ChevronLeft />
-                            </Link>
-                        </Button>
-                        <span className="min-w-48 text-center text-sm font-medium">
-                            {week.label}
-                        </span>
-                        <Button variant="outline" size="icon" asChild>
-                            <Link
-                                href={weekUrl(studio.slug, week.next)}
-                                only={WEEK_RELOAD}
-                                preserveState
-                                aria-label="Semana siguiente"
-                            >
-                                <ChevronRight />
-                            </Link>
-                        </Button>
-                        {!week.isCurrent && (
-                            <Button variant="outline" asChild>
-                                <Link
-                                    href={agendaIndex.url(studio.slug)}
-                                    only={WEEK_RELOAD}
-                                    preserveState
-                                >
-                                    Hoy
-                                </Link>
-                            </Button>
-                        )}
-                    </nav>
-                </header>
+                {view === 'dia' && (
+                    <DayStrip
+                        days={days}
+                        focusDate={focus.date}
+                        onSelect={(date) => goTo(date, 'dia')}
+                    />
+                )}
 
-                <div className="grid gap-4 xl:grid-cols-7">
-                    {days.map((day) => (
-                        <section
-                            key={day.date}
-                            aria-labelledby={`day-${day.date}`}
-                            className={cn(
-                                'grid content-start gap-2 rounded-lg bg-muted/50 p-2',
-                                day.isToday && 'ring-1 ring-foreground/20',
-                            )}
-                        >
-                            <h2
-                                id={`day-${day.date}`}
-                                className="flex items-baseline justify-between gap-2 px-1 text-sm font-medium"
-                            >
-                                <span>
-                                    {day.label}
-                                    {day.isToday && (
-                                        <span className="ml-1.5 text-muted-foreground">
-                                            · Hoy
-                                        </span>
-                                    )}
-                                </span>
-                                {day.sessions.length > 0 && (
-                                    <span className="text-muted-foreground tabular-nums">
-                                        {day.sessions.length}
-                                    </span>
-                                )}
-                            </h2>
-
-                            {day.sessions.length === 0 ? (
-                                <p className="px-1 text-sm text-muted-foreground">
-                                    Sin clases
-                                </p>
-                            ) : (
-                                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-1">
-                                    {day.sessions.map((card) => (
-                                        <SessionLink
-                                            key={card.id}
-                                            slug={studio.slug}
-                                            weekStart={week.start}
-                                            session={card}
-                                            isOpen={session?.id === card.id}
-                                            dayLabel={day.longLabel}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </section>
-                    ))}
+                <div
+                    key={`${view}-${anchor}`}
+                    className={cn(
+                        'motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0',
+                        direction === 'next' &&
+                            'motion-safe:slide-in-from-right-4',
+                        direction === 'previous' &&
+                            'motion-safe:slide-in-from-left-4',
+                    )}
+                >
+                    <TimeGrid
+                        days={days}
+                        shownDays={shownDays}
+                        view={view}
+                        openSessionId={session?.id ?? null}
+                        sessionHref={(card) =>
+                            agendaShow.url(
+                                [slug, card.id],
+                                agendaQuery(focus.date, view),
+                            )
+                        }
+                    />
                 </div>
             </div>
 
@@ -1014,7 +903,7 @@ export default function Agenda({ week, days, session }: Props) {
                     {shown && (
                         <SessionPanel
                             key={shown.id}
-                            slug={studio.slug}
+                            slug={slug}
                             session={shown}
                         />
                     )}
