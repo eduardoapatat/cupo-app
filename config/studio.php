@@ -56,6 +56,11 @@ return [
         // session starts and gets the credit back. Later, it is lost.
         'cancellation_window_hours' => (int) env('STUDIO_CANCELLATION_WINDOW_HOURS', 6),
 
+        // Students can book sessions up to this many days ahead, so nobody
+        // takes the spots of the whole month and a schedule change touches
+        // few bookings.
+        'booking_horizon_days' => (int) env('STUDIO_BOOKING_HORIZON_DAYS', 14),
+
         // Bookings close this many minutes before the session starts, so
         // the instructor knows in time who is coming.
         'booking_cutoff_minutes' => (int) env('STUDIO_BOOKING_CUTOFF_MINUTES', 60),

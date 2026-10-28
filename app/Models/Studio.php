@@ -22,6 +22,7 @@ use Illuminate\Support\Str;
  * @property int $booking_cutoff_minutes
  * @property int $waitlist_cutoff_hours
  * @property int $plan_expiry_warning_days
+ * @property int $booking_horizon_days
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -32,6 +33,7 @@ use Illuminate\Support\Str;
     'booking_cutoff_minutes',
     'waitlist_cutoff_hours',
     'plan_expiry_warning_days',
+    'booking_horizon_days',
 ])]
 class Studio extends Model
 {
@@ -54,7 +56,7 @@ class Studio extends Model
      * The rules a new studio starts with, copied from config/studio.php.
      * Once the studio exists, its own copy is the one that applies.
      *
-     * @return array{cancellation_window_hours: int, booking_cutoff_minutes: int, waitlist_cutoff_hours: int, plan_expiry_warning_days: int}
+     * @return array{cancellation_window_hours: int, booking_cutoff_minutes: int, waitlist_cutoff_hours: int, plan_expiry_warning_days: int, booking_horizon_days: int}
      */
     public static function defaultRules(): array
     {
@@ -63,6 +65,7 @@ class Studio extends Model
             'booking_cutoff_minutes' => config()->integer('studio.defaults.booking_cutoff_minutes'),
             'waitlist_cutoff_hours' => config()->integer('studio.defaults.waitlist_cutoff_hours'),
             'plan_expiry_warning_days' => config()->integer('studio.defaults.plan_expiry_warning_days'),
+            'booking_horizon_days' => config()->integer('studio.defaults.booking_horizon_days'),
         ];
     }
 
@@ -115,6 +118,7 @@ class Studio extends Model
             'booking_cutoff_minutes' => 'integer',
             'waitlist_cutoff_hours' => 'integer',
             'plan_expiry_warning_days' => 'integer',
+            'booking_horizon_days' => 'integer',
         ];
     }
 
@@ -132,5 +136,29 @@ class Studio extends Model
     public function invitations(): HasMany
     {
         return $this->hasMany(Invitation::class);
+    }
+
+    /**
+     * @return HasMany<ClassType, $this>
+     */
+    public function classTypes(): HasMany
+    {
+        return $this->hasMany(ClassType::class);
+    }
+
+    /**
+     * @return HasMany<ScheduleSlot, $this>
+     */
+    public function scheduleSlots(): HasMany
+    {
+        return $this->hasMany(ScheduleSlot::class);
+    }
+
+    /**
+     * @return HasMany<ClassSession, $this>
+     */
+    public function classSessions(): HasMany
+    {
+        return $this->hasMany(ClassSession::class);
     }
 }
