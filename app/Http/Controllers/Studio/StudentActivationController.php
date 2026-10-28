@@ -25,6 +25,6 @@ class StudentActivationController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('We sent the activation link to :email again.', ['email' => $membership->user->email])]);
 
-        return to_route('studios.students.index', $studio);
+        return back(fallback: route('studios.students.index', $studio));
     }
 }

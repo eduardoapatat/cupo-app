@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Studio;
 
 use App\Actions\Students\EnrollStudent;
 use App\Actions\Students\SendActivation;
+use App\Enums\StudentStatus;
 use App\Enums\StudioRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\StudentRequest;
 use App\Models\Membership;
 use App\Models\Studio;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,31 +26,63 @@ use Inertia\Response;
  */
 class StudentController extends Controller
 {
+    /**
+     * The students, searched by name, email or phone and filtered by
+     * whether they use the app. The counts per tab follow the search.
+     */
     #[Authorize('students.manage', 'studio')]
-    public function index(Studio $studio): Response
+    public function index(Request $request, Studio $studio): Response
     {
-        $students = $studio->memberships()
+        $search = mb_substr(trim($request->string('buscar')->toString()), 0, 100);
+        $status = StudentStatus::fromQuery($request->string('estado')->toString());
+
+        $query = $studio->memberships()
             ->where('memberships.role', StudioRole::Student)
-            ->join('users', 'users.id', '=', 'memberships.user_id')
+            ->join('users', 'users.id', '=', 'memberships.user_id');
+
+        if ($search !== '') {
+            $this->whereMatches($query, $search);
+        }
+
+        $countsSql = 'count(*) as total';
+
+        foreach (StudentStatus::cases() as $case) {
+            $countsSql .= ", count(*) filter (where {$case->condition()}) as {$case->value}";
+        }
+
+        $counts = (array) (clone $query)->toBase()->selectRaw($countsSql)->first();
+        $tabCounts = ['all' => (int) $counts['total']];
+
+        foreach (StudentStatus::cases() as $case) {
+            $tabCounts[$case->value] = (int) $counts[$case->value];
+        }
+
+        if ($status !== null) {
+            $query->whereRaw($status->condition());
+        }
+
+        $timezone = config()->string('studio.timezone');
+
+        $students = $query
             ->orderByRaw('lower(users.name)')
             ->orderBy('memberships.id')
             ->select('memberships.*')
             ->with('user')
             ->paginate(25)
+            ->withQueryString()
             ->through(fn (Membership $membership): array => [
                 'id' => $membership->id,
                 'name' => $membership->user->name,
                 'phone' => $membership->user->phone,
                 'email' => $membership->user->email,
-                'status' => match (true) {
-                    $membership->user->usesApp() => 'app',
-                    $membership->user->email !== null => 'activation_sent',
-                    default => 'no_app',
-                },
+                'status' => StudentStatus::for($membership->user)->value,
+                'enrolledOn' => $membership->created_at?->timezone($timezone)->translatedFormat('j \d\e F \d\e Y'),
             ]);
 
         return Inertia::render('studios/students', [
             'students' => $students,
+            'filters' => ['search' => $search, 'status' => $status?->queryValue()],
+            'counts' => $tabCounts,
             'enrollmentUrl' => route('enrollment.show', $studio->enrollment_token),
         ]);
     }
@@ -61,7 +97,7 @@ class StudentController extends Controller
             : __(':name is now a student of the studio. We sent her the link to activate her account.', ['name' => $membership->user->name]),
         ]);
 
-        return to_route('studios.students.index', $studio);
+        return back(fallback: route('studios.students.index', $studio));
     }
 
     /**
@@ -90,6 +126,27 @@ class StudentController extends Controller
             : __('We saved the data.'),
         ]);
 
-        return to_route('studios.students.index', $studio);
+        return back(fallback: route('studios.students.index', $studio));
+    }
+
+    /**
+     * Match the search in the name (ignoring case and accents) or the email,
+     * and its digits in the phone. LIKE wildcards are searched literally.
+     *
+     * @param  HasMany<Membership, Studio>  $query
+     */
+    private function whereMatches(HasMany $query, string $search): void
+    {
+        $pattern = '%'.addcslashes($search, '%_\\').'%';
+        $digits = preg_replace('/\D/', '', $search) ?? '';
+
+        $query->where(function (Builder $query) use ($pattern, $digits): void {
+            $query->whereRaw('unaccent(users.name) ilike unaccent(?)', [$pattern])
+                ->orWhere('users.email', 'ilike', $pattern);
+
+            if (strlen($digits) >= 3) {
+                $query->orWhere('users.phone', 'like', '%'.$digits.'%');
+            }
+        });
     }
 }

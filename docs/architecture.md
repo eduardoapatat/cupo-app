@@ -288,6 +288,12 @@ Ver `docs/decisions/0004-alumnas-sin-app.md`.
 - Mientras no use la app, recepción corrige sus datos y reenvía la activación. Después, sus datos son suyos y nadie del estudio los edita.
 - No se inscribe en el mesón un correo que ya tiene cuenta: se le comparte el enlace del estudio.
 
+### Buscar alumnas
+
+- «Alumnas» filtra por estado (`StudentStatus`: con app, activación enviada y sin app) con `?estado=con-app`, y busca con `?buscar=` en el nombre o el correo, sin distinguir mayúsculas ni tildes (la extensión `unaccent` de PostgreSQL), y en el celular por sus dígitos. Los comodines de `LIKE` se buscan tal cual.
+- Las cantidades de cada pestaña respetan la búsqueda y salen en una sola consulta (`count(*) filter (where …)`).
+- Inscribir, editar y reenviar la activación vuelven a la misma lista, con su búsqueda y su pestaña.
+
 ### Usuarios demo
 
 `php artisan migrate --seed` crea dos estudios. Todas las cuentas usan la contraseña `password`:

@@ -38,6 +38,86 @@ it('lists the students by name with their status, and not the team', function ()
             ->where('enrollmentUrl', route('enrollment.show', $studio->enrollment_token)));
 });
 
+it('finds a student by name without minding case or accents, by email or by the digits of her phone', function (string $search) {
+    $studio = Studio::factory()->create();
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'María Soto', 'email' => 'soto@correo.cl', 'phone' => '+56987654321']);
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
+    User::factory()->memberOf($studio, StudioRole::Instructor)->create(['name' => 'María Díaz', 'email' => 'diaz@correo.cl', 'phone' => '+56987654322']);
+    User::factory()->withoutApp()->memberOf(Studio::factory()->create(), StudioRole::Student)->create(['name' => 'María Lagos', 'email' => 'lagos@correo.cl', 'phone' => '+56987654323']);
+
+    $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.index', [$studio, 'buscar' => $search]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('students.data', fn ($students) => collect($students)->pluck('name')->all() === ['María Soto'])
+            ->where('filters.search', $search));
+})->with([
+    'nombre sin tilde' => 'maria',
+    'correo' => 'SOTO@correo',
+    'celular con espacios' => '8765 4321',
+]);
+
+it('searches LIKE wildcards literally', function () {
+    $studio = Studio::factory()->create();
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
+
+    $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.index', [$studio, 'buscar' => '%']))
+        ->assertInertia(fn (Assert $page) => $page->where('students.total', 0));
+});
+
+it('filters by tab, with counts per tab that follow the search', function () {
+    $studio = Studio::factory()->create();
+    User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosario Vidal']);
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes', 'email' => 'rosa@example.com']);
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Rosalía Pérez']);
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Ana Soto']);
+
+    $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.index', [$studio, 'buscar' => 'ros', 'estado' => 'sin-app']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('students.data', fn ($students) => collect($students)->pluck('name')->all() === ['Rosalía Pérez'])
+            ->where('counts', ['all' => 3, 'app' => 1, 'activation_sent' => 1, 'no_app' => 1])
+            ->where('filters.status', 'sin-app'));
+});
+
+it('treats an unknown tab as all the students', function () {
+    $studio = Studio::factory()->create();
+    User::factory()->memberOf($studio, StudioRole::Student)->create();
+    User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create();
+
+    $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.index', [$studio, 'estado' => 'otra']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('students.total', 2)
+            ->where('filters.status', null));
+});
+
+it('keeps the search and the tab in the pages', function () {
+    $studio = Studio::factory()->create();
+    User::factory()->count(26)->withoutApp()->memberOf($studio, StudioRole::Student)->create();
+
+    $this->actingAs(frontDesk($studio))
+        ->get(route('studios.students.index', [$studio, 'buscar' => '1234', 'estado' => 'sin-app']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('students.next_page_url', route('studios.students.index', [$studio, 'buscar' => '1234', 'estado' => 'sin-app', 'page' => 2])));
+});
+
+it('goes back to the filtered list after enrolling or editing', function () {
+    $studio = Studio::factory()->create();
+    $front = frontDesk($studio);
+    $filtered = route('studios.students.index', [$studio, 'buscar' => 'rosa', 'estado' => 'sin-app']);
+    $ana = User::factory()->withoutApp()->memberOf($studio, StudioRole::Student)->create(['name' => 'Ana']);
+
+    $this->actingAs($front)
+        ->from($filtered)
+        ->post(route('studios.students.store', $studio), ['name' => 'Rosa Fuentes', 'phone' => '987654321', 'adult' => 'on'])
+        ->assertRedirect($filtered);
+    $this->actingAs($front)
+        ->from($filtered)
+        ->put(route('studios.students.update', [$studio, $ana->memberships()->sole()]), ['name' => 'Ana Soto', 'phone' => '912345678'])
+        ->assertRedirect($filtered);
+});
+
 it('enrolls at the counter a student without the app, with a normalized phone', function () {
     $studio = Studio::factory()->create();
 
