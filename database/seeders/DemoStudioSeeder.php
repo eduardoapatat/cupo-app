@@ -207,8 +207,9 @@ class DemoStudioSeeder extends Seeder
      * those of two days ago already closed their attendance (one missed
      * it), and yesterday's can still be marked. Each class comes from the
      * student's plan, so whoever has no classes left for a day is left out.
-     * The next Yoga that is not too close fills up first, with Javiera
-     * waiting for a spot.
+     * Javiera goes to one class in four and keeps at least 3 classes of her
+     * plan to book in the demo. The next Yoga that is not too close fills up
+     * first, with Javiera waiting for a spot.
      */
     private function bookingsOf(Studio $flow): void
     {
@@ -249,7 +250,7 @@ class DemoStudioSeeder extends Seeder
             // A different handful of people in each class.
             $attendees = $others->slice($index % 3, 2 + $index % 5);
 
-            if ($index % 2 === 0) {
+            if ($index % 4 === 0 && $javiera->planPurchases()->sum('credits_left') > 3) {
                 $attendees->push($javiera);
             }
 

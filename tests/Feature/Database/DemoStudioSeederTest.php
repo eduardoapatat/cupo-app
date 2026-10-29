@@ -106,6 +106,7 @@ it('sells the studio\'s plans to its students and takes each booking from them',
         ->and($purchases)->toHaveCount(10)
         ->and($purchases->firstWhere('user.name', 'Ignacia Navarro')->expires_at->isPast())->toBeTrue()
         ->and($purchases->firstWhere('user.name', 'Antonia Castro')->isUnlimited())->toBeTrue()
+        ->and($purchases->firstWhere('user.name', 'Javiera Morales')->credits_left)->toBeGreaterThanOrEqual(3)
         ->and($flow->planPurchases()->has('payments')->count())->toBe(10)
         ->and($studentBookings->every(fn (Booking $booking) => $booking->plan_purchase_id !== null))->toBeTrue()
         ->and($purchases->reject->isUnlimited()->every(
