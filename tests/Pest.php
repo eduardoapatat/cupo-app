@@ -1,5 +1,12 @@
 <?php
 
+use App\Actions\Bookings\BookSession;
+use App\Enums\BookingKind;
+use App\Models\Booking;
+use App\Models\ClassSession;
+use App\Models\PlanPurchase;
+use App\Models\Studio;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,4 +70,36 @@ function expectSqlState(Closure $write, string $state): void
     expect(fn () => DB::transaction($write))->toThrow(function (QueryException $exception) use ($state) {
         expect($exception->getCode())->toBe($state);
     });
+}
+
+/**
+ * Give the student a plan that pays for any class of the studio: unlimited,
+ * without a daily limit and valid from a year ago to a year ahead. For tests
+ * about bookings, not about plans.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function givePlan(User $student, Studio|ClassSession $at, array $attributes = []): PlanPurchase
+{
+    return PlanPurchase::factory()->unlimited()->create([
+        'studio_id' => $at instanceof ClassSession ? $at->studio_id : $at->id,
+        'user_id' => $student->id,
+        'daily_limit' => null,
+        'starts_on' => now()->subYear()->toDateString(),
+        'expires_at' => now()->addYear(),
+        ...$attributes,
+    ]);
+}
+
+/**
+ * Book the class for the student, giving her a plan first if she has none
+ * in that studio. For tests about bookings, not about plans.
+ */
+function bookWithPlan(ClassSession $session, User $student, ?User $by = null): Booking
+{
+    if (! $student->planPurchases()->where('studio_id', $session->studio_id)->exists()) {
+        givePlan($student, $session);
+    }
+
+    return app(BookSession::class)->handle($session, $student, BookingKind::Student, $by ?? $student);
 }

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Bookings;
 
+use App\Actions\Plans\TakeClassFromPlan;
 use App\Enums\BookingKind;
 use App\Enums\ClassSessionStatus;
 use App\Enums\WaitlistStatus;
@@ -18,10 +19,14 @@ use Illuminate\Support\Facades\DB;
  * (booked_count < capacity) in the same transaction that creates the
  * booking, so concurrent requests never oversell: PostgreSQL runs them one
  * after another on that row, and the CHECK on booked_count backs it up.
- * See docs/decisions/0005-cupo-garantizado-con-contador.md.
+ * See docs/decisions/0005-cupo-garantizado-con-contador.md. A student's
+ * booking also takes a class from her plan in that transaction
+ * (TakeClassFromPlan); if no plan can pay, nothing is booked.
  */
 class BookSession
 {
+    public function __construct(private TakeClassFromPlan $takeClassFromPlan) {}
+
     /**
      * @throws BookingRejected when a booking rule says no or the session is full.
      */
@@ -43,17 +48,29 @@ class BookSession
                         : __('This class is full.'));
                 }
 
+                // A student pays with a class of her plan; the team does not.
+                $purchase = $kind === BookingKind::Student
+                    ? $this->takeClassFromPlan->handle($session, $person, $bookedBy)
+                    : null;
+
                 // Booked another way: she is no longer waiting for a spot.
                 $session->waitlistEntries()
                     ->where('user_id', $person->id)
                     ->where('status', WaitlistStatus::Waiting)
                     ->update(['status' => WaitlistStatus::Left, 'resolved_at' => now(), 'updated_at' => now()]);
 
-                return $session->bookings()->create([
+                $booking = $session->bookings()->create([
                     'user_id' => $person->id,
                     'kind' => $kind,
                     'booked_by_id' => $bookedBy->id,
+                    'plan_purchase_id' => $purchase?->id,
                 ]);
+
+                if ($purchase !== null) {
+                    $this->takeClassFromPlan->record($purchase, $booking, $bookedBy);
+                }
+
+                return $booking;
             });
         } catch (UniqueConstraintViolationException) {
             throw new BookingRejected(__(':name already has this class booked.', ['name' => $person->name]));

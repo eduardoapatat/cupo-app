@@ -1,7 +1,5 @@
 <?php
 
-use App\Actions\Bookings\BookSession;
-use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\StudioRole;
 use App\Models\Booking;
@@ -24,7 +22,7 @@ beforeEach(function () {
         'ends_at' => $startsAt->addMinutes(50),
     ]);
     $javiera = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
-    $this->booking = app(BookSession::class)->handle($this->session, $javiera, BookingKind::Student, $javiera);
+    $this->booking = bookWithPlan($this->session, $javiera);
     $this->travelTo(CarbonImmutable::parse('2026-11-02 19:30', 'America/Santiago'));
 });
 

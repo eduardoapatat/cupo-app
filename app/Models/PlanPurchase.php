@@ -88,6 +88,22 @@ class PlanPurchase extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * @return HasMany<CreditMovement, $this>
+     */
+    public function creditMovements(): HasMany
+    {
+        return $this->hasMany(CreditMovement::class);
+    }
+
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
     public function isUnlimited(): bool
     {
         return $this->credits === null;

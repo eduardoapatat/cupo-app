@@ -14,13 +14,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A person's place in a session. Use BookSession and CancelBooking to
- * change it: they keep the session's booked_count in step.
+ * change it: they keep the session's booked_count and the student's plan
+ * in step.
  *
  * @property int $id
  * @property int $class_session_id
  * @property int $user_id
  * @property BookingKind $kind
  * @property int|null $booked_by_id
+ * @property int|null $plan_purchase_id
  * @property BookingStatus $status
  * @property CarbonImmutable|null $cancelled_at
  * @property int|null $cancelled_by_id
@@ -28,7 +30,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['class_session_id', 'user_id', 'kind', 'booked_by_id'])]
+#[Fillable(['class_session_id', 'user_id', 'kind', 'booked_by_id', 'plan_purchase_id'])]
 class Booking extends Model
 {
     /** @use HasFactory<BookingFactory> */
@@ -72,6 +74,16 @@ class Booking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The plan its class came from; null for the team and phase 2 bookings.
+     *
+     * @return BelongsTo<PlanPurchase, $this>
+     */
+    public function planPurchase(): BelongsTo
+    {
+        return $this->belongsTo(PlanPurchase::class);
     }
 
     /**

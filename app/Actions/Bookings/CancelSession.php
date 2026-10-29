@@ -2,20 +2,25 @@
 
 namespace App\Actions\Bookings;
 
+use App\Actions\Plans\ReturnClassToPlan;
 use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
+use App\Enums\CreditMovementReason;
 use App\Enums\WaitlistStatus;
 use App\Models\ClassSession;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The studio cancels a class: its bookings are cancelled on time, so
- * nobody loses the class, its spots are released and its waitlist closes. The slot of the
+ * The studio cancels a class: its bookings are cancelled on time and their
+ * classes go back to their plans, so nobody loses the class; its spots are
+ * released and its waitlist closes. The slot of the
  * schedule is not generated again for that time.
  */
 class CancelSession
 {
+    public function __construct(private ReturnClassToPlan $returnClassToPlan) {}
+
     /**
      * @throws BookingRejected when the class was already cancelled or started.
      */
@@ -53,9 +58,16 @@ class CancelSession
                 throw new BookingRejected(__('This class was already cancelled.'));
             }
 
+            // Their classes go back to their plans.
+            $confirmed = $session->bookings()->where('status', BookingStatus::Confirmed)->get();
+
+            foreach ($confirmed as $booking) {
+                $this->returnClassToPlan->handle($booking, CreditMovementReason::SessionCancelled, $by);
+            }
+
             // The same moment as the class, so «Mis reservas» can tell these
             // apart from a booking the student had cancelled before.
-            $session->bookings()->where('status', BookingStatus::Confirmed)->update([
+            $session->bookings()->whereKey($confirmed->modelKeys())->update([
                 'status' => BookingStatus::CancelledOnTime,
                 'cancelled_at' => $now,
                 'cancelled_by_id' => $by->id,

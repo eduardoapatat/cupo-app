@@ -2,6 +2,7 @@
 
 namespace App\Actions\Bookings;
 
+use App\Actions\Plans\TakeClassFromPlan;
 use App\Enums\ClassSessionStatus;
 use App\Models\ClassSession;
 use App\Models\User;
@@ -16,12 +17,14 @@ use Illuminate\Support\Facades\DB;
  */
 class JoinWaitlist
 {
+    public function __construct(private TakeClassFromPlan $takeClassFromPlan) {}
+
     /**
      * @throws BookingRejected when a rule says no or the session has a free spot.
      */
     public function handle(ClassSession $session, User $person, User $addedBy): WaitlistEntry
     {
-        $this->ensureCanWait($session, $person);
+        $this->ensureCanWait($session, $person, $addedBy);
 
         try {
             return DB::transaction(function () use ($session, $person, $addedBy): WaitlistEntry {
@@ -47,7 +50,7 @@ class JoinWaitlist
         }
     }
 
-    private function ensureCanWait(ClassSession $session, User $person): void
+    private function ensureCanWait(ClassSession $session, User $person, User $addedBy): void
     {
         if ($session->status === ClassSessionStatus::Cancelled) {
             throw new BookingRejected(__('This class was cancelled.'));
@@ -72,5 +75,8 @@ class JoinWaitlist
         if ($session->waitlistEntries()->waiting()->where('user_id', $person->id)->exists()) {
             throw new BookingRejected(__(':name is already on the waitlist.', ['name' => $person->name]));
         }
+
+        // A spot would be taken from her plan, so she needs one for that day.
+        $this->takeClassFromPlan->ensureCanPay($session, $person, $addedBy);
     }
 }

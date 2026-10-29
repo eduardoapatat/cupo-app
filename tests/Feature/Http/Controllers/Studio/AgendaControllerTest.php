@@ -136,7 +136,7 @@ it('draws six weeks when the month needs them, and no month in the other views',
 it('opens a class with who comes, the team to add and the instructors', function () {
     $session = agendaClass($this->studio, $this->fernanda, '2026-11-03 19:00');
     $javiera = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
-    app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    bookWithPlan($session, $javiera);
     $camila = frontDeskOf($this->studio);
 
     $this->actingAs($camila)
@@ -157,7 +157,7 @@ it('finds the students to book, marking who already has the class', function () 
     $javiera = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
     User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
     User::factory()->memberOf(Studio::factory()->create(), StudioRole::Student)->create(['name' => 'Javiera Lagos']);
-    app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    bookWithPlan($session, $javiera);
 
     $this->actingAs(frontDeskOf($this->studio))
         ->getJson(route('studios.agenda.students', [$this->studio, $session, 'buscar' => 'javi']))
@@ -169,6 +169,7 @@ it('books a student or adds someone of the team, and nobody else', function () {
     $session = agendaClass($this->studio, $this->fernanda, '2026-11-03 19:00');
     $camila = frontDeskOf($this->studio);
     $rosa = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
+    givePlan($rosa, $this->studio);
     $stranger = User::factory()->memberOf(Studio::factory()->create(), StudioRole::Student)->create();
 
     $this->actingAs($camila)
@@ -192,7 +193,7 @@ it('books a student or adds someone of the team, and nobody else', function () {
 it('lets only the owner return a class cancelled late, with a reason', function () {
     $session = agendaClass($this->studio, $this->fernanda, '2026-11-02 16:00');
     $javiera = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
-    $booking = app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    $booking = bookWithPlan($session, $javiera);
     $route = route('studios.agenda.bookings.destroy', [$this->studio, $session, $booking]);
 
     $this->actingAs(frontDeskOf($this->studio))
@@ -214,7 +215,7 @@ it('lets only the owner return a class cancelled late, with a reason', function 
 it('cancels late from the front desk, and the class counts as used', function () {
     $session = agendaClass($this->studio, $this->fernanda, '2026-11-02 16:00');
     $javiera = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
-    $booking = app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    $booking = bookWithPlan($session, $javiera);
 
     $this->actingAs(frontDeskOf($this->studio))
         ->delete(route('studios.agenda.bookings.destroy', [$this->studio, $session, $booking]))

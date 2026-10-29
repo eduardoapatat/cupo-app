@@ -2,6 +2,7 @@
 
 namespace App\Actions\Bookings;
 
+use App\Actions\Plans\TakeClassFromPlan;
 use App\Enums\BookingKind;
 use App\Enums\ClassSessionStatus;
 use App\Enums\WaitlistStatus;
@@ -11,7 +12,9 @@ use App\Models\WaitlistEntry;
 
 /**
  * Give a freed spot to the first one waiting, while the session is still
- * before its waitlist cutoff. Later, the spot stays open for anyone.
+ * before its waitlist cutoff, taking the class from her plan. Whoever has
+ * no plan to pay for it leaves the line. Later, the spot stays open for
+ * anyone.
  *
  * It must run inside the transaction that freed the spot, after updating
  * the session's row: that row lock makes concurrent cancellations promote
@@ -20,6 +23,8 @@ use App\Models\WaitlistEntry;
  */
 class PromoteFromWaitlist
 {
+    public function __construct(private TakeClassFromPlan $takeClassFromPlan) {}
+
     /**
      * @return User|null Who got the spot, if anyone.
      */
@@ -33,8 +38,19 @@ class PromoteFromWaitlist
             return null;
         }
 
-        foreach ($session->waitlistEntries()->waiting()->with('user')->get() as $entry) {
+        foreach ($session->waitlistEntries()->waiting()->with('user', 'addedBy')->get() as $entry) {
             if (! $this->canTakeTheSpot($session, $entry)) {
+                $this->resolve($entry, WaitlistStatus::Left);
+
+                continue;
+            }
+
+            $by = $entry->addedBy ?? $entry->user;
+
+            try {
+                $purchase = $this->takeClassFromPlan->handle($session, $entry->user, $by);
+            } catch (BookingRejected) {
+                // No plan can pay for it any more: the spot goes to the next one.
                 $this->resolve($entry, WaitlistStatus::Left);
 
                 continue;
@@ -46,7 +62,9 @@ class PromoteFromWaitlist
                 'user_id' => $entry->user_id,
                 'kind' => BookingKind::Student,
                 'booked_by_id' => $entry->added_by_id,
+                'plan_purchase_id' => $purchase->id,
             ]);
+            $this->takeClassFromPlan->record($purchase, $booking, $by);
 
             $this->resolve($entry, WaitlistStatus::Promoted, $booking->id);
 

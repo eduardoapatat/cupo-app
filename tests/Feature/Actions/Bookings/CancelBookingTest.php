@@ -1,9 +1,7 @@
 <?php
 
 use App\Actions\Bookings\BookingRejected;
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
-use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\ClassSession;
@@ -27,7 +25,7 @@ function bookingOnTuesdayAtSeven(): Booking
     ]);
     $javiera = User::factory()->create();
 
-    return app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    return bookWithPlan($session, $javiera);
 }
 
 function cancelPlace(Booking $booking, bool $returnClass = false, ?string $reason = null): Booking
@@ -67,7 +65,7 @@ it('returns the class when asked, with the reason', function () {
 
 it('frees a single spot when the same booking is cancelled twice', function () {
     $booking = bookingOnTuesdayAtSeven();
-    $other = app(BookSession::class)->handle($booking->classSession, $user = User::factory()->create(), BookingKind::Student, $user);
+    $other = bookWithPlan($booking->classSession, $user = User::factory()->create(), $user);
     $stale = Booking::find($booking->id);
 
     cancelPlace($booking);

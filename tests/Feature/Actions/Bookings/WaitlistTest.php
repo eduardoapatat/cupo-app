@@ -1,12 +1,10 @@
 <?php
 
 use App\Actions\Bookings\BookingRejected;
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
 use App\Actions\Bookings\CancelSession;
 use App\Actions\Bookings\JoinWaitlist;
 use App\Actions\Bookings\LeaveWaitlist;
-use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\WaitlistStatus;
 use App\Models\Booking;
@@ -32,13 +30,15 @@ function fullClassOnTuesday(): ClassSession
         'ends_at' => $startsAt->addMinutes(50),
     ]);
     $ana = User::factory()->create(['name' => 'Ana']);
-    app(BookSession::class)->handle($session, $ana, BookingKind::Student, $ana);
+    bookWithPlan($session, $ana);
 
     return $session->refresh();
 }
 
 function waitFor(ClassSession $session, User $person): WaitlistEntry
 {
+    givePlan($person, $session);
+
     return app(JoinWaitlist::class)->handle($session, $person, $person);
 }
 
@@ -53,6 +53,8 @@ it('puts people in line, first come first served', function () {
     $rosa = User::factory()->create();
     $camila = User::factory()->create();
 
+    givePlan($javiera, $session);
+    givePlan($rosa, $session);
     $first = app(JoinWaitlist::class)->handle($session, $javiera, $javiera);
     $second = app(JoinWaitlist::class)->handle($session, $rosa, $camila);
 
@@ -103,6 +105,7 @@ it('gives the freed spot to the first one waiting', function () {
     $session = fullClassOnTuesday();
     $javiera = User::factory()->create(['name' => 'Javiera']);
     $camila = User::factory()->create();
+    givePlan($javiera, $session);
     $entry = app(JoinWaitlist::class)->handle($session, $javiera, $camila);
     $rosaEntry = waitFor($session, User::factory()->create());
 
@@ -167,7 +170,7 @@ it('stops waiting when she books the class herself', function () {
     $this->travelTo(CarbonImmutable::parse('2026-11-03 13:00', 'America/Santiago'));
     app(CancelBooking::class)->handle(firstBookingOf($session), User::factory()->create());
 
-    app(BookSession::class)->handle($session->refresh(), $javiera, BookingKind::Student, $javiera);
+    bookWithPlan($session->refresh(), $javiera);
 
     expect($entry->refresh()->status)->toBe(WaitlistStatus::Left);
 });

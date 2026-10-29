@@ -1,8 +1,6 @@
 <?php
 
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
-use App\Enums\BookingKind;
 use App\Enums\StudioRole;
 use App\Models\ClassSession;
 use App\Models\ClassType;
@@ -40,7 +38,7 @@ it('shows the instructor her own classes from yesterday, with the names of who c
     $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
     $ana = User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Ana Pérez']);
     foreach ([$rosa, $javiera, $ana] as $student) {
-        $booking = app(BookSession::class)->handle($tomorrow, $student, BookingKind::Student, $student);
+        $booking = bookWithPlan($tomorrow, $student);
     }
     app(CancelBooking::class)->handle($booking, $ana);
 

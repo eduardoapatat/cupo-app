@@ -2,7 +2,9 @@
 
 namespace App\Actions\Bookings;
 
+use App\Actions\Plans\ReturnClassToPlan;
 use App\Enums\BookingStatus;
+use App\Enums\CreditMovementReason;
 use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\User;
@@ -10,14 +12,17 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Give up a place. It is on time while at least the studio's cancellation
- * window is left before the class; later, it is late and the class counts
- * as used. The owner may return the class anyway (bookings.override, checked
+ * window is left before the class, and the class goes back to her plan;
+ * later, it is late and the class counts as used. The owner may return the class anyway (bookings.override, checked
  * by the caller), with a reason. The freed spot goes to the first one on
  * the waitlist while the class is before the waitlist cutoff.
  */
 class CancelBooking
 {
-    public function __construct(private PromoteFromWaitlist $promoteFromWaitlist) {}
+    public function __construct(
+        private PromoteFromWaitlist $promoteFromWaitlist,
+        private ReturnClassToPlan $returnClassToPlan,
+    ) {}
 
     /**
      * @throws BookingRejected when the booking is no longer active or the class started.
@@ -38,7 +43,12 @@ class CancelBooking
             ? BookingStatus::CancelledOnTime
             : BookingStatus::CancelledLate;
 
-        $promoted = DB::transaction(function () use ($booking, $session, $by, $status, $reason): ?User {
+        // On time because of the owner, after the window, is «returned».
+        $returnReason = now()->lessThanOrEqualTo($session->freeCancellationEndsAt())
+            ? CreditMovementReason::CancelledOnTime
+            : CreditMovementReason::Returned;
+
+        $promoted = DB::transaction(function () use ($booking, $session, $by, $status, $reason, $returnReason): ?User {
             // Conditional, so cancelling twice at once frees one spot only.
             $cancelled = Booking::query()
                 ->whereKey($booking->id)
@@ -56,6 +66,10 @@ class CancelBooking
             }
 
             ClassSession::query()->whereKey($session->id)->where('booked_count', '>', 0)->decrement('booked_count');
+
+            if ($status === BookingStatus::CancelledOnTime) {
+                $this->returnClassToPlan->handle($booking, $returnReason, $by);
+            }
 
             return $this->promoteFromWaitlist->handle($session);
         });

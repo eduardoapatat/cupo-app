@@ -70,6 +70,14 @@ class WaitlistEntry extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function addedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'added_by_id');
+    }
+
+    /**
      * Entries still waiting, first come first served.
      *
      * @param  Builder<self>  $query

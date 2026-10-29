@@ -1,10 +1,8 @@
 <?php
 
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
 use App\Actions\Bookings\CancelSession;
 use App\Actions\Bookings\MarkAttendance;
-use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\StudioRole;
 use App\Models\Booking;
@@ -33,7 +31,7 @@ function bookingOf(User $student, Studio $studio, string $localTime): Booking
         'ends_at' => $startsAt->addMinutes(50),
     ]);
 
-    return app(BookSession::class)->handle($session, $student, BookingKind::Student, $student);
+    return bookWithPlan($session, $student);
 }
 
 it('shows her upcoming classes in order, and her history without them', function () {

@@ -123,5 +123,11 @@
     "Choose the student.": "Elige a la alumna.",
     "Choose the plan.": "Elige el plan.",
     "Write why the price changes.": "Escribe por qué cambia el precio.",
-    "We sold :plan to :name. It lasts until :day.": "Vendimos :plan a :name. Vale hasta el :day."
+    "We sold :plan to :name. It lasts until :day.": "Vendimos :plan a :name. Vale hasta el :day.",
+    "You have no valid plan with classes left for :day. Buy one at the counter.": "No tienes un plan vigente con clases para el :day. Cómpralo en el mesón.",
+    ":name has no valid plan with classes left for :day.": ":name no tiene un plan vigente con clases para el :day.",
+    "Your plan allows :count class a day, and you already booked that day.|Your plan allows :count classes a day, and you already booked them that day.": "Tu plan permite :count clase al día, y ya reservaste ese día.|Tu plan permite :count clases al día, y ya las reservaste ese día.",
+    ":name's plan allows :count class a day, and she already booked that day.|:name's plan allows :count classes a day, and she already booked them that day.": "El plan de :name permite :count clase al día, y ya reservó ese día.|El plan de :name permite :count clases al día, y ya las reservó ese día.",
+    "You have no classes left in your plan.": "No te quedan clases en tu plan.",
+    ":name has no classes left in her plan.": "A :name no le quedan clases en su plan."
 }

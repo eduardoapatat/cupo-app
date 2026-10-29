@@ -1,7 +1,5 @@
 <?php
 
-use App\Actions\Bookings\BookSession;
-use App\Enums\BookingKind;
 use App\Enums\StudioRole;
 use App\Enums\WaitlistStatus;
 use App\Models\ClassSession;
@@ -25,11 +23,12 @@ beforeEach(function () {
         'starts_at' => $startsAt,
         'ends_at' => $startsAt->addMinutes(50),
     ]);
-    $this->anasBooking = app(BookSession::class)->handle($this->session, $this->ana, BookingKind::Student, $this->ana);
+    $this->anasBooking = bookWithPlan($this->session, $this->ana);
 });
 
 it('puts a student in the waitlist of a full class, and nobody else', function () {
     $rosa = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
+    givePlan($rosa, $this->studio);
     $stranger = User::factory()->memberOf(Studio::factory()->create(), StudioRole::Student)->create();
     $route = route('studios.agenda.waitlist.store', [$this->studio, $this->session]);
 
@@ -50,6 +49,7 @@ it('puts a student in the waitlist of a full class, and nobody else', function (
 
 it('shows the line in the panel, and gives the freed spot to the first one waiting', function () {
     $rosa = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
+    givePlan($rosa, $this->studio);
     $this->actingAs($this->camila)->post(route('studios.agenda.waitlist.store', [$this->studio, $this->session]), ['user_id' => $rosa->id]);
 
     $this->actingAs($this->camila)
@@ -67,6 +67,7 @@ it('shows the line in the panel, and gives the freed spot to the first one waiti
 
 it('takes someone off the waitlist of this class only', function () {
     $rosa = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Rosa Fuentes']);
+    givePlan($rosa, $this->studio);
     $this->actingAs($this->camila)->post(route('studios.agenda.waitlist.store', [$this->studio, $this->session]), ['user_id' => $rosa->id]);
     $entry = $this->session->waitlistEntries()->sole();
     $otherSession = ClassSession::factory()->for($this->studio)->create(['class_type_id' => $this->session->class_type_id]);

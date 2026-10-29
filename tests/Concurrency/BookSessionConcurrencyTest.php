@@ -40,7 +40,8 @@ afterEach(function () {
 
 it('never books more people than the capacity, even all at once', function () {
     $session = ClassSession::factory()->create(['capacity' => 10, 'instructor_id' => User::factory()]);
-    $studentIds = User::factory()->count(15)->create()->modelKeys();
+    $students = User::factory()->count(15)->create()->each(fn (User $student) => givePlan($student, $session));
+    $studentIds = $students->modelKeys();
     $sessionId = $session->id;
 
     // Every process waits for the same moment, after booting, to book.

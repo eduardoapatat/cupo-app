@@ -1,7 +1,5 @@
 <?php
 
-use App\Actions\Bookings\BookSession;
-use App\Enums\BookingKind;
 use App\Enums\StudioRole;
 use App\Enums\WaitlistStatus;
 use App\Models\ClassSession;
@@ -33,16 +31,22 @@ function classAt(Studio $studio, string $localTime, array $attributes = []): Cla
     ]);
 }
 
+/**
+ * A student of the studio, with a plan that pays for any of its classes.
+ */
 function student(Studio $studio): User
 {
-    return User::factory()->memberOf($studio, StudioRole::Student)->create();
+    $student = User::factory()->memberOf($studio, StudioRole::Student)->create();
+    givePlan($student, $studio);
+
+    return $student;
 }
 
 it('shows the days of the horizon and the classes of the chosen day, with what she can do', function () {
     $studio = Studio::factory()->create(['booking_horizon_days' => 14]);
     $javiera = student($studio);
     $booked = classAt($studio, '2026-11-03 19:00');
-    app(BookSession::class)->handle($booked, $javiera, BookingKind::Student, $javiera);
+    bookWithPlan($booked, $javiera);
     classAt($studio, '2026-11-03 07:00', ['capacity' => 1, 'booked_count' => 1]);
     classAt($studio, '2026-11-03 09:00', ['instructor_id' => null]);
     classAt($studio, '2026-11-03 20:00');

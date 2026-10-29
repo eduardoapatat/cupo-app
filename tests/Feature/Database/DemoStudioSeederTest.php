@@ -24,6 +24,7 @@ it('seeds Estudio Flow with a demo account for every role and a student without 
         'Javiera Morales' => StudioRole::Student,
         'Rosa Fuentes' => StudioRole::Student,
         'Antonia Castro' => StudioRole::Student,
+        'Florencia Rivas' => StudioRole::Student,
         'Isidora Muñoz' => StudioRole::Student,
         'Catalina Vega' => StudioRole::Student,
         'Francisca Torres' => StudioRole::Student,
@@ -87,3 +88,27 @@ it('seeds at any time of the week, with the classes of two days ago from the mor
     expect(User::where('email', 'javiera@example.com')->sole()->waitlistEntries()->count())->toBe(1)
         ->and($first?->localStartsAt()->toDateString())->toBe(now('America/Santiago')->subDays(2)->toDateString());
 })->with(['2026-11-04 23:30', '2026-11-05 06:00', '2026-11-07 21:00', '2026-11-04 19:55']);
+
+it('sells the studio\'s plans to its students and takes each booking from them', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-04 12:00', 'America/Santiago'));
+
+    $this->seed();
+
+    $flow = Studio::where('slug', 'estudio-flow')->sole();
+    $purchases = $flow->planPurchases()->with('user')->get();
+    $studentBookings = Booking::query()
+        ->whereIn('class_session_id', $flow->classSessions()->select('id'))
+        ->where('kind', 'student')
+        ->get();
+
+    expect($flow->plans()->active()->pluck('name')->sort()->values()->all())->toBe(['4 clases al mes', '8 clases al mes', 'Ilimitado'])
+        ->and($flow->plans()->whereNotNull('archived_at')->pluck('name')->all())->toBe(['Clase de prueba'])
+        ->and($purchases)->toHaveCount(10)
+        ->and($purchases->firstWhere('user.name', 'Ignacia Navarro')->expires_at->isPast())->toBeTrue()
+        ->and($purchases->firstWhere('user.name', 'Antonia Castro')->isUnlimited())->toBeTrue()
+        ->and($flow->planPurchases()->has('payments')->count())->toBe(10)
+        ->and($studentBookings->every(fn (Booking $booking) => $booking->plan_purchase_id !== null))->toBeTrue()
+        ->and($purchases->reject->isUnlimited()->every(
+            fn ($purchase) => $purchase->credits_left === $purchase->credits - $purchase->bookings()->count(),
+        ))->toBeTrue();
+});

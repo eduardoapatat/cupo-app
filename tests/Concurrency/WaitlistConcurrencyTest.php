@@ -43,6 +43,7 @@ it('gives each freed spot to a different person waiting, never more than the cap
     ClassSession::query()->whereKey($session->id)->update(['booked_count' => 2]);
     foreach (['Javiera', 'Rosa'] as $name) {
         $person = User::factory()->create(['name' => $name]);
+        givePlan($person, $session);
         app(JoinWaitlist::class)->handle($session->refresh(), $person, $person);
     }
 

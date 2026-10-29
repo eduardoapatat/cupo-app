@@ -1,10 +1,8 @@
 <?php
 
 use App\Actions\Bookings\BookingRejected;
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelSession;
 use App\Actions\Bookings\MarkAttendance;
-use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\ClassSession;
@@ -26,7 +24,7 @@ function bookingForAttendance(): Booking
     ]);
     $javiera = User::factory()->create();
 
-    return app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    return bookWithPlan($session, $javiera);
 }
 
 it('marks who came from the start of the class, and undoes it', function () {

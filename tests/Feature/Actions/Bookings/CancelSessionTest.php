@@ -1,9 +1,7 @@
 <?php
 
 use App\Actions\Bookings\BookingRejected;
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelSession;
-use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
 use App\Models\ClassSession;
@@ -13,7 +11,7 @@ it('cancels the class and its bookings on time, and releases the spots', functio
     $session = ClassSession::factory()->create(['instructor_id' => User::factory()]);
     $carla = User::factory()->create();
     foreach (User::factory()->count(3)->create() as $student) {
-        app(BookSession::class)->handle($session, $student, BookingKind::Student, $student);
+        bookWithPlan($session, $student);
     }
 
     app(CancelSession::class)->handle($session, $carla, 'Corte de luz');
@@ -44,7 +42,7 @@ it('leaves no spot counted even when the class it got was stale', function () {
     $session = ClassSession::factory()->create(['instructor_id' => User::factory()]);
     $stale = ClassSession::find($session->id);
     $javiera = User::factory()->create();
-    app(BookSession::class)->handle($session, $javiera, BookingKind::Student, $javiera);
+    bookWithPlan($session, $javiera);
 
     app(CancelSession::class)->handle($stale, User::factory()->create(), 'Feriado');
 

@@ -1,8 +1,6 @@
 <?php
 
-use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelSession;
-use App\Enums\BookingKind;
 use App\Enums\StudioRole;
 use App\Models\ClassSession;
 use App\Models\ClassType;
@@ -35,7 +33,7 @@ function homeClass(Studio $studio, ?User $instructor, string $localTime, array $
 function homeBooking(ClassSession $session, User $student): void
 {
     test()->travelTo(CarbonImmutable::parse('2026-11-02 06:00', 'America/Santiago'));
-    app(BookSession::class)->handle($session, $student, BookingKind::Student, $student);
+    bookWithPlan($session, $student);
 }
 
 it('shows the studio home to every member', function (StudioRole $role) {

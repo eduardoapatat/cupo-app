@@ -14,7 +14,9 @@ use Carbon\CarbonImmutable;
 
 function bookPlace(ClassSession $session, User $person, BookingKind $kind = BookingKind::Student): Booking
 {
-    return app(BookSession::class)->handle($session, $person, $kind, $person);
+    return $kind === BookingKind::Student
+        ? bookWithPlan($session, $person)
+        : app(BookSession::class)->handle($session, $person, $kind, $person);
 }
 
 /**
