@@ -13,6 +13,9 @@ export type Attendee = {
     id: number;
     name: string;
     isStaff: boolean;
+    /** Marked as present by whoever teaches. */
+    attended: boolean;
+    /** Not marked when the attendance closed (or unmarked afterwards). */
     noShow: boolean;
 };
 
@@ -28,25 +31,25 @@ function AttendanceRow({
     canMark: boolean;
 }) {
     // Shown at once and saved behind; it goes back if the save fails.
-    const [noShow, setNoShow] = useState(attendee.noShow);
+    const [attended, setAttended] = useState(attendee.attended);
     const [saving, setSaving] = useState(false);
     const checkboxId = `attended-${attendee.id}`;
 
     function mark(next: boolean) {
-        setNoShow(next);
+        setAttended(next);
         setSaving(true);
         router.put(
             updateAttendance.url([slug, sessionId, attendee.id]),
-            { no_show: next },
+            { attended: next },
             {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: (page) => {
                     if (!wentThrough(page)) {
-                        setNoShow(!next);
+                        setAttended(!next);
                     }
                 },
-                onError: () => setNoShow(!next),
+                onError: () => setAttended(!next),
                 onFinish: () => setSaving(false),
             },
         );
@@ -59,7 +62,9 @@ function AttendanceRow({
                 <span
                     className={cn(
                         'truncate',
-                        noShow && 'text-muted-foreground line-through',
+                        attendee.noShow &&
+                            !attended &&
+                            'text-muted-foreground line-through',
                     )}
                 >
                     {attendee.name}
@@ -70,25 +75,28 @@ function AttendanceRow({
                 <span className="flex shrink-0 items-center gap-2">
                     <Checkbox
                         id={checkboxId}
-                        checked={!noShow}
+                        checked={attended}
                         disabled={saving}
-                        onCheckedChange={(checked) => mark(checked !== true)}
+                        onCheckedChange={(checked) => mark(checked === true)}
                     />
                     <Label htmlFor={checkboxId} className="font-normal">
                         Asistió
                         <span className="sr-only"> {attendee.name}</span>
                     </Label>
                 </span>
+            ) : attended ? (
+                <Badge variant="secondary">Asistió</Badge>
             ) : (
-                noShow && <Badge variant="secondary">Faltó</Badge>
+                attendee.noShow && <Badge variant="outline">Faltó</Badge>
             )}
         </li>
     );
 }
 
 /**
- * Who came to a class that already started. Everyone starts ticked as
- * «Asistió»; unticking someone marks that she missed it.
+ * Who came to a class that already started. Nobody starts marked: whoever
+ * teaches ticks «Asistió» for each person who came, and whoever is not
+ * ticked when the attendance closes missed it.
  */
 export default function AttendanceList({
     slug,

@@ -64,7 +64,7 @@ Para las fases siguientes:
 
 ## Fase 2: horario, sesiones y reservas
 
-Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un cambio de horario no mueve las sesiones con reservas; en esta fase se reserva sin descontar clases; quitar a un instructor deja sus clases sin instructor, y esas no se pueden reservar; el equipo toma clases si recepción lo anota como «equipo»; la asistencia parte con todas presentes y se desmarca a quien faltó.
+Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un cambio de horario no mueve las sesiones con reservas; en esta fase se reserva sin descontar clases; quitar a un instructor deja sus clases sin instructor, y esas no se pueden reservar; el equipo toma clases si recepción lo anota como «equipo»; en la asistencia, quien da la clase marca a quien vino, y quien no queda marcado faltó.
 
 - [x] **2.1 "Clases y horario"**:
     - tipos de clase, horario semanal y sesiones, con sus garantías: el cupo con `CHECK`, sin solapes en la sala (`EXCLUDE`) y sin duplicados al generar;
@@ -77,7 +77,7 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
     - cancelación a tiempo o tarde según la ventana, y que la dueña pueda saltársela.
 - [x] **2.3 "Lista de espera, asistencia e Inicio"**:
     - la lista de espera con su corte: el cupo liberado pasa a la primera de la fila en la misma transacción (ADR 0007), con un test de varios procesos; la alumna se anota desde «Reservar» y recepción desde la Agenda;
-    - la asistencia: todas parten con «Asistió» y se desmarca a quien faltó, hasta el fin del día siguiente (la dueña corrige siempre), y `attendance:close` cada noche;
+    - la asistencia: quien da la clase marca a quien vino, hasta el fin del día siguiente (la dueña corrige siempre), y `attendance:close` deja cada noche como «Faltó» a quien no se marcó;
     - el Inicio de cada rol con datos reales y el horario de Estudio Flow en los datos demo.
 
 ## Fase 3: planes, créditos, pagos y caja

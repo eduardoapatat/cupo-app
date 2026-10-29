@@ -111,7 +111,8 @@
     ":name is on the waitlist, number :position.": "Anotamos a :name en la lista de espera, en el puesto :position.",
     "We took :name off the waitlist.": "Sacamos a :name de la lista de espera.",
     "The attendance of this class cannot be marked now.": "La asistencia de esta clase no se puede marcar ahora.",
-    "We marked that :name missed the class.": "Marcamos que :name faltó.",
     "We marked :name as present.": "Marcamos que :name vino.",
-    "today at :time": "hoy a las :time"
+    "today at :time": "hoy a las :time",
+    "We marked that :name did not come.": "Marcamos que :name no vino.",
+    "Attendance not marked yet": "Asistencia por marcar"
 }

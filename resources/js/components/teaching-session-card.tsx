@@ -92,7 +92,7 @@ export default function TeachingSessionCard({
                             {marksAttendance && (
                                 <p className="text-sm text-muted-foreground">
                                     {session.attendanceIsOpen
-                                        ? `Desmarca a quien no vino. Puedes cambiarlo hasta ${session.attendanceClosesLabel}.`
+                                        ? `Marca a quien vino, hasta ${session.attendanceClosesLabel}. Quien no quede marcado, cuenta como que faltó.`
                                         : 'La asistencia ya cerró.'}
                                 </p>
                             )}

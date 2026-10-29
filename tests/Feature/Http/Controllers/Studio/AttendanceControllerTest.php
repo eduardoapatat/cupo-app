@@ -33,31 +33,31 @@ function markAttendanceRoute(Studio $studio, ClassSession $session, Booking $boo
     return route('studios.attendance.update', [$studio, $session, $booking]);
 }
 
-it('lets the instructor of the class mark who missed it, and undo it', function () {
+it('lets the instructor of the class mark who came, and undo it', function () {
     $route = markAttendanceRoute($this->studio, $this->session, $this->booking);
 
     $this->actingAs($this->fernanda)
-        ->put($route, ['no_show' => true])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales faltó.']);
-    expect($this->booking->fresh()->status)->toBe(BookingStatus::NoShow);
+        ->put($route, ['attended' => true])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales vino.']);
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::Attended);
 
     $this->actingAs($this->fernanda)
-        ->put($route, ['no_show' => false])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales vino.']);
+        ->put($route, ['attended' => false])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales no vino.']);
     expect($this->booking->fresh()->status)->toBe(BookingStatus::Confirmed);
 });
 
 it('lets the front desk and the owner mark any class of the studio', function (StudioRole $role) {
     $this->actingAs(User::factory()->memberOf($this->studio, $role)->create())
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['no_show' => true])
+        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['attended' => true])
         ->assertRedirect();
 
-    expect($this->booking->fresh()->status)->toBe(BookingStatus::NoShow);
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::Attended);
 })->with([StudioRole::FrontDesk, StudioRole::Owner]);
 
 it('does not let another instructor or a student mark it', function (StudioRole $role) {
     $this->actingAs(User::factory()->memberOf($this->studio, $role)->create())
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['no_show' => true])
+        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['attended' => true])
         ->assertForbidden();
 
     expect($this->booking->fresh()->status)->toBe(BookingStatus::Confirmed);
@@ -69,10 +69,10 @@ it('hides the classes of other studios and the bookings of other classes', funct
     $otherBooking = Booking::factory()->for(ClassSession::factory()->for($this->studio)->create(['class_type_id' => $this->session->class_type_id]))->create();
 
     $this->actingAs($this->fernanda)
-        ->put(markAttendanceRoute($other, $this->session, $this->booking), ['no_show' => true])
+        ->put(markAttendanceRoute($other, $this->session, $this->booking), ['attended' => true])
         ->assertNotFound();
     $this->actingAs($this->fernanda)
-        ->put(markAttendanceRoute($this->studio, $this->session, $otherBooking), ['no_show' => true])
+        ->put(markAttendanceRoute($this->studio, $this->session, $otherBooking), ['attended' => true])
         ->assertNotFound();
 });
 
@@ -81,15 +81,15 @@ it('explains when the attendance is closed, except to the owner, who corrects it
     $person = $role === StudioRole::Instructor ? $this->fernanda : User::factory()->memberOf($this->studio, $role)->create();
 
     $response = $this->actingAs($person)
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['no_show' => true]);
+        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['attended' => true]);
 
     if ($corrects) {
-        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales faltó.']);
+        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales vino.']);
     } else {
         $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'La asistencia de esta clase no se puede marcar ahora.']);
     }
 
-    expect($this->booking->fresh()->status)->toBe($corrects ? BookingStatus::NoShow : BookingStatus::Confirmed);
+    expect($this->booking->fresh()->status)->toBe($corrects ? BookingStatus::Attended : BookingStatus::Confirmed);
 })->with([
     'the instructor' => [StudioRole::Instructor, false],
     'the front desk' => [StudioRole::FrontDesk, false],

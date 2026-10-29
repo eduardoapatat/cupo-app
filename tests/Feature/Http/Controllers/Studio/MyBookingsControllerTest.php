@@ -3,7 +3,7 @@
 use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
 use App\Actions\Bookings\CancelSession;
-use App\Actions\Bookings\MarkNoShow;
+use App\Actions\Bookings\MarkAttendance;
 use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\StudioRole;
@@ -60,19 +60,19 @@ it('shows her upcoming classes in order, and her history without them', function
             ]));
 });
 
-it('shows a past class nobody marked as attended, and a marked one as missed', function () {
+it('shows a past class marked as attended, and one nobody marked yet as such', function () {
     $studio = Studio::factory()->create();
     $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create();
     $attended = bookingOf($javiera, $studio, '2026-11-02 19:00');
-    $missed = bookingOf($javiera, $studio, '2026-11-02 20:00');
+    $unmarked = bookingOf($javiera, $studio, '2026-11-02 20:00');
     $this->travelTo(CarbonImmutable::parse('2026-11-02 20:30', 'America/Santiago'));
-    app(MarkNoShow::class)->handle($missed, true);
+    app(MarkAttendance::class)->handle($attended, true);
 
     $this->actingAs($javiera)
         ->get(route('studios.my-bookings.index', $studio))
         ->assertInertia(fn (Assert $page) => $page
             ->where('history.data', fn ($history) => collect($history)->map(fn ($booking) => [$booking['id'], $booking['status']])->all() === [
-                [$missed->id, 'Faltó'],
+                [$unmarked->id, 'Asistencia por marcar'],
                 [$attended->id, 'Asistió'],
             ]));
 });

@@ -70,8 +70,8 @@ class MyBookingsController extends Controller
                 ...$this->present($booking),
                 'status' => match (true) {
                     $this->cancelledWithTheClass($booking) => __('The studio cancelled the class'),
-                    // Started and not marked: it ends up attended (attendance:close).
-                    $booking->status === BookingStatus::Confirmed => BookingStatus::Attended->label(),
+                    // Started and nobody marked her yet.
+                    $booking->status === BookingStatus::Confirmed => __('Attendance not marked yet'),
                     default => $booking->status->label(),
                 },
             ]),

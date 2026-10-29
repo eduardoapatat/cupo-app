@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Actions\Bookings\BookingRejected;
-use App\Actions\Bookings\MarkNoShow;
+use App\Actions\Bookings\MarkAttendance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\AttendanceRequest;
 use App\Models\Booking;
@@ -16,21 +16,21 @@ use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
 
 /**
- * Mark who missed a class, from «Mis clases», the Inicio or the Agenda.
+ * Mark who came to a class, from «Mis clases», the Inicio or the Agenda.
  * The owner (bookings.override) may also correct it after it closes.
  */
 class AttendanceController extends Controller
 {
     #[Authorize('attendance.mark', 'studio')]
     #[Authorize('markAttendance', 'classSession')]
-    public function update(AttendanceRequest $request, Studio $studio, ClassSession $classSession, Booking $booking, #[CurrentUser] User $user, MarkNoShow $markNoShow): RedirectResponse
+    public function update(AttendanceRequest $request, Studio $studio, ClassSession $classSession, Booking $booking, #[CurrentUser] User $user, MarkAttendance $markAttendance): RedirectResponse
     {
         try {
-            $marked = $markNoShow->handle($booking, $request->noShow(), afterClosing: $user->can('bookings.override', $studio));
+            $marked = $markAttendance->handle($booking, $request->attended(), afterClosing: $user->can('bookings.override', $studio));
 
-            Inertia::flash('toast', ['type' => 'success', 'message' => $request->noShow()
-                ? __('We marked that :name missed the class.', ['name' => $marked->user->name])
-                : __('We marked :name as present.', ['name' => $marked->user->name]),
+            Inertia::flash('toast', ['type' => 'success', 'message' => $request->attended()
+                ? __('We marked :name as present.', ['name' => $marked->user->name])
+                : __('We marked that :name did not come.', ['name' => $marked->user->name]),
             ]);
         } catch (BookingRejected $rejected) {
             Inertia::flash('toast', ['type' => 'error', 'message' => $rejected->getMessage()]);

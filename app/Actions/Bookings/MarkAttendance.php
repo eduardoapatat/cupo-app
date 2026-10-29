@@ -7,39 +7,37 @@ use App\Enums\ClassSessionStatus;
 use App\Models\Booking;
 
 /**
- * Attendance starts with everyone present: unticking someone marks a
- * no-show, and ticking her again undoes it. Whoever is not unticked counts
- * as attended once the attendance closes (attendance:close).
+ * Whoever teaches the class marks who came. Nobody starts marked: someone
+ * not marked when the attendance closes missed the class (attendance:close).
  */
-class MarkNoShow
+class MarkAttendance
 {
     /**
      * @param  bool  $afterClosing  Whether it may correct a class whose attendance already closed (bookings.override, checked by the caller).
      *
      * @throws BookingRejected when the attendance cannot be marked or the booking was cancelled.
      */
-    public function handle(Booking $booking, bool $noShow, bool $afterClosing = false): Booking
+    public function handle(Booking $booking, bool $attended, bool $afterClosing = false): Booking
     {
         $session = $booking->classSession;
-        $isOpen = $session->attendanceIsOpen();
         $canCorrect = $afterClosing
             && $session->status === ClassSessionStatus::Scheduled
             && now()->greaterThanOrEqualTo($session->starts_at);
 
-        if (! $isOpen && ! $canCorrect) {
+        if (! $session->attendanceIsOpen() && ! $canCorrect) {
             throw new BookingRejected(__('The attendance of this class cannot be marked now.'));
         }
 
-        // Back to present is «confirmed» while the attendance is open, and
-        // «attended» once closed, as attendance:close would have left it.
-        $present = now()->greaterThan($session->attendanceClosesAt()) ? BookingStatus::Attended : BookingStatus::Confirmed;
+        // Unmarked is «confirmed» while the attendance is open, and a
+        // no-show once closed, as attendance:close would have left it.
+        $absent = now()->greaterThan($session->attendanceClosesAt()) ? BookingStatus::NoShow : BookingStatus::Confirmed;
 
         // Conditional, so it never touches a booking cancelled meanwhile.
         $marked = Booking::query()
             ->whereKey($booking->id)
             ->whereIn('status', [BookingStatus::Confirmed, BookingStatus::Attended, BookingStatus::NoShow])
             ->update([
-                'status' => $noShow ? BookingStatus::NoShow : $present,
+                'status' => $attended ? BookingStatus::Attended : $absent,
                 'updated_at' => now(),
             ]);
 

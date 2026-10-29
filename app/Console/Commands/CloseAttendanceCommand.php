@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 
 #[Signature('attendance:close')]
-#[Description('Mark as attended the bookings nobody marked as a no-show once their attendance closes')]
+#[Description('Mark as no-shows the bookings nobody marked as attended once their attendance closes')]
 class CloseAttendanceCommand extends Command
 {
     /**
@@ -22,12 +22,12 @@ class CloseAttendanceCommand extends Command
     {
         $closedBefore = now(config()->string('studio.timezone'))->startOfDay()->subDay();
 
-        $attended = Booking::query()
+        $missed = Booking::query()
             ->where('status', BookingStatus::Confirmed)
             ->whereHas('classSession', fn (Builder $session) => $session->where('starts_at', '<', $closedBefore->utc()))
-            ->update(['status' => BookingStatus::Attended, 'updated_at' => now()]);
+            ->update(['status' => BookingStatus::NoShow, 'updated_at' => now()]);
 
-        $this->info("Bookings marked as attended: {$attended}.");
+        $this->info("Bookings marked as no-shows: {$missed}.");
 
         return self::SUCCESS;
     }

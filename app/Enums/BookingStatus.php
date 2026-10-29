@@ -4,8 +4,9 @@ namespace App\Enums;
 
 /**
  * Where a booking stands. Cancelling on time keeps the class (from phase 3,
- * the credit comes back); cancelling late uses it. Once the session ends,
- * a confirmed booking becomes attended unless someone marked a no-show.
+ * the credit comes back); cancelling late uses it. Whoever teaches marks
+ * who came (attended); once the attendance closes, a booking still
+ * confirmed becomes a no-show.
  */
 enum BookingStatus: string
 {

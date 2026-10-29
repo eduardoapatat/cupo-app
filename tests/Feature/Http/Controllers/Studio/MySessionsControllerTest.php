@@ -55,9 +55,9 @@ it('shows the instructor her own classes from yesterday, with the names of who c
                 ['2026-11-03', false, false, [$tomorrow->id]],
             ])
             ->where('days.2.label', 'martes 3 de noviembre')
-            ->where('days.2.sessions.0.attendees', fn ($attendees) => collect($attendees)->map(fn ($attendee) => [$attendee['name'], $attendee['noShow']])->all() === [
-                ['Javiera Morales', false],
-                ['Rosa Fuentes', false],
+            ->where('days.2.sessions.0.attendees', fn ($attendees) => collect($attendees)->map(fn ($attendee) => [$attendee['name'], $attendee['attended'], $attendee['noShow']])->all() === [
+                ['Javiera Morales', false, false],
+                ['Rosa Fuentes', false, false],
             ])
             ->where('days.2.sessions.0.bookedCount', 2)
             ->where('days.0.sessions.0.attendanceIsOpen', true)

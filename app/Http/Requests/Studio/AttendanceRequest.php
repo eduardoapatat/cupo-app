@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Mark that someone missed a class, or undo it.
+ * Mark that someone came to a class, or undo it.
  */
 class AttendanceRequest extends FormRequest
 {
@@ -18,12 +18,12 @@ class AttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'no_show' => ['required', 'boolean'],
+            'attended' => ['required', 'boolean'],
         ];
     }
 
-    public function noShow(): bool
+    public function attended(): bool
     {
-        return $this->boolean('no_show');
+        return $this->boolean('attended');
     }
 }

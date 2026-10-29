@@ -286,7 +286,7 @@ class AgendaController extends Controller
             'cancelsOnTime' => now()->lessThanOrEqualTo($session->freeCancellationEndsAt()),
             'attendees' => $this->presentAttendees($session),
             'attendanceIsOpen' => $session->attendanceIsOpen(),
-            // The owner corrects a closed attendance too, as MarkNoShow allows.
+            // The owner corrects a closed attendance too, as MarkAttendance allows.
             'canCorrectClosedAttendance' => $session->status === ClassSessionStatus::Scheduled
                 && now()->greaterThanOrEqualTo($session->starts_at)
                 && $user->can('bookings.override', $studio),
