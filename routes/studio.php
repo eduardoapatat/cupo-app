@@ -15,6 +15,8 @@ use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\MyBookingsController;
 use App\Http\Controllers\Studio\MySessionsController;
+use App\Http\Controllers\Studio\PlanArchiveController;
+use App\Http\Controllers\Studio\PlanController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
 use App\Http\Controllers\Studio\SessionCancellationController;
 use App\Http\Controllers\Studio\SessionInstructorController;
@@ -91,6 +93,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('clases/horario', [ScheduleSlotController::class, 'store'])->name('classes.slots.store');
                 Route::put('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'update'])->name('classes.slots.update');
                 Route::delete('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'destroy'])->name('classes.slots.destroy');
+
+                Route::get('planes', [PlanController::class, 'index'])->name('plans.index');
+                Route::post('planes', [PlanController::class, 'store'])->name('plans.store');
+                Route::get('planes/{plan}', [PlanController::class, 'show'])->name('plans.show');
+                Route::put('planes/{plan}', [PlanController::class, 'update'])->name('plans.update');
+                Route::post('planes/{plan}/archivo', [PlanArchiveController::class, 'store'])->name('plans.archive.store');
+                Route::delete('planes/{plan}/archivo', [PlanArchiveController::class, 'destroy'])->name('plans.archive.destroy');
 
                 Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
                 Route::get('agenda/clases/{classSession}', [AgendaController::class, 'show'])->name('agenda.show');
