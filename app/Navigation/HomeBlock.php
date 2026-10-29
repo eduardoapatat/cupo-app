@@ -41,11 +41,11 @@ enum HomeBlock: string
     }
 
     /**
-     * Whether the block shows real data already. The rest arrive with plans,
-     * payments and the cash register (phase 3).
+     * Whether the block shows real data already. The rest arrive with
+     * payments, the cash register and the reports (phase 3).
      */
     public function isBuilt(): bool
     {
-        return in_array($this, [self::TodayOccupancy, self::TodaySessions, self::Arrivals, self::TeachingToday, self::NextBooking], true);
+        return in_array($this, [self::TodayOccupancy, self::TodaySessions, self::Arrivals, self::TeachingToday, self::NextBooking, self::ClassesLeft, self::PlanExpiry], true);
     }
 }

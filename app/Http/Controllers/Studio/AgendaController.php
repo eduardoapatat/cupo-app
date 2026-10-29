@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Actions\Plans\TakeClassFromPlan;
 use App\Concerns\PresentsAttendees;
 use App\Enums\ClassSessionStatus;
 use App\Enums\StudioRole;
@@ -56,10 +57,11 @@ class AgendaController extends Controller
     }
 
     /**
-     * The students that match a search, to book one of them in the class.
+     * The students that match a search, to book one of them in the class,
+     * with whether a plan of hers can pay for it.
      */
     #[Authorize('bookings.manage', 'studio')]
-    public function students(Request $request, Studio $studio, ClassSession $classSession): JsonResponse
+    public function students(Request $request, Studio $studio, ClassSession $classSession, TakeClassFromPlan $takeClassFromPlan): JsonResponse
     {
         $search = mb_substr(trim($request->string('buscar')->toString()), 0, 100);
         $booked = $classSession->bookings()->current()->pluck('user_id')->all();
@@ -82,6 +84,7 @@ class AgendaController extends Controller
                 'phone' => $membership->user->phone,
                 'alreadyBooked' => in_array($membership->user_id, $booked, true),
                 'alreadyWaiting' => in_array($membership->user_id, $waiting, true),
+                'hasPlan' => $takeClassFromPlan->usablePurchases($classSession, $membership->user)->isNotEmpty(),
             ]),
         ]);
     }

@@ -4,6 +4,7 @@ use App\Actions\Bookings\CancelSession;
 use App\Enums\StudioRole;
 use App\Models\ClassSession;
 use App\Models\ClassType;
+use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
 use App\Models\WaitlistEntry;
@@ -66,8 +67,8 @@ it('gives each role its blocks in order, with the ones of phase 3 still to come'
     'instructor' => [StudioRole::Instructor, [['key' => 'teaching-today', 'isBuilt' => true]]],
     'student' => [StudioRole::Student, [
         ['key' => 'next-booking', 'isBuilt' => true],
-        ['key' => 'classes-left', 'isBuilt' => false],
-        ['key' => 'plan-expiry', 'isBuilt' => false],
+        ['key' => 'classes-left', 'isBuilt' => true],
+        ['key' => 'plan-expiry', 'isBuilt' => true],
     ]],
 ]);
 
@@ -155,7 +156,31 @@ it('shows the student her next class in this studio and the waitlists she is in'
             ->where('nextBooking.instructorName', 'Diego Herrera')
             ->where('nextBooking.freeCancellationUntil', 'las 13:00')
             ->where('waitingCount', 1)
+            ->where('planSummary.isUnlimited', true)
             ->where('todaySessions', null));
+});
+
+it('tells the student how many classes she has left and until when', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 12:00', 'America/Santiago'));
+    $studio = Studio::factory()->create();
+    $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create();
+
+    $this->actingAs($javiera)
+        ->get(route('studios.home', $studio))
+        ->assertInertia(fn (Assert $page) => $page->where('planSummary', null));
+
+    PlanPurchase::factory()->for($studio)->for($javiera)->create(['credits_left' => 5]);
+    PlanPurchase::factory()->for($studio)->for($javiera)->create(['credits' => 4, 'credits_left' => 2, 'validity_days' => 10, 'expires_at' => now('America/Santiago')->startOfDay()->addDays(10)->utc()]);
+    PlanPurchase::factory()->for($studio)->for($javiera)->expired()->create();
+
+    $this->actingAs($javiera)
+        ->get(route('studios.home', $studio))
+        ->assertInertia(fn (Assert $page) => $page->where('planSummary', [
+            'isUnlimited' => false,
+            'classesLeft' => 7,
+            'lastDay' => 'martes 1 de diciembre',
+            'daysLeft' => 30,
+        ]));
 });
 
 it('answers 404 to people outside the studio', function () {

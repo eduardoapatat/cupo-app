@@ -121,6 +121,8 @@ type FoundStudent = {
     phone: string | null;
     alreadyBooked: boolean;
     alreadyWaiting: boolean;
+    /** Whether a plan of hers can pay for this class. */
+    hasPlan: boolean;
 };
 
 /** What reloads when the Agenda moves: the calendar and the panel, nothing else. */
@@ -300,6 +302,10 @@ function BookStudentDialog({
                                             {student.alreadyBooked
                                                 ? 'Ya está'
                                                 : 'Ya espera'}
+                                        </Badge>
+                                    ) : !student.hasPlan ? (
+                                        <Badge variant="outline">
+                                            Sin plan
                                         </Badge>
                                     ) : (
                                         <Form

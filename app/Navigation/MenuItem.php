@@ -90,6 +90,7 @@ enum MenuItem: string
             self::MySessions => 'studios.my-sessions.index',
             self::Book => 'studios.book.index',
             self::MyBookings => 'studios.my-bookings.index',
+            self::MyPlan => 'studios.my-plan.index',
             default => null,
         };
     }

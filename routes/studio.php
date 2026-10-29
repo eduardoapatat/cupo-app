@@ -14,6 +14,7 @@ use App\Http\Controllers\Studio\ClassTypeController;
 use App\Http\Controllers\Studio\EnrollmentLinkController;
 use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\MyBookingsController;
+use App\Http\Controllers\Studio\MyPlanController;
 use App\Http\Controllers\Studio\MySessionsController;
 use App\Http\Controllers\Studio\PlanArchiveController;
 use App\Http\Controllers\Studio\PlanController;
@@ -125,6 +126,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('mis-reservas', [MyBookingsController::class, 'index'])->name('my-bookings.index');
                 Route::delete('mis-reservas/{booking}', [MyBookingsController::class, 'destroy'])->name('my-bookings.destroy');
                 Route::delete('mis-reservas/espera/{waitlistEntry}', [WaitlistController::class, 'destroy'])->name('waitlist.destroy');
+                Route::get('mi-plan', [MyPlanController::class, 'index'])->name('my-plan.index');
             });
         });
 });

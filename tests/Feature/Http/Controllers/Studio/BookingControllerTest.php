@@ -4,6 +4,7 @@ use App\Enums\StudioRole;
 use App\Enums\WaitlistStatus;
 use App\Models\ClassSession;
 use App\Models\ClassType;
+use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
 use App\Models\WaitlistEntry;
@@ -139,6 +140,26 @@ it('does not let her leave someone else\'s place in line, nor wait as staff', fu
 
     expect($rosasEntry->fresh()->status)->toBe(WaitlistStatus::Waiting)
         ->and($session->waitlistEntries()->count())->toBe(1);
+});
+
+it('tells her when she has no plan for the day, and what she has left', function () {
+    $studio = Studio::factory()->create();
+    $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create();
+    classAt($studio, '2026-11-03 19:00');
+
+    $this->actingAs($javiera)
+        ->get(route('studios.book.index', [$studio, 'dia' => '2026-11-03']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sessions.0.state', 'no_plan')
+            ->where('planSummary', null));
+
+    PlanPurchase::factory()->for($studio)->for($javiera)->create(['credits_left' => 6]);
+
+    $this->actingAs($javiera)
+        ->get(route('studios.book.index', [$studio, 'dia' => '2026-11-03']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sessions.0.state', 'open')
+            ->where('planSummary.classesLeft', 6));
 });
 
 it('books a class for the student herself', function () {

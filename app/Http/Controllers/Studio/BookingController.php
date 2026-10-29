@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Studio;
 
 use App\Actions\Bookings\BookingRejected;
 use App\Actions\Bookings\BookSession;
+use App\Actions\Plans\TakeClassFromPlan;
+use App\Concerns\PresentsPlanSummary;
 use App\Enums\BookingKind;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
@@ -26,8 +28,10 @@ use Inertia\Response;
  */
 class BookingController extends Controller
 {
+    use PresentsPlanSummary;
+
     #[Authorize('self.book', 'studio')]
-    public function index(Request $request, Studio $studio, #[CurrentUser] User $user): Response
+    public function index(Request $request, Studio $studio, #[CurrentUser] User $user, TakeClassFromPlan $takeClassFromPlan): Response
     {
         $today = now(config()->string('studio.timezone'))->startOfDay();
         $days = collect(range(0, $studio->booking_horizon_days - 1))->map(fn (int $offset): CarbonImmutable => $today->addDays($offset));
@@ -57,8 +61,14 @@ class BookingController extends Controller
                 'label' => $selectedDay->translatedFormat('l j \d\e F'),
             ],
             'sessions' => $sessionsByDay->get($selectedDay->toDateString(), collect())
-                ->map(fn (ClassSession $session): array => $this->present($session, $bookingIds->get($session->id), $waitlistEntries->get($session->id)))
+                ->map(fn (ClassSession $session): array => $this->present(
+                    $session,
+                    $bookingIds->get($session->id),
+                    $waitlistEntries->get($session->id),
+                    $takeClassFromPlan->usablePurchases($session, $user)->isNotEmpty(),
+                ))
                 ->values(),
+            'planSummary' => $this->planSummary($user, $studio),
         ]);
     }
 
@@ -94,13 +104,14 @@ class BookingController extends Controller
     }
 
     /**
-     * A session as a card of «Reservar», with what the student can do. A
+     * A session as a card of «Reservar», with what the student can do. She
+     * needs a plan valid that day with classes left to book or wait. A
      * full class takes her in its waitlist until the waitlist cutoff; after
      * it, her place in line no longer counts and a free spot is for anyone.
      *
      * @return array<string, mixed>
      */
-    private function present(ClassSession $session, ?int $bookingId, ?WaitlistEntry $waitlistEntry): array
+    private function present(ClassSession $session, ?int $bookingId, ?WaitlistEntry $waitlistEntry, bool $hasPlan): array
     {
         $isFull = $session->booked_count >= $session->capacity;
         $waitlistIsOpen = now()->lessThan($session->waitlistClosesAt());
@@ -109,6 +120,7 @@ class BookingController extends Controller
             $waitlistEntry !== null && $isFull && $waitlistIsOpen => 'waiting',
             $session->instructor_id === null => 'no_instructor',
             now()->greaterThanOrEqualTo($session->bookingClosesAt()) => 'closed',
+            ! $hasPlan => 'no_plan',
             $isFull && $waitlistIsOpen => 'waitlist',
             $isFull => 'full',
             default => 'open',

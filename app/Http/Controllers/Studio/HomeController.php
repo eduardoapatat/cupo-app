@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Concerns\PresentsAttendees;
+use App\Concerns\PresentsPlanSummary;
 use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
 use App\Http\Controllers\Controller;
@@ -24,6 +25,7 @@ use Inertia\Response;
 class HomeController extends Controller
 {
     use PresentsAttendees;
+    use PresentsPlanSummary;
 
     public function __invoke(Studio $studio, #[CurrentUser] User $user): Response
     {
@@ -39,6 +41,7 @@ class HomeController extends Controller
             'arrivals' => $shows(HomeBlock::Arrivals) && $todaySessions !== null ? $this->arrivals($todaySessions) : null,
             'teachingToday' => $shows(HomeBlock::TeachingToday) ? $this->teachingToday($studio, $user) : null,
             'nextBooking' => $shows(HomeBlock::NextBooking) ? $this->nextBooking($studio, $user) : null,
+            'planSummary' => $shows(HomeBlock::ClassesLeft, HomeBlock::PlanExpiry) ? $this->planSummary($user, $studio) : null,
             'waitingCount' => $shows(HomeBlock::NextBooking)
                 ? $user->waitlistEntries()->waiting()->whereIn('class_session_id', $studio->classSessions()->upcoming()->select('id'))->count()
                 : null,

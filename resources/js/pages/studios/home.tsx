@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
+import { index as myPlanIndex } from '@/actions/App/Http/Controllers/Studio/MyPlanController';
 import { index as mySessionsIndex } from '@/actions/App/Http/Controllers/Studio/MySessionsController';
 import Heading from '@/components/heading';
 import Arrivals from '@/components/home/arrivals';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import type { PlanSummary } from '@/types';
 
 type BlockKey =
     | 'today-occupancy'
@@ -47,7 +49,23 @@ type Props = {
     teachingToday: (TeachingSession & HomeSession)[] | null;
     nextBooking: NextBookingSummary | null;
     waitingCount: number | null;
+    planSummary: PlanSummary | null;
 };
+
+/** For a student without a valid plan, where to see hers. */
+function NoPlan({ slug }: { slug: string }) {
+    return (
+        <p className="text-sm text-muted-foreground">
+            No tienes un plan vigente. Cómpralo en el mesón.{' '}
+            <Link
+                href={myPlanIndex(slug)}
+                className="text-foreground underline underline-offset-4"
+            >
+                Mi plan
+            </Link>
+        </p>
+    );
+}
 
 /*
  * What each block is about (docs/roles-y-permisos.md). The ones of phase 3
@@ -162,6 +180,31 @@ export default function StudioHome(props: Props) {
                         booking={props.nextBooking}
                         waitingCount={props.waitingCount ?? 0}
                     />
+                );
+            case 'classes-left':
+                return props.planSummary === null ? (
+                    <NoPlan slug={slug} />
+                ) : (
+                    <p className="text-4xl font-semibold tabular-nums">
+                        {props.planSummary.isUnlimited
+                            ? 'Ilimitadas'
+                            : props.planSummary.classesLeft}
+                    </p>
+                );
+            case 'plan-expiry':
+                return props.planSummary === null ? (
+                    <NoPlan slug={slug} />
+                ) : (
+                    <div className="grid gap-1">
+                        <p className="text-lg font-semibold first-letter:uppercase">
+                            {props.planSummary.lastDay}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            {props.planSummary.daysLeft === 1
+                                ? 'Hoy es su último día.'
+                                : `Quedan ${props.planSummary.daysLeft} días.`}
+                        </p>
+                    </div>
                 );
             default:
                 return null;

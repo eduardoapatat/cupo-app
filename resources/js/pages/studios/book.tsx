@@ -6,6 +6,7 @@ import {
     store as bookSession,
 } from '@/actions/App/Http/Controllers/Studio/BookingController';
 import { destroy as cancelBooking } from '@/actions/App/Http/Controllers/Studio/MyBookingsController';
+import { index as myPlanIndex } from '@/actions/App/Http/Controllers/Studio/MyPlanController';
 import {
     destroy as leaveWaitlist,
     store as joinWaitlist,
@@ -17,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
-import type { CurrentStudio } from '@/types';
+import type { CurrentStudio, PlanSummary } from '@/types';
 
 type Day = {
     date: string;
@@ -37,7 +38,8 @@ type SessionState =
     | 'waiting'
     | 'full'
     | 'closed'
-    | 'no_instructor';
+    | 'no_instructor'
+    | 'no_plan';
 
 type BookableSession = {
     id: number;
@@ -57,6 +59,7 @@ type Props = {
     days: Day[];
     selectedDay: { date: string; label: string };
     sessions: BookableSession[];
+    planSummary: PlanSummary | null;
 };
 
 function spotsLabel(spotsLeft: number): string {
@@ -208,6 +211,8 @@ function SessionAction({
             return <Badge variant="outline">Cerrada</Badge>;
         case 'no_instructor':
             return <Badge variant="outline">Sin instructor</Badge>;
+        case 'no_plan':
+            return <Badge variant="outline">Sin plan</Badge>;
     }
 }
 
@@ -232,10 +237,56 @@ function sessionNote(session: BookableSession): string {
             return `${teacher} · Las reservas ya cerraron`;
         case 'no_instructor':
             return 'Todavía no tiene instructor, así que no se puede reservar';
+        case 'no_plan':
+            return `${teacher} · Necesitas un plan vigente con clases para este día. Cómpralo en el mesón`;
     }
 }
 
-export default function Book({ days, selectedDay, sessions }: Props) {
+/** What she has left, above the days: «Te quedan 6 clases · hasta el…». */
+function PlanLine({
+    slug,
+    summary,
+}: {
+    slug: string;
+    summary: PlanSummary | null;
+}) {
+    return (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            {summary === null ? (
+                <span className="text-muted-foreground">
+                    No tienes un plan vigente. Cómpralo en el mesón para
+                    reservar.
+                </span>
+            ) : (
+                <>
+                    <span className="font-medium">
+                        {summary.isUnlimited
+                            ? 'Clases ilimitadas'
+                            : summary.classesLeft === 1
+                              ? 'Te queda 1 clase'
+                              : `Te quedan ${summary.classesLeft} clases`}
+                    </span>
+                    <span className="text-muted-foreground">
+                        · hasta el {summary.lastDay}
+                    </span>
+                </>
+            )}
+            <Link
+                href={myPlanIndex(slug)}
+                className="underline underline-offset-4"
+            >
+                Mi plan
+            </Link>
+        </p>
+    );
+}
+
+export default function Book({
+    days,
+    selectedDay,
+    sessions,
+    planSummary,
+}: Props) {
     const { studio } = usePage().props;
 
     if (!studio) {
@@ -252,6 +303,8 @@ export default function Book({ days, selectedDay, sessions }: Props) {
                     title="Reservar"
                     description={`Las clases de los próximos ${days.length} días. Elige el día y reserva tu lugar.`}
                 />
+
+                <PlanLine slug={studio.slug} summary={planSummary} />
 
                 <DayStrip
                     slug={studio.slug}
