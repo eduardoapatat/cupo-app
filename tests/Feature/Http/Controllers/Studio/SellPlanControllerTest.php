@@ -59,7 +59,7 @@ it('sells at the list price and opens her profile', function () {
         ->post(route('studios.sell.store', $this->studio), saleForm($this->javiera->id, $this->plan->id, ['method' => 'transfer']));
 
     $purchase = $this->javiera->planPurchases()->sole();
-    $response->assertRedirect(route('studios.students.show', [$this->studio, $this->javiera->memberships()->sole()]))
+    $response->assertRedirect(route('studios.students.show', [$this->studio, $this->javiera->memberships()->sole(), 'pestana' => 'plan']))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Vendimos 8 clases al mes a Javiera Morales. Vale hasta el viernes 27 de noviembre.']);
     expect($purchase->price)->toBe(45000)
         ->and($purchase->payments()->sole()->method)->toBe(PaymentMethod::Transfer);
@@ -111,7 +111,7 @@ it('shows her plans and payments in her profile', function () {
     PlanPurchase::factory()->for($this->studio)->for($this->javiera)->expired()->create(['name' => 'Viejo']);
 
     $this->actingAs($this->camila)
-        ->get(route('studios.students.show', [$this->studio, $this->javiera->memberships()->sole()]))
+        ->get(route('studios.students.show', [$this->studio, $this->javiera->memberships()->sole(), 'pestana' => 'plan']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('canSellPlan', true)
             ->where('student.userId', $this->javiera->id)

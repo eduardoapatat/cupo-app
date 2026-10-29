@@ -92,7 +92,7 @@ class SellPlanController extends Controller
             'day' => $purchase->lastDay()->translatedFormat('l j \d\e F'),
         ])]);
 
-        return to_route('studios.students.show', [$studio, $membership]);
+        return to_route('studios.students.show', [$studio, $membership, 'pestana' => 'plan']);
     }
 
     private function studentMembership(Studio $studio, int $userId): ?Membership

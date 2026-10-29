@@ -574,6 +574,13 @@ function StudentProfile({
     backHref: string;
     canSellPlan: boolean;
 }) {
+    // Selling a plan lands here with ?pestana=plan, to show what was sold.
+    const { url } = usePage();
+    const openTab =
+        new URLSearchParams(url.split('?')[1]).get('pestana') === 'plan'
+            ? 'plan'
+            : 'data';
+
     return (
         <article className="grid max-w-3xl min-w-0 gap-6 p-4 md:p-6">
             <Button
@@ -621,7 +628,7 @@ function StudentProfile({
                 )}
             </header>
 
-            <Tabs defaultValue="data" className="min-w-0 gap-4">
+            <Tabs defaultValue={openTab} className="min-w-0 gap-4">
                 {/* Swipes sideways when it does not fit; the padding keeps the underline. */}
                 <div className="overflow-x-auto pb-1.5">
                     <TabsList variant="line">
