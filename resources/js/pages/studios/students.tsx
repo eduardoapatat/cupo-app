@@ -472,13 +472,13 @@ function AppStatus({ slug, student }: { slug: string; student: Student }) {
     );
 }
 
-/**
- * The student's profile. Her bookings (2.2) and her plan and payments
- * (phase 3) arrive as tabs of their own.
- */
 function creditsLeftLabel(purchase: StudentPurchase): string {
     if (purchase.credits === null) {
         return 'Clases ilimitadas';
+    }
+
+    if (!purchase.isValid) {
+        return `Usó ${purchase.credits - (purchase.creditsLeft ?? 0)} de ${purchase.credits} clases`;
     }
 
     return `Le quedan ${purchase.creditsLeft ?? 0} de ${purchase.credits} clases`;
@@ -540,7 +540,8 @@ function StudentPlans({
                                 </Badge>
                             </div>
                             <p className="text-sm">
-                                {creditsLeftLabel(purchase)} · vale hasta el{' '}
+                                {creditsLeftLabel(purchase)} ·{' '}
+                                {purchase.isValid ? 'vale hasta' : 'venció'} el{' '}
                                 {purchase.lastDay}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -558,6 +559,10 @@ function StudentPlans({
     );
 }
 
+/**
+ * The student's profile: her data and her plans with their payments. Her
+ * bookings will arrive as a tab of their own.
+ */
 function StudentProfile({
     slug,
     student,
