@@ -57,6 +57,27 @@ it('does not mark before the class starts or after the attendance closes', funct
     expect($booking->fresh()->status)->toBe(BookingStatus::Confirmed);
 })->with(['2026-11-03 18:59', '2026-11-05 00:00']);
 
+it('lets a closed attendance be corrected only when asked to, back to attended', function () {
+    $booking = bookingForAttendance();
+    $this->travelTo(CarbonImmutable::parse('2026-11-05 00:15', 'America/Santiago'));
+    $this->artisan('attendance:close');
+
+    expect(fn () => app(MarkNoShow::class)->handle($booking->fresh(), true))
+        ->toThrow(BookingRejected::class, 'La asistencia de esta clase no se puede marcar ahora.');
+
+    $this->travelTo(CarbonImmutable::parse('2026-12-20 10:00', 'America/Santiago'));
+
+    expect(app(MarkNoShow::class)->handle($booking->fresh(), true, afterClosing: true)->status)->toBe(BookingStatus::NoShow)
+        ->and(app(MarkNoShow::class)->handle($booking->fresh(), false, afterClosing: true)->status)->toBe(BookingStatus::Attended);
+});
+
+it('does not let the owner mark a class before it starts', function () {
+    $booking = bookingForAttendance();
+
+    expect(fn () => app(MarkNoShow::class)->handle($booking, true, afterClosing: true))
+        ->toThrow(BookingRejected::class, 'La asistencia de esta clase no se puede marcar ahora.');
+});
+
 it('does not mark a cancelled booking nor a cancelled class', function () {
     $booking = bookingForAttendance();
     $cancelled = Booking::factory()->for($booking->classSession)->cancelled()->create();

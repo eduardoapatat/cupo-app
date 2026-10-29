@@ -30,7 +30,7 @@ function AttendanceRow({
     // Shown at once and saved behind; it goes back if the save fails.
     const [noShow, setNoShow] = useState(attendee.noShow);
     const [saving, setSaving] = useState(false);
-    const checkboxId = `no-show-${attendee.id}`;
+    const checkboxId = `attended-${attendee.id}`;
 
     function mark(next: boolean) {
         setNoShow(next);
@@ -70,12 +70,12 @@ function AttendanceRow({
                 <span className="flex shrink-0 items-center gap-2">
                     <Checkbox
                         id={checkboxId}
-                        checked={noShow}
+                        checked={!noShow}
                         disabled={saving}
-                        onCheckedChange={(checked) => mark(checked === true)}
+                        onCheckedChange={(checked) => mark(checked !== true)}
                     />
                     <Label htmlFor={checkboxId} className="font-normal">
-                        Faltó
+                        Asistió
                         <span className="sr-only"> {attendee.name}</span>
                     </Label>
                 </span>
@@ -87,8 +87,8 @@ function AttendanceRow({
 }
 
 /**
- * Who came to a class that already started. While its attendance is open,
- * each person has «Faltó» to mark; nobody marked counts as attended.
+ * Who came to a class that already started. Everyone starts ticked as
+ * «Asistió»; unticking someone marks that she missed it.
  */
 export default function AttendanceList({
     slug,

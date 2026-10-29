@@ -85,8 +85,7 @@ const BLOCK_TEXT: Record<BlockKey, { title: string; description: string }> = {
     },
     'teaching-today': {
         title: 'Tus clases de hoy',
-        description:
-            'Quiénes vienen y, desde que empieza, a quién marcar si faltó.',
+        description: 'Quiénes vienen y, desde que empieza, su asistencia.',
     },
     'next-booking': {
         title: 'Tu próxima clase',

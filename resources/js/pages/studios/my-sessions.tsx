@@ -40,7 +40,7 @@ export default function MySessions({ days }: Props) {
                 <Heading
                     className="mb-0"
                     title="Mis clases"
-                    description="Las clases que das y quiénes vienen. Desde que empieza una clase, marca a quien faltó."
+                    description="Las clases que das y quiénes vienen. Desde que empieza una clase, desmarca a quien no vino."
                 />
 
                 {days.length === 0 ? (

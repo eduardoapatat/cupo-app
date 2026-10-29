@@ -76,10 +76,22 @@ it('hides the classes of other studios and the bookings of other classes', funct
         ->assertNotFound();
 });
 
-it('explains when the attendance is closed', function () {
-    $this->travelTo(CarbonImmutable::parse('2026-11-04 00:00', 'America/Santiago'));
+it('explains when the attendance is closed, except to the owner, who corrects it', function (StudioRole $role, bool $corrects) {
+    $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'America/Santiago'));
+    $person = $role === StudioRole::Instructor ? $this->fernanda : User::factory()->memberOf($this->studio, $role)->create();
 
-    $this->actingAs($this->fernanda)
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['no_show' => true])
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'La asistencia de esta clase no se puede marcar ahora.']);
-});
+    $response = $this->actingAs($person)
+        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['no_show' => true]);
+
+    if ($corrects) {
+        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales faltó.']);
+    } else {
+        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'La asistencia de esta clase no se puede marcar ahora.']);
+    }
+
+    expect($this->booking->fresh()->status)->toBe($corrects ? BookingStatus::NoShow : BookingStatus::Confirmed);
+})->with([
+    'the instructor' => [StudioRole::Instructor, false],
+    'the front desk' => [StudioRole::FrontDesk, false],
+    'the owner' => [StudioRole::Owner, true],
+]);

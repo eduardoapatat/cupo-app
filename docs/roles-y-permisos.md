@@ -85,7 +85,7 @@ El número es la posición del ítem en el menú de ese rol. La dueña ve sus pr
 |              | Anular un pago ya cerrado o devolver plata                                                                  | `payments.void_closed`  |  ✅   |    ❌     |        ❌         |        ❌         |
 |              | Abrir y cerrar la caja del día                                                                              | `cash.operate`          |  ✅   |    ✅     |        ❌         |        ❌         |
 | Clases       | Reservar o cancelar por una alumna, anotarla en la lista de espera o anotar al equipo, dentro de las reglas | `bookings.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
-|              | Saltarse la regla de cancelación y devolver la clase                                                        | `bookings.override`     |  ✅   |    ❌     |        ❌         |        ❌         |
+|              | Saltarse las reglas: devolver una clase cancelada tarde y corregir una asistencia ya cerrada                | `bookings.override`     |  ✅   |    ❌     |        ❌         |        ❌         |
 |              | Poner un reemplazo si un instructor se enferma                                                              | `sessions.substitute`   |  ✅   |    ✅     |        ❌         |        ❌         |
 |              | Cancelar una sesión (avisa y devuelve clases)                                                               | `sessions.cancel`       |  ✅   |    ✅     |        ❌         |        ❌         |
 |              | Ver clases y asistentes (solo nombres)                                                                      | `sessions.view`         |  ✅   |    ✅     | ✅ solo las suyas |        ❌         |

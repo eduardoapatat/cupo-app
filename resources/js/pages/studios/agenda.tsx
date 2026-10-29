@@ -88,6 +88,7 @@ type SessionDetail = {
     attendees: Attendee[];
     attendanceIsOpen: boolean;
     attendanceClosesLabel: string;
+    canCorrectClosedAttendance: boolean;
     /** Whether a student can still join the waitlist, once the class is full. */
     waitlistIsOpen: boolean;
     waitlist: WaitingPerson[];
@@ -787,8 +788,10 @@ function SessionPanel({
                 {!session.isCancelled && session.hasStarted && (
                     <p className="rounded-lg bg-muted p-3 text-sm">
                         {session.attendanceIsOpen
-                            ? `La clase ya empezó. Marca a quien faltó, hasta ${session.attendanceClosesLabel}; el resto queda como presente.`
-                            : 'Esta clase ya terminó y su asistencia ya cerró.'}
+                            ? `La clase ya empezó. Desmarca a quien no vino; se puede cambiar hasta ${session.attendanceClosesLabel}.`
+                            : session.canCorrectClosedAttendance
+                              ? 'La asistencia de esta clase ya cerró, pero como dueña puedes corregirla.'
+                              : 'Esta clase ya terminó y su asistencia ya cerró.'}
                     </p>
                 )}
 
@@ -840,8 +843,9 @@ function SessionPanel({
                             sessionId={session.id}
                             attendees={session.attendees}
                             canMark={
-                                session.attendanceIsOpen &&
-                                session.can.markAttendance
+                                session.can.markAttendance &&
+                                (session.attendanceIsOpen ||
+                                    session.canCorrectClosedAttendance)
                             }
                         />
                     ) : (
