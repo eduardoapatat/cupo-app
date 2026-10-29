@@ -5,19 +5,7 @@ use App\Models\ClassSession;
 use App\Models\ClassType;
 use App\Models\ScheduleSlot;
 use App\Models\Studio;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-
-/**
- * Expect the write to fail with the given SQLSTATE. It runs in a savepoint,
- * so the test's transaction survives the error and the next write can run.
- */
-function expectSqlState(Closure $write, string $state): void
-{
-    expect(fn () => DB::transaction($write))->toThrow(function (QueryException $exception) use ($state) {
-        expect($exception->getCode())->toBe($state);
-    });
-}
 
 it('never books more people than the capacity', function () {
     $session = ClassSession::factory()->create(['capacity' => 10]);

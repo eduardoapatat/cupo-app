@@ -1,7 +1,9 @@
 <?php
 
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /*
@@ -51,7 +53,14 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Expect the write to fail with the given SQLSTATE, such as 23505 for a
+ * unique index or 23514 for a CHECK. It runs in a savepoint, so the test's
+ * transaction survives the error and the next write can run.
+ */
+function expectSqlState(Closure $write, string $state): void
 {
-    // ..
+    expect(fn () => DB::transaction($write))->toThrow(function (QueryException $exception) use ($state) {
+        expect($exception->getCode())->toBe($state);
+    });
 }

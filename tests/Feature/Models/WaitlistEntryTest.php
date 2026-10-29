@@ -11,7 +11,7 @@ it('keeps one waiting entry per person and session', function () {
     $javiera = User::factory()->create();
     WaitlistEntry::factory()->for($session)->for($javiera)->create();
 
-    expectBookingWriteToFail(fn () => WaitlistEntry::factory()->for($session)->for($javiera)->create(), '23505');
+    expectSqlState(fn () => WaitlistEntry::factory()->for($session)->for($javiera)->create(), '23505');
 });
 
 it('lets a person wait again after leaving', function () {
@@ -26,8 +26,8 @@ it('lets a person wait again after leaving', function () {
 it('is resolved exactly when it no longer waits', function () {
     $entry = WaitlistEntry::factory()->create();
 
-    expectBookingWriteToFail(fn () => DB::table('waitlist_entries')->where('id', $entry->id)->update(['status' => WaitlistStatus::Left->value]), '23514');
-    expectBookingWriteToFail(fn () => DB::table('waitlist_entries')->where('id', $entry->id)->update(['resolved_at' => now()]), '23514');
+    expectSqlState(fn () => DB::table('waitlist_entries')->where('id', $entry->id)->update(['status' => WaitlistStatus::Left->value]), '23514');
+    expectSqlState(fn () => DB::table('waitlist_entries')->where('id', $entry->id)->update(['resolved_at' => now()]), '23514');
 });
 
 it('counts its place among those still waiting', function () {
