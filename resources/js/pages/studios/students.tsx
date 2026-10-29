@@ -46,6 +46,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { formatClp } from '@/lib/money';
+import { formatPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio } from '@/types';
@@ -114,13 +115,6 @@ const STATUS_FILTERS: {
     },
     { value: 'sin-app', label: 'Sin app', count: 'no_app' },
 ];
-
-/** +56912345678 → +56 9 1234 5678, as people read it. */
-function formatPhone(phone: string | null): string {
-    const match = phone?.match(/^\+56(9)(\d{4})(\d{4})$/);
-
-    return match ? `+56 ${match[1]} ${match[2]} ${match[3]}` : (phone ?? '');
-}
 
 /** The list or a profile, keeping the search and the filter in the URL. */
 function studentsUrl(

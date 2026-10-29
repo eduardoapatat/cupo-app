@@ -26,6 +26,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { formatClp } from '@/lib/money';
+import { formatPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
@@ -162,7 +163,7 @@ function StudentPicker({
                             </span>
                             {student.phone && (
                                 <span className="truncate text-sm text-muted-foreground">
-                                    {student.phone}
+                                    {formatPhone(student.phone)}
                                 </span>
                             )}
                         </span>

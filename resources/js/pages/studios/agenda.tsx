@@ -66,6 +66,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { fieldErrorProps, focusFirstError, wentThrough } from '@/lib/form';
+import { formatPhone } from '@/lib/phone';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, Option } from '@/types';
 
@@ -288,7 +289,7 @@ function BookStudentDialog({
                                             </span>
                                             {student.phone && (
                                                 <span className="truncate text-sm text-muted-foreground">
-                                                    {student.phone}
+                                                    {formatPhone(student.phone)}
                                                 </span>
                                             )}
                                         </span>
