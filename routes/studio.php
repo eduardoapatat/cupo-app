@@ -18,6 +18,7 @@ use App\Http\Controllers\Studio\MySessionsController;
 use App\Http\Controllers\Studio\PlanArchiveController;
 use App\Http\Controllers\Studio\PlanController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
+use App\Http\Controllers\Studio\SellPlanController;
 use App\Http\Controllers\Studio\SessionCancellationController;
 use App\Http\Controllers\Studio\SessionInstructorController;
 use App\Http\Controllers\Studio\SettingsController;
@@ -93,6 +94,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('clases/horario', [ScheduleSlotController::class, 'store'])->name('classes.slots.store');
                 Route::put('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'update'])->name('classes.slots.update');
                 Route::delete('clases/horario/{scheduleSlot}', [ScheduleSlotController::class, 'destroy'])->name('classes.slots.destroy');
+
+                Route::get('vender', [SellPlanController::class, 'create'])->name('sell.create');
+                Route::get('vender/alumnas', [SellPlanController::class, 'students'])->name('sell.students');
+                Route::post('vender', [SellPlanController::class, 'store'])->name('sell.store');
 
                 Route::get('planes', [PlanController::class, 'index'])->name('plans.index');
                 Route::post('planes', [PlanController::class, 'store'])->name('plans.store');

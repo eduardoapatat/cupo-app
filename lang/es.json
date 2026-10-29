@@ -119,5 +119,9 @@
     "We added the plan :plan.": "Agregamos el plan :plan.",
     "We saved the plan :plan. Plans already sold stay as they were.": "Guardamos el plan :plan. Los que ya se vendieron quedan como estaban.",
     "We archived :plan. It is no longer sold, and whoever has it keeps using it.": "Archivamos :plan. Ya no se vende, y quien lo tiene lo sigue usando.",
-    ":plan is on sale again.": ":plan se vuelve a vender."
+    ":plan is on sale again.": ":plan se vuelve a vender.",
+    "Choose the student.": "Elige a la alumna.",
+    "Choose the plan.": "Elige el plan.",
+    "Write why the price changes.": "Escribe por qué cambia el precio.",
+    "We sold :plan to :name. It lasts until :day.": "Vendimos :plan a :name. Vale hasta el :day."
 }

@@ -148,6 +148,14 @@ class Studio extends Model
     }
 
     /**
+     * @return HasMany<PlanPurchase, $this>
+     */
+    public function planPurchases(): HasMany
+    {
+        return $this->hasMany(PlanPurchase::class);
+    }
+
+    /**
      * @return HasMany<ClassType, $this>
      */
     public function classTypes(): HasMany

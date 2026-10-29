@@ -9,6 +9,8 @@ use App\Enums\StudioRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\StudentRequest;
 use App\Models\Membership;
+use App\Models\Payment;
+use App\Models\PlanPurchase;
 use App\Models\Studio;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -35,12 +37,13 @@ class StudentController extends Controller
         return Inertia::render('studios/students', [
             ...$this->listProps($request, $studio),
             'student' => null,
+            'canSellPlan' => $request->user()?->can('plans.sell', $studio) ?? false,
         ]);
     }
 
     /**
      * A student's profile, next to the list so the front desk can move
-     * from one to another. Her bookings and plan join it later.
+     * from one to another, with her plans and what she paid.
      */
     #[Authorize('students.manage', 'studio')]
     public function show(Request $request, Studio $studio, Membership $membership): Response
@@ -49,7 +52,12 @@ class StudentController extends Controller
 
         return Inertia::render('studios/students', [
             ...$this->listProps($request, $studio),
-            'student' => $this->present($membership),
+            'student' => [
+                ...$this->present($membership),
+                'userId' => $membership->user_id,
+                'purchases' => $this->purchases($studio, $membership),
+            ],
+            'canSellPlan' => $request->user()?->can('plans.sell', $studio) ?? false,
         ]);
     }
 
@@ -162,5 +170,36 @@ class StudentController extends Controller
             'status' => StudentStatus::for($membership->user)->value,
             'enrolledOn' => $membership->created_at?->timezone(config()->string('studio.timezone'))->translatedFormat('j \d\e F \d\e Y'),
         ];
+    }
+
+    /**
+     * Her plans in this studio, the valid ones first, each with its payment.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function purchases(Studio $studio, Membership $membership): array
+    {
+        return $membership->user->planPurchases()
+            ->where('studio_id', $studio->id)
+            ->with('payments')
+            ->orderByRaw('expires_at <= now()')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (PlanPurchase $purchase): array => [
+                'id' => $purchase->id,
+                'name' => $purchase->name,
+                'credits' => $purchase->credits,
+                'creditsLeft' => $purchase->credits_left,
+                'isValid' => $purchase->expires_at->isFuture(),
+                'boughtOn' => $purchase->created_at?->timezone(config()->string('studio.timezone'))->translatedFormat('j \d\e F'),
+                'lastDay' => $purchase->lastDay()->translatedFormat('j \d\e F'),
+                'payments' => $purchase->payments->map(fn (Payment $payment): array => [
+                    'id' => $payment->id,
+                    'amount' => $payment->amount,
+                    'method' => $payment->method->label(),
+                ])->all(),
+            ])
+            ->all();
     }
 }

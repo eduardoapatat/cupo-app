@@ -50,6 +50,9 @@ type Plan = {
     /** Null when it allows any number of classes a day. */
     dailyLimit: number | null;
     isArchived: boolean;
+    /** Students who have it valid now. */
+    validCount: number;
+    soldThisMonth: number;
 };
 
 type Props = {
@@ -106,7 +109,9 @@ function draftOf(plan: Plan | null): Draft {
 }
 
 /** The plan as the draft describes it, for the preview. */
-function planOf(draft: Draft): Omit<Plan, 'id' | 'isArchived'> {
+function planOf(
+    draft: Draft,
+): Omit<Plan, 'id' | 'isArchived' | 'validCount' | 'soldThisMonth'> {
     const number = (value: string) => {
         const parsed = Number.parseInt(value, 10);
 
@@ -444,6 +449,8 @@ function PlanRow({
                     </span>
                     <span className="truncate text-sm text-muted-foreground">
                         {classesLabel(plan)} · {daysLabel(plan.validityDays)}
+                        {plan.validCount > 0 &&
+                            ` · ${plan.validCount === 1 ? '1 vigente' : `${plan.validCount} vigentes`}`}
                     </span>
                 </span>
                 <span className="font-medium tabular-nums">
@@ -484,6 +491,24 @@ function PlanDetail({
                 <p className="text-3xl font-semibold tabular-nums">
                     {formatClp(plan.price)}
                 </p>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-1 rounded-lg border p-3">
+                        <span className="text-xs text-muted-foreground">
+                            Vigentes hoy
+                        </span>
+                        <span className="text-xl font-semibold tabular-nums">
+                            {plan.validCount}
+                        </span>
+                    </div>
+                    <div className="grid gap-1 rounded-lg border p-3">
+                        <span className="text-xs text-muted-foreground">
+                            Vendidos este mes
+                        </span>
+                        <span className="text-xl font-semibold tabular-nums">
+                            {plan.soldThisMonth}
+                        </span>
+                    </div>
+                </div>
                 <dl className="grid gap-3 text-sm">
                     <div className="flex justify-between gap-4">
                         <dt className="text-muted-foreground">Clases</dt>

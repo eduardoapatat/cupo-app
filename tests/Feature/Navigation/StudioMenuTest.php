@@ -11,8 +11,8 @@ use Inertia\Testing\AssertableInertia as Assert;
  * items already built (with a link); the rest show as «Pronto».
  */
 dataset('menus', [
-    'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Agenda', 'Alumnas', 'Clases', 'Planes', 'Equipo', 'Estudio']],
-    'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja'], ['Inicio', 'Agenda', 'Alumnas']],
+    'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Clases', 'Planes', 'Equipo', 'Estudio']],
+    'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja'], ['Inicio', 'Agenda', 'Alumnas', 'Vender plan']],
     'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases'], ['Inicio', 'Mis clases']],
     'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan'], ['Inicio', 'Reservar', 'Mis reservas']],
 ]);

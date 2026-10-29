@@ -2,8 +2,10 @@
 
 use App\Enums\StudioRole;
 use App\Models\Plan;
+use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -48,8 +50,24 @@ it('lists the plans on sale first, by price, and the archived ones last', functi
                 'validityDays' => 30,
                 'dailyLimit' => 1,
                 'isArchived' => false,
+                'validCount' => 0,
+                'soldThisMonth' => 0,
             ])
             ->where('defaultDailyLimit', 1));
+});
+
+it('counts who has each plan valid and how many were sold this month', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-29 16:00', 'America/Santiago'));
+    $plan = Plan::factory()->for($this->studio)->create();
+    PlanPurchase::factory()->for($this->studio)->for($plan)->count(2)->create();
+    PlanPurchase::factory()->for($this->studio)->for($plan)->expired()->create(['created_at' => now()->subMonth()]);
+    PlanPurchase::factory()->for($this->studio)->for($plan)->expired()->create();
+
+    $this->actingAs($this->carla)
+        ->get(route('studios.plans.show', [$this->studio, $plan]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('plan.validCount', 2)
+            ->where('plan.soldThisMonth', 3));
 });
 
 it('adds a pack plan and an unlimited one', function () {

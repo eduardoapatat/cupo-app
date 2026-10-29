@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\PlanRequest;
 use App\Models\Plan;
 use App\Models\Studio;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
@@ -30,9 +31,11 @@ class PlanController extends Controller
     #[Authorize('plans.manage', 'studio')]
     public function show(Studio $studio, Plan $plan): Response
     {
+        $plans = $this->plans($studio);
+
         return Inertia::render('studios/plans', [
-            'plans' => $this->plans($studio),
-            'plan' => $this->present($plan),
+            'plans' => $plans,
+            'plan' => collect($plans)->firstWhere('id', $plan->id),
             'defaultDailyLimit' => config()->integer('studio.defaults.unlimited_plan_daily_limit'),
         ]);
     }
@@ -64,7 +67,13 @@ class PlanController extends Controller
      */
     private function plans(Studio $studio): array
     {
+        $monthStart = now(config()->string('studio.timezone'))->startOfMonth()->utc();
+
         return $studio->plans()
+            ->withCount([
+                'purchases as valid_count' => fn (Builder $purchases) => $purchases->where('expires_at', '>', now()),
+                'purchases as sold_this_month_count' => fn (Builder $purchases) => $purchases->where('created_at', '>=', $monthStart),
+            ])
             ->orderByRaw('archived_at IS NOT NULL')
             ->orderBy('price')
             ->orderByRaw('lower(name)')
@@ -86,6 +95,8 @@ class PlanController extends Controller
             'validityDays' => $plan->validity_days,
             'dailyLimit' => $plan->daily_limit,
             'isArchived' => $plan->isArchived(),
+            'validCount' => (int) $plan->getAttribute('valid_count'),
+            'soldThisMonth' => (int) $plan->getAttribute('sold_this_month_count'),
         ];
     }
 }

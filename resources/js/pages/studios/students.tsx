@@ -17,6 +17,7 @@ import {
     update as updateStudent,
 } from '@/actions/App/Http/Controllers/Studio/StudentController';
 import { update as renewEnrollmentLink } from '@/actions/App/Http/Controllers/Studio/EnrollmentLinkController';
+import { create as sellCreate } from '@/actions/App/Http/Controllers/Studio/SellPlanController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import EnrollmentLinkField from '@/components/enrollment-link-field';
 import InitialsAvatar from '@/components/initials-avatar';
@@ -44,6 +45,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
+import { formatClp } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio } from '@/types';
@@ -59,6 +61,23 @@ type Student = {
     enrolledOn: string | null;
 };
 
+type StudentPurchase = {
+    id: number;
+    name: string;
+    credits: number | null;
+    creditsLeft: number | null;
+    isValid: boolean;
+    boughtOn: string | null;
+    lastDay: string;
+    payments: { id: number; amount: number; method: string }[];
+};
+
+/** The open profile brings who she is in the app and her plans. */
+type StudentDetail = Student & {
+    userId: number;
+    purchases: StudentPurchase[];
+};
+
 type Filters = { search: string; status: string | null };
 
 type Props = {
@@ -68,7 +87,8 @@ type Props = {
     enrollmentUrl: string;
     canRenewEnrollmentLink: boolean;
     /** The student whose profile is open, if any. */
-    student: Student | null;
+    student: StudentDetail | null;
+    canSellPlan: boolean;
 };
 
 const STATUS_LABELS: Record<StudentStatus, string> = {
@@ -462,14 +482,98 @@ function AppStatus({ slug, student }: { slug: string; student: Student }) {
  * The student's profile. Her bookings (2.2) and her plan and payments
  * (phase 3) arrive as tabs of their own.
  */
+function creditsLeftLabel(purchase: StudentPurchase): string {
+    if (purchase.credits === null) {
+        return 'Clases ilimitadas';
+    }
+
+    return `Le quedan ${purchase.creditsLeft ?? 0} de ${purchase.credits} clases`;
+}
+
+/** Her plans, the valid ones first, and what she paid for each. */
+function StudentPlans({
+    slug,
+    student,
+    canSellPlan,
+}: {
+    slug: string;
+    student: StudentDetail;
+    canSellPlan: boolean;
+}) {
+    return (
+        <div className="grid gap-4">
+            {canSellPlan && (
+                <Button
+                    asChild
+                    variant="outline"
+                    className="justify-self-start"
+                >
+                    <Link
+                        href={sellCreate.url(slug, {
+                            query: { alumna: student.userId },
+                        })}
+                    >
+                        Vender plan
+                    </Link>
+                </Button>
+            )}
+            {student.purchases.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                    Todavía no ha comprado un plan.
+                </p>
+            ) : (
+                <ul className="divide-y rounded-xl border">
+                    {student.purchases.map((purchase) => (
+                        <li
+                            key={purchase.id}
+                            className={cn(
+                                'grid gap-1 p-4',
+                                !purchase.isValid && 'text-muted-foreground',
+                            )}
+                        >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-medium">
+                                    {purchase.name}
+                                </span>
+                                <Badge
+                                    variant={
+                                        purchase.isValid
+                                            ? 'secondary'
+                                            : 'outline'
+                                    }
+                                >
+                                    {purchase.isValid ? 'Vigente' : 'Vencido'}
+                                </Badge>
+                            </div>
+                            <p className="text-sm">
+                                {creditsLeftLabel(purchase)} · vale hasta el{' '}
+                                {purchase.lastDay}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Comprado el {purchase.boughtOn}
+                                {purchase.payments.map(
+                                    (payment) =>
+                                        ` · ${formatClp(payment.amount)} en ${payment.method.toLowerCase()}`,
+                                )}
+                            </p>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
 function StudentProfile({
     slug,
     student,
     backHref,
+    canSellPlan,
 }: {
     slug: string;
-    student: Student;
+    student: StudentDetail;
     backHref: string;
+    canSellPlan: boolean;
 }) {
     return (
         <article className="grid max-w-3xl min-w-0 gap-6 p-4 md:p-6">
@@ -526,9 +630,7 @@ function StudentProfile({
                         <TabsTrigger value="bookings" disabled>
                             Reservas <Badge variant="outline">Pronto</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="plan" disabled>
-                            Plan y pagos <Badge variant="outline">Pronto</Badge>
-                        </TabsTrigger>
+                        <TabsTrigger value="plan">Plan y pagos</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -548,6 +650,13 @@ function StudentProfile({
                             <AppStatus slug={slug} student={student} />
                         </ProfileRow>
                     </dl>
+                </TabsContent>
+                <TabsContent value="plan">
+                    <StudentPlans
+                        slug={slug}
+                        student={student}
+                        canSellPlan={canSellPlan}
+                    />
                 </TabsContent>
             </Tabs>
         </article>
@@ -576,6 +685,7 @@ export default function Students({
     enrollmentUrl,
     canRenewEnrollmentLink,
     student,
+    canSellPlan,
 }: Props) {
     const { studio } = usePage().props;
     const [search, setSearch] = useState(filters.search);
@@ -763,6 +873,7 @@ export default function Students({
                         <StudentProfile
                             slug={slug}
                             student={student}
+                            canSellPlan={canSellPlan}
                             backHref={studentsUrl(
                                 slug,
                                 null,

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A plan the studio sells, such as «8 clases al mes». Money is CLP as an
@@ -54,6 +55,14 @@ class Plan extends Model
     public function studio(): BelongsTo
     {
         return $this->belongsTo(Studio::class);
+    }
+
+    /**
+     * @return HasMany<PlanPurchase, $this>
+     */
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(PlanPurchase::class);
     }
 
     public function isUnlimited(): bool
