@@ -80,16 +80,24 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
     - la asistencia: quien da la clase marca a quien vino, hasta el fin del día siguiente (la dueña corrige siempre), y `attendance:close` deja cada noche como «Faltó» a quien no se marcó;
     - el Inicio de cada rol con datos reales y el horario de Estudio Flow en los datos demo.
 
-## Fase 3: planes, créditos, pagos y caja
+## Fase 3: planes, créditos, pagos y caja _(en curso)_
 
-- [ ] Planes (precio, créditos, vigencia y máximo diario; el ilimitado parte en 1 clase al día), compra de plan y movimientos de créditos.
-- [ ] Reservar pasa a exigir un plan vigente con clases disponibles y descuenta 1 clase (en la Fase 2 se reserva sin descontar). Cancelar a tiempo la devuelve.
-- [ ] Pagos en el mesón (efectivo, tarjeta con POS externo y transferencia), registrados en la caja de quien cobra.
-- [ ] Transferencias con comprobante (subida de archivos) que valida recepción o la dueña.
-- [ ] Caja por persona y día: apertura, cierre con totales por medio y la diferencia del efectivo. Anulaciones con motivo; una caja cerrada solo la toca la dueña.
-- [ ] Máquina de estados del pago (pendiente → por validar → aprobado, rechazado o anulado) e historial.
-- [ ] Vencimiento de planes con el scheduler.
-- [ ] Al cierre de la fase, Webpay Plus en sandbox, con confirmación idempotente.
+Decisiones de la fase: primero las clases y después la plata; dos planes vigentes conviven y cada reserva usa el que vence antes; la clase tiene que caer dentro de la vigencia del plan; la lista de espera se salta a quien no tiene clases; recepción vende a precio de lista y solo la dueña cambia el precio, con motivo.
+
+- [x] **3.1 "Planes y clases disponibles"**:
+    - «Planes» (lista con panel), «Vender plan» (una página con resumen) y la pestaña «Plan y pagos» en la ficha de la alumna;
+    - reservar descuenta 1 clase del plan que vence antes, con la fila del plan bloqueada y un `UPDATE` condicional (ADR 0008) y un test de varios procesos; cancelar a tiempo, devolverla o cancelar la clase la devuelven, y queda cada movimiento;
+    - «Mi plan», el estado «sin plan» en «Reservar» y en la Agenda, y los bloques de la alumna en el Inicio;
+    - los planes y las compras de Estudio Flow en la demo.
+- [ ] **3.2 "Caja y pagos"**:
+    - caja por persona y día: apertura, cierre con totales por medio y la diferencia del efectivo; vender cobra en la caja abierta;
+    - transferencias con comprobante (subida de archivos) que valida recepción o la dueña;
+    - máquina de estados del pago (pendiente → por validar → aprobado, rechazado o anulado), anulaciones con motivo y una caja cerrada que solo toca la dueña;
+    - «Pagos», «Caja» y los bloques del Inicio de recepción y de la dueña.
+- [ ] **3.3 "Vencimientos, reportes y Webpay"**:
+    - el vencimiento de planes con el scheduler;
+    - «Reportes» e ingresos del mes;
+    - la compra en línea con Webpay Plus en sandbox, con confirmación idempotente, y el cierre de la fase.
 
 ## Fase 4: automatizaciones
 
