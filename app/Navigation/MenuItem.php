@@ -83,6 +83,7 @@ enum MenuItem: string
             self::Agenda => 'studios.agenda.index',
             self::Students => 'studios.students.index',
             self::SellPlan => 'studios.sell.create',
+            self::CashRegister => 'studios.cash-register.index',
             self::Classes => 'studios.classes.index',
             self::Plans => 'studios.plans.index',
             self::Team => 'studios.team.index',

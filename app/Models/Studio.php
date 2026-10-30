@@ -156,6 +156,14 @@ class Studio extends Model
     }
 
     /**
+     * @return HasMany<CashRegister, $this>
+     */
+    public function cashRegisters(): HasMany
+    {
+        return $this->hasMany(CashRegister::class);
+    }
+
+    /**
      * @return HasMany<ClassType, $this>
      */
     public function classTypes(): HasMany

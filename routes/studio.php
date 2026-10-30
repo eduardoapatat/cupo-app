@@ -9,6 +9,7 @@ use App\Http\Controllers\Studio\AgendaController;
 use App\Http\Controllers\Studio\AgendaWaitlistController;
 use App\Http\Controllers\Studio\AttendanceController;
 use App\Http\Controllers\Studio\BookingController;
+use App\Http\Controllers\Studio\CashRegisterController;
 use App\Http\Controllers\Studio\ClassesController;
 use App\Http\Controllers\Studio\ClassTypeController;
 use App\Http\Controllers\Studio\EnrollmentLinkController;
@@ -99,6 +100,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('vender', [SellPlanController::class, 'create'])->name('sell.create');
                 Route::get('vender/alumnas', [SellPlanController::class, 'students'])->name('sell.students');
                 Route::post('vender', [SellPlanController::class, 'store'])->name('sell.store');
+
+                Route::get('caja', [CashRegisterController::class, 'index'])->name('cash-register.index');
+                Route::post('caja', [CashRegisterController::class, 'store'])->name('cash-register.store');
+                Route::post('caja/{cashRegister}/cierre', [CashRegisterController::class, 'close'])->name('cash-register.close');
 
                 Route::get('planes', [PlanController::class, 'index'])->name('plans.index');
                 Route::post('planes', [PlanController::class, 'store'])->name('plans.store');

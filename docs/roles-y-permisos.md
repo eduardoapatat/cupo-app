@@ -84,6 +84,7 @@ El número es la posición del ítem en el menú de ese rol. La dueña ve sus pr
 |              | Anular un pago de la caja abierta de hoy (con motivo)                                                       | `payments.void_open`    |  ✅   |    ✅     |        ❌         |        ❌         |
 |              | Anular un pago ya cerrado o devolver plata                                                                  | `payments.void_closed`  |  ✅   |    ❌     |        ❌         |        ❌         |
 |              | Abrir y cerrar la caja del día                                                                              | `cash.operate`          |  ✅   |    ✅     |        ❌         |        ❌         |
+|              | Ver las cajas de todo el equipo                                                                             | `cash.review`           |  ✅   |    ❌     |        ❌         |        ❌         |
 | Clases       | Reservar o cancelar por una alumna, anotarla en la lista de espera o anotar al equipo, dentro de las reglas | `bookings.manage`       |  ✅   |    ✅     |        ❌         |        ❌         |
 |              | Saltarse las reglas: devolver una clase cancelada tarde y corregir una asistencia ya cerrada                | `bookings.override`     |  ✅   |    ❌     |        ❌         |        ❌         |
 |              | Poner un reemplazo si un instructor se enferma                                                              | `sessions.substitute`   |  ✅   |    ✅     |        ❌         |        ❌         |

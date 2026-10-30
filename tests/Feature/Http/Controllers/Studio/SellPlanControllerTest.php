@@ -3,6 +3,7 @@
 use App\Actions\Plans\SellPlan;
 use App\Enums\PaymentMethod;
 use App\Enums\StudioRole;
+use App\Models\CashRegister;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
@@ -16,6 +17,7 @@ beforeEach(function () {
     $this->camila = User::factory()->memberOf($this->studio, StudioRole::FrontDesk)->create();
     $this->javiera = User::factory()->memberOf($this->studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
     $this->plan = Plan::factory()->for($this->studio)->create(['name' => '8 clases al mes', 'price' => 45000]);
+    $this->register = CashRegister::factory()->for($this->studio)->for($this->camila)->create();
 });
 
 /**
@@ -41,6 +43,7 @@ it('shows the plans on sale, with the last day if sold today, and the student as
             ->where('student.name', 'Javiera Morales')
             ->where('student.plans', [['name' => '4 clases', 'creditsLeft' => 2, 'lastDay' => '27 de noviembre']])
             ->where('canChangePrice', false)
+            ->where('register', ['state' => 'open', 'day' => null])
             ->has('methods', 3));
 });
 
@@ -62,8 +65,29 @@ it('sells at the list price and opens her profile', function () {
     $response->assertRedirect(route('studios.students.show', [$this->studio, $this->javiera->memberships()->sole(), 'pestana' => 'plan']))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Vendimos 8 clases al mes a Javiera Morales. Vale hasta el viernes 27 de noviembre.']);
     expect($purchase->price)->toBe(45000)
-        ->and($purchase->payments()->sole()->method)->toBe(PaymentMethod::Transfer);
+        ->and($purchase->payments()->sole())
+        ->method->toBe(PaymentMethod::Transfer)
+        ->cash_register_id->toBe($this->register->id);
 });
+
+it('sells only into her open register of today', function (Closure $register, string $state, ?string $day) {
+    $this->register->delete();
+    $register($this->studio, $this->camila);
+
+    $this->actingAs($this->camila)
+        ->get(route('studios.sell.create', $this->studio))
+        ->assertInertia(fn (Assert $page) => $page->where('register', ['state' => $state, 'day' => $day]));
+    $this->actingAs($this->camila)
+        ->post(route('studios.sell.store', $this->studio), saleForm($this->javiera->id, $this->plan->id))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Abre tu caja para vender.']);
+
+    expect(PlanPurchase::count())->toBe(0);
+})->with([
+    'without one' => [fn () => null, 'none', null],
+    'closed today' => [fn (Studio $studio, User $person) => CashRegister::factory()->for($studio)->for($person)->closed()->create(), 'closed', null],
+    'left open yesterday' => [fn (Studio $studio, User $person) => CashRegister::factory()->for($studio)->for($person)->onDaysAgo(1)->create(), 'stale', 'miércoles 28 de octubre'],
+]);
 
 it('lets only the owner change the price, always with a reason', function () {
     $route = route('studios.sell.store', $this->studio);
@@ -76,6 +100,7 @@ it('lets only the owner change the price, always with a reason', function () {
         ->assertRedirect();
 
     $carla = User::factory()->memberOf($this->studio, StudioRole::Owner)->create();
+    CashRegister::factory()->for($this->studio)->for($carla)->create();
     $this->actingAs($carla)
         ->post($route, saleForm($this->javiera->id, $this->plan->id, ['price' => 0]))
         ->assertSessionHasErrors(['price_reason' => 'Escribe por qué cambia el precio.']);
@@ -107,7 +132,7 @@ it('keeps the sale for the front desk and the owner', function (StudioRole $role
 })->with([StudioRole::Instructor, StudioRole::Student]);
 
 it('shows her plans and payments in her profile', function () {
-    app(SellPlan::class)->handle($this->plan, $this->javiera, $this->camila, PaymentMethod::Card);
+    app(SellPlan::class)->handle($this->plan, $this->javiera, $this->register, PaymentMethod::Card);
     PlanPurchase::factory()->for($this->studio)->for($this->javiera)->expired()->create(['name' => 'Viejo']);
 
     $this->actingAs($this->camila)

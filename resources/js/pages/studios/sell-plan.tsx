@@ -1,14 +1,16 @@
-import { Form, Head, usePage } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { Search, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
     create as sellCreate,
     store as sellStore,
     students as sellStudents,
 } from '@/actions/App/Http/Controllers/Studio/SellPlanController';
+import { index as cashRegisterIndex } from '@/actions/App/Http/Controllers/Studio/CashRegisterController';
 import Heading from '@/components/heading';
 import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -60,6 +62,12 @@ type Props = {
     student: SaleStudent | null;
     methods: Option[];
     canChangePrice: boolean;
+    /** Her cash register: sales go into today's open one. */
+    register: {
+        state: 'open' | 'none' | 'closed' | 'stale';
+        /** The day of a register left open on another day. */
+        day: string | null;
+    };
 };
 
 const METHOD_HELP: Record<string, string> = {
@@ -260,11 +268,54 @@ function StudentPicker({
     );
 }
 
+/** Why she cannot sell yet, and where to fix it. */
+function RegisterNotice({
+    slug,
+    register,
+}: {
+    slug: string;
+    register: Props['register'];
+}) {
+    const notice = {
+        none: {
+            title: 'Abre tu caja para vender',
+            description: 'Lo que cobres hoy entra en tu caja.',
+            action: 'Abrir caja',
+        },
+        stale: {
+            title: `Tu caja del ${register.day} sigue abierta`,
+            description:
+                'Ciérrala contando el efectivo y abre la de hoy para vender.',
+            action: 'Ir a Caja',
+        },
+        closed: {
+            title: 'Ya cerraste tu caja de hoy',
+            description:
+                'Lo que se venda hoy entra en la caja de otra persona del equipo que la tenga abierta.',
+            action: 'Ver mi caja',
+        },
+    }[register.state === 'open' ? 'none' : register.state];
+
+    return (
+        <Alert>
+            <Wallet />
+            <AlertTitle>{notice.title}</AlertTitle>
+            <AlertDescription className="grid gap-3">
+                <p>{notice.description}</p>
+                <Button asChild variant="outline" size="sm" className="w-fit">
+                    <Link href={cashRegisterIndex(slug)}>{notice.action}</Link>
+                </Button>
+            </AlertDescription>
+        </Alert>
+    );
+}
+
 export default function SellPlan({
     plans,
     student: initialStudent,
     methods,
     canChangePrice,
+    register,
 }: Props) {
     const { studio } = usePage().props;
     const [student, setStudent] = useState(initialStudent);
@@ -297,6 +348,10 @@ export default function SellPlan({
                     title="Vender plan"
                     description="Elige a la alumna, el plan y cómo paga. Las clases quedan disponibles al tiro."
                 />
+
+                {register.state !== 'open' && (
+                    <RegisterNotice slug={studio.slug} register={register} />
+                )}
 
                 {plans.length === 0 ? (
                     <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
@@ -582,7 +637,10 @@ export default function SellPlan({
                                             type="submit"
                                             size="lg"
                                             disabled={
-                                                processing || !student || !plan
+                                                processing ||
+                                                !student ||
+                                                !plan ||
+                                                register.state !== 'open'
                                             }
                                         >
                                             {processing && <Spinner />}

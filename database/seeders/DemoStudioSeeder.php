@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Actions\Bookings\BookingRejected;
 use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\JoinWaitlist;
+use App\Actions\CashRegisters\OpenCashRegister;
 use App\Actions\Classes\GenerateSessions;
+use App\Actions\Plans\SellPlan;
 use App\Actions\Plans\TakeClassFromPlan;
 use App\Actions\Studios\CreateStudio;
 use App\Enums\BookingKind;
@@ -14,11 +16,13 @@ use App\Enums\Commune;
 use App\Enums\PaymentMethod;
 use App\Enums\StudioRole;
 use App\Models\Booking;
+use App\Models\CashRegister;
 use App\Models\ClassSession;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -137,12 +141,16 @@ class DemoStudioSeeder extends Seeder
     }
 
     /**
-     * The studio's plans, and the ones its students bought ten days ago:
-     * Antonia has the unlimited one, Rosa 4 classes, Ignacia a plan that
-     * already expired, and the rest 8 classes. Paid at the counter.
+     * The studio's plans, and the ones its students bought at the counter,
+     * each into the cash register of whoever sold it: ten days ago Camila
+     * sold Antonia the unlimited one, Rosa 4 classes and most of the rest
+     * 8; Ignacia's plan, sold 45 days ago, already expired. Yesterday Carla
+     * sold Florencia hers and closed her register $2.000 short. Today
+     * Camila's register is open, with two sales.
      */
     private function plansOf(Studio $flow): void
     {
+        $carla = User::where('email', 'carla@example.com')->sole();
         $camila = User::where('email', 'camila@example.com')->sole();
         $pack = $flow->plans()->create(['name' => '8 clases al mes', 'price' => 45000, 'credits' => 8, 'validity_days' => 30]);
         $small = $flow->plans()->create(['name' => '4 clases al mes', 'price' => 28000, 'credits' => 4, 'validity_days' => 30]);
@@ -156,24 +164,77 @@ class DemoStudioSeeder extends Seeder
         $trial = $flow->plans()->create(['name' => 'Clase de prueba', 'price' => 6000, 'credits' => 1, 'validity_days' => 7]);
         $trial->forceFill(['archived_at' => now()])->save();
 
-        $students = $flow->memberships()->where('role', StudioRole::Student)->with('user')->get()->map->user;
+        $students = $flow->memberships()->where('role', StudioRole::Student)->with('user')->get()->map->user->toBase()->keyBy('name');
 
-        foreach ($students as $student) {
+        // One register at a time: each person has only one open.
+        $longAgo = $this->registerInThePast($flow, $camila, daysAgo: 45);
+        $this->sellInThePast($small, $students['Ignacia Navarro'], $longAgo, PaymentMethod::Transfer);
+        $this->closeInThePast($longAgo);
+
+        $tenDaysAgo = $this->registerInThePast($flow, $camila, daysAgo: 10);
+
+        foreach ($students->except(['Ignacia Navarro', 'Florencia Rivas']) as $student) {
             match ($student->name) {
-                'Antonia Castro' => $this->sell($unlimited, $student, $camila, daysAgo: 10),
-                'Rosa Fuentes' => $this->sell($small, $student, $camila, daysAgo: 10, method: PaymentMethod::Cash),
-                'Ignacia Navarro' => $this->sell($small, $student, $camila, daysAgo: 45, method: PaymentMethod::Transfer),
-                default => $this->sell($pack, $student, $camila, daysAgo: 10, method: PaymentMethod::Card),
+                'Antonia Castro' => $this->sellInThePast($unlimited, $student, $tenDaysAgo, PaymentMethod::Cash),
+                'Rosa Fuentes' => $this->sellInThePast($small, $student, $tenDaysAgo, PaymentMethod::Cash),
+                default => $this->sellInThePast($pack, $student, $tenDaysAgo, PaymentMethod::Card),
             };
         }
+
+        $this->closeInThePast($tenDaysAgo);
+
+        $yesterday = $this->registerInThePast($flow, $carla, daysAgo: 1);
+        $this->sellInThePast($pack, $students['Florencia Rivas'], $yesterday, PaymentMethod::Cash);
+        $this->closeInThePast($yesterday, short: 2000, note: 'Faltó sencillo. Lo reviso mañana con Camila.');
+
+        $today = app(OpenCashRegister::class)->handle($flow, $camila, 20000);
+        app(SellPlan::class)->handle($pack, $students['Rosa Fuentes'], $today, PaymentMethod::Cash);
+        app(SellPlan::class)->handle($small, $students['Catalina Vega'], $today, PaymentMethod::Card);
     }
 
     /**
-     * A sale made some days ago, as SellPlan would have left it then.
+     * The register someone opened some days ago at 9:00, with $20.000.
      */
-    private function sell(Plan $plan, User $student, User $seller, int $daysAgo, PaymentMethod $method = PaymentMethod::Cash): void
+    private function registerInThePast(Studio $studio, User $person, int $daysAgo): CashRegister
     {
-        $soldOn = now(config()->string('studio.timezone'))->startOfDay()->subDays($daysAgo);
+        $openedAt = now(config()->string('studio.timezone'))->startOfDay()->subDays($daysAgo)->setTime(9, 0);
+
+        return CashRegister::create([
+            'studio_id' => $studio->id,
+            'user_id' => $person->id,
+            'business_date' => $openedAt->toDateString(),
+            'opening_cash' => 20000,
+            'opened_at' => $openedAt->utc(),
+        ]);
+    }
+
+    /**
+     * Close a register of another day at 20:00, as CloseCashRegister would
+     * have left it then: the counted cash, short by some pesos with a note.
+     */
+    private function closeInThePast(CashRegister $register, int $short = 0, ?string $note = null): void
+    {
+        $totals = $register->totals();
+        $expected = $register->opening_cash + $totals['cash'];
+
+        $register->forceFill([
+            'closed_at' => $register->opened_at->addHours(11),
+            'expected_cash' => $expected,
+            'counted_cash' => $expected - $short,
+            'cash_total' => $totals['cash'],
+            'card_total' => $totals['card'],
+            'transfer_total' => $totals['transfer'],
+            'closing_note' => $note,
+        ])->save();
+    }
+
+    /**
+     * A sale made on the day of a register at 11:00, as SellPlan would have
+     * left it then.
+     */
+    private function sellInThePast(Plan $plan, User $student, CashRegister $register, PaymentMethod $method): void
+    {
+        $soldOn = CarbonImmutable::parse($register->business_date->toDateString(), config()->string('studio.timezone'));
         $soldAt = $soldOn->setTime(11, 0)->utc();
 
         $purchase = PlanPurchase::create([
@@ -188,16 +249,17 @@ class DemoStudioSeeder extends Seeder
             'daily_limit' => $plan->daily_limit,
             'starts_on' => $soldOn->toDateString(),
             'expires_at' => $soldOn->addDays($plan->validity_days)->utc(),
-            'sold_by_id' => $seller->id,
+            'sold_by_id' => $register->user_id,
         ]);
         $purchase->forceFill(['created_at' => $soldAt, 'updated_at' => $soldAt])->save();
 
         $payment = $purchase->payments()->create([
             'studio_id' => $plan->studio_id,
             'user_id' => $student->id,
+            'cash_register_id' => $register->id,
             'amount' => $plan->price,
             'method' => $method,
-            'received_by_id' => $seller->id,
+            'received_by_id' => $register->user_id,
         ]);
         $payment->forceFill(['created_at' => $soldAt, 'updated_at' => $soldAt])->save();
     }

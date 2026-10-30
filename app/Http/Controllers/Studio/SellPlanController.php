@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Studio;
 
+use App\Actions\CashRegisters\CashRegisterRejected;
 use App\Actions\Plans\SellPlan;
 use App\Enums\PaymentMethod;
 use App\Enums\StudioRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\SellPlanRequest;
+use App\Models\CashRegister;
 use App\Models\Membership;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
@@ -23,8 +25,9 @@ use Inertia\Response;
 
 /**
  * «Vender plan»: the front desk or the owner sells a plan at the counter,
- * at its list price. Only the owner changes the price or gives the plan
- * away (plans.discount), always saying why.
+ * at its list price, into her open cash register of today. Only the owner
+ * changes the price or gives the plan away (plans.discount), always saying
+ * why.
  */
 class SellPlanController extends Controller
 {
@@ -49,6 +52,7 @@ class SellPlanController extends Controller
             'student' => $student === null ? null : $this->presentStudent($studio, $student),
             'methods' => array_map(fn (PaymentMethod $method): array => ['value' => $method->value, 'label' => $method->label()], PaymentMethod::cases()),
             'canChangePrice' => $user->can('plans.discount', $studio),
+            'register' => $this->registerState($studio, $user),
         ]);
     }
 
@@ -83,8 +87,19 @@ class SellPlanController extends Controller
         $plan = $studio->plans()->active()->findOrFail($request->integer('plan_id'));
         $price = $request->price();
         abort_if($price !== null && $price !== $plan->price && ! $user->can('plans.discount', $studio), 403);
+        $register = $this->openRegisterOf($studio, $user);
 
-        $purchase = $sellPlan->handle($plan, $membership->user, $user, $request->paymentMethod(), $price, $request->priceReason());
+        try {
+            if ($register === null) {
+                throw new CashRegisterRejected(__('Open your cash register to sell.'));
+            }
+
+            $purchase = $sellPlan->handle($plan, $membership->user, $register, $request->paymentMethod(), $price, $request->priceReason());
+        } catch (CashRegisterRejected $rejected) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $rejected->getMessage()]);
+
+            return back(fallback: route('studios.sell.create', $studio));
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('We sold :plan to :name. It lasts until :day.', [
             'plan' => $purchase->name,
@@ -93,6 +108,32 @@ class SellPlanController extends Controller
         ])]);
 
         return to_route('studios.students.show', [$studio, $membership, 'pestana' => 'plan']);
+    }
+
+    private function openRegisterOf(Studio $studio, User $user): ?CashRegister
+    {
+        return $user->cashRegisters()->where('studio_id', $studio->id)->open()->today()->first();
+    }
+
+    /**
+     * Whether she can sell now: her register of today is open, she has none
+     * yet, she already closed it, or one of another day is still open.
+     *
+     * @return array{state: 'open'|'none'|'closed'|'stale', day: string|null}
+     */
+    private function registerState(Studio $studio, User $user): array
+    {
+        $open = $user->cashRegisters()->where('studio_id', $studio->id)->open()->first();
+
+        if ($open !== null) {
+            return $open->isToday()
+                ? ['state' => 'open', 'day' => null]
+                : ['state' => 'stale', 'day' => $open->business_date->translatedFormat('l j \d\e F')];
+        }
+
+        $closedToday = $user->cashRegisters()->where('studio_id', $studio->id)->today()->exists();
+
+        return ['state' => $closedToday ? 'closed' : 'none', 'day' => null];
     }
 
     private function studentMembership(Studio $studio, int $userId): ?Membership

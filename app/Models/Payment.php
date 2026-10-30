@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $studio_id
  * @property int $plan_purchase_id
+ * @property int|null $cash_register_id The register it went into, when taken at the counter
  * @property int $user_id
  * @property int $amount
  * @property PaymentMethod $method
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['studio_id', 'plan_purchase_id', 'user_id', 'amount', 'method', 'received_by_id'])]
+#[Fillable(['studio_id', 'plan_purchase_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id'])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
@@ -60,6 +61,14 @@ class Payment extends Model
     public function planPurchase(): BelongsTo
     {
         return $this->belongsTo(PlanPurchase::class);
+    }
+
+    /**
+     * @return BelongsTo<CashRegister, $this>
+     */
+    public function cashRegister(): BelongsTo
+    {
+        return $this->belongsTo(CashRegister::class);
     }
 
     /**

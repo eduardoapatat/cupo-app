@@ -29,6 +29,7 @@ enum StudioPermission: string
     case VoidOpenPayments = 'payments.void_open';
     case VoidClosedPayments = 'payments.void_closed';
     case OperateCashRegister = 'cash.operate';
+    case ReviewCashRegisters = 'cash.review';
 
     // Sessions.
     case ManageBookings = 'bookings.manage';

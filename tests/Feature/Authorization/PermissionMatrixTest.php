@@ -35,6 +35,7 @@ function expectedPermissionMatrix(): array
         'payments.void_open' => [true, true, false, false],
         'payments.void_closed' => [true, false, false, false],
         'cash.operate' => [true, true, false, false],
+        'cash.review' => [true, false, false, false],
         // Sessions.
         'bookings.manage' => [true, true, false, false],
         'bookings.override' => [true, false, false, false],

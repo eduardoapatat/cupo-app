@@ -121,6 +121,14 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * @return HasMany<CashRegister, $this>
+     */
+    public function cashRegisters(): HasMany
+    {
+        return $this->hasMany(CashRegister::class);
+    }
+
+    /**
      * @return HasMany<WaitlistEntry, $this>
      */
     public function waitlistEntries(): HasMany

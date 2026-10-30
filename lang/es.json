@@ -129,5 +129,17 @@
     "Your plan allows :count class a day, and you already booked that day.|Your plan allows :count classes a day, and you already booked them that day.": "Tu plan permite :count clase al día, y ya reservaste ese día.|Tu plan permite :count clases al día, y ya las reservaste ese día.",
     ":name's plan allows :count class a day, and she already booked that day.|:name's plan allows :count classes a day, and she already booked them that day.": "El plan de :name permite :count clase al día, y ya reservó ese día.|El plan de :name permite :count clases al día, y ya las reservó ese día.",
     "You have no classes left in your plan.": "No te quedan clases en tu plan.",
-    ":name has no classes left in her plan.": "A :name no le quedan clases en su plan."
+    ":name has no classes left in her plan.": "A :name no le quedan clases en su plan.",
+    "Your cash register is already open.": "Tu caja ya está abierta.",
+    "Close your cash register of :day first.": "Cierra primero tu caja del :day.",
+    "You already closed your cash register today.": "Ya cerraste tu caja de hoy.",
+    "This cash register is already closed.": "Esta caja ya está cerrada.",
+    "The cash does not match: write why.": "El efectivo no cuadra: escribe por qué.",
+    "Your cash register was closed, so nothing was charged.": "Tu caja se cerró, así que no se cobró nada.",
+    "Open your cash register to sell.": "Abre tu caja para vender.",
+    "Write the cash you start with, or 0.": "Escribe el efectivo con que partes, o 0.",
+    "Write the cash you counted in the drawer.": "Escribe el efectivo que contaste.",
+    "You opened your cash register.": "Abriste tu caja.",
+    "You closed the cash register.": "Cerraste la caja.",
+    "Former team member": "Ex integrante del equipo"
 }
