@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Studio;
 use App\Actions\CashRegisters\CashRegisterRejected;
 use App\Actions\CashRegisters\CloseCashRegister;
 use App\Actions\CashRegisters\OpenCashRegister;
+use App\Concerns\PresentsPayments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\CloseCashRegisterRequest;
 use App\Http\Requests\Studio\OpenCashRegisterRequest;
@@ -26,6 +27,8 @@ use Inertia\Response;
  */
 class CashRegisterController extends Controller
 {
+    use PresentsPayments;
+
     /**
      * How many days back the team's registers go.
      */
@@ -46,19 +49,10 @@ class CashRegisterController extends Controller
             'register' => $current === null ? null : [
                 ...$this->present($current),
                 'payments' => $current->payments()
-                    ->with(['user', 'planPurchase'])
+                    ->with(['user', 'planPurchase', 'cashRegister'])
                     ->latest('id')
                     ->get()
-                    ->map(fn (Payment $payment): array => [
-                        'id' => $payment->id,
-                        'time' => $payment->created_at?->timezone(config()->string('studio.timezone'))->format('H:i'),
-                        'studentName' => $payment->user->name,
-                        'planName' => $payment->planPurchase->name,
-                        'method' => $payment->method->label(),
-                        'amount' => $payment->amount,
-                        'status' => $payment->status->value,
-                        'statusLabel' => $payment->status->label(),
-                    ]),
+                    ->map(fn (Payment $payment): array => $this->presentPayment($payment)),
             ],
             'history' => $mine()
                 ->whereNotNull('closed_at')

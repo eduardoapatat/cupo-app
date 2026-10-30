@@ -7,6 +7,7 @@ use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\JoinWaitlist;
 use App\Actions\CashRegisters\OpenCashRegister;
 use App\Actions\Classes\GenerateSessions;
+use App\Actions\Payments\VoidPayment;
 use App\Actions\Plans\SellPlan;
 use App\Actions\Plans\TakeClassFromPlan;
 use App\Actions\Studios\CreateStudio;
@@ -146,7 +147,7 @@ class DemoStudioSeeder extends Seeder
      * sold Antonia the unlimited one, Rosa 4 classes and most of the rest
      * 8; Ignacia's plan, sold 45 days ago, already expired. Yesterday Carla
      * sold Florencia hers and closed her register $2.000 short. Today
-     * Camila's register is open, with two sales.
+     * Camila's register is open, with two sales and one she voided.
      */
     private function plansOf(Studio $flow): void
     {
@@ -190,6 +191,8 @@ class DemoStudioSeeder extends Seeder
         $today = app(OpenCashRegister::class)->handle($flow, $camila, 20000);
         app(SellPlan::class)->handle($pack, $students['Rosa Fuentes'], $today, PaymentMethod::Cash);
         app(SellPlan::class)->handle($small, $students['Catalina Vega'], $today, PaymentMethod::Card);
+        $mistake = app(SellPlan::class)->handle($unlimited, $students['Martina Silva'], $today, PaymentMethod::Card);
+        app(VoidPayment::class)->handle($mistake->payments()->sole(), $camila, 'Era para otra alumna: no se cobró en el POS.');
     }
 
     /**
@@ -243,6 +246,7 @@ class DemoStudioSeeder extends Seeder
             'plan_id' => $plan->id,
             'name' => $plan->name,
             'price' => $plan->price,
+            'list_price' => $plan->price,
             'credits' => $plan->credits,
             'credits_left' => $plan->credits,
             'validity_days' => $plan->validity_days,

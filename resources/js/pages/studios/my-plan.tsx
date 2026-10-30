@@ -30,6 +30,8 @@ type Purchase = {
     dailyLimit: number | null;
     boughtOn: string;
     lastDay: string;
+    /** Its payment was voided, which voids the plan. */
+    isCancelled: boolean;
 };
 
 type Movement = {
@@ -256,7 +258,9 @@ export default function MyPlan({ summary, valid, past, movements }: Props) {
                                         {purchase.name}
                                     </span>
                                     <span className="text-muted-foreground">
-                                        Venció el {purchase.lastDay}
+                                        {purchase.isCancelled
+                                            ? 'Anulado'
+                                            : `Venció el ${purchase.lastDay}`}
                                     </span>
                                 </li>
                             ))}

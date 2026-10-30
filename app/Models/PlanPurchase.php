@@ -20,7 +20,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $user_id
  * @property int|null $plan_id
  * @property string $name
- * @property int $price
+ * @property int $price What was charged
+ * @property int|null $list_price The plan's price when it was sold
  * @property int|null $credits
  * @property int|null $credits_left
  * @property int $validity_days
@@ -29,10 +30,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable $expires_at The start of the day after its last day, in the studio's time zone
  * @property int|null $sold_by_id
  * @property string|null $price_reason
+ * @property CarbonImmutable|null $cancelled_at When its payment was voided, which voids the plan
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['studio_id', 'user_id', 'plan_id', 'name', 'price', 'credits', 'credits_left', 'validity_days', 'daily_limit', 'starts_on', 'expires_at', 'sold_by_id', 'price_reason'])]
+#[Fillable(['studio_id', 'user_id', 'plan_id', 'name', 'price', 'list_price', 'credits', 'credits_left', 'validity_days', 'daily_limit', 'starts_on', 'expires_at', 'sold_by_id', 'price_reason'])]
 class PlanPurchase extends Model
 {
     /** @use HasFactory<PlanPurchaseFactory> */
@@ -47,12 +49,14 @@ class PlanPurchase extends Model
     {
         return [
             'price' => 'integer',
+            'list_price' => 'integer',
             'credits' => 'integer',
             'credits_left' => 'integer',
             'validity_days' => 'integer',
             'daily_limit' => 'integer',
             'starts_on' => 'date',
             'expires_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -104,6 +108,19 @@ class PlanPurchase extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function isCancelled(): bool
+    {
+        return $this->cancelled_at !== null;
+    }
+
+    /**
+     * Whether it still pays for classes: not voided and not expired.
+     */
+    public function isValid(): bool
+    {
+        return ! $this->isCancelled() && $this->expires_at->isFuture();
+    }
+
     public function isUnlimited(): bool
     {
         return $this->credits === null;
@@ -124,6 +141,6 @@ class PlanPurchase extends Model
      */
     public function scopeValid(Builder $query): void
     {
-        $query->where('expires_at', '>', now());
+        $query->whereNull('cancelled_at')->where('expires_at', '>', now());
     }
 }

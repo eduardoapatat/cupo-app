@@ -17,6 +17,7 @@ import {
     update as updateStudent,
 } from '@/actions/App/Http/Controllers/Studio/StudentController';
 import { update as renewEnrollmentLink } from '@/actions/App/Http/Controllers/Studio/EnrollmentLinkController';
+import { show as paymentShow } from '@/actions/App/Http/Controllers/Studio/PaymentController';
 import { create as sellCreate } from '@/actions/App/Http/Controllers/Studio/SellPlanController';
 import ConfirmDialog from '@/components/confirm-dialog';
 import EnrollmentLinkField from '@/components/enrollment-link-field';
@@ -68,9 +69,23 @@ type StudentPurchase = {
     credits: number | null;
     creditsLeft: number | null;
     isValid: boolean;
+    /** Its payment was voided, which voids the plan. */
+    isCancelled: boolean;
+    price: number;
+    /** The plan's price when it was sold; null for older sales. */
+    listPrice: number | null;
+    priceReason: string | null;
     boughtOn: string | null;
     lastDay: string;
-    payments: { id: number; amount: number; method: string }[];
+    payments: {
+        id: number;
+        amount: number;
+        method: string;
+        status: string;
+        statusLabel: string;
+        /** Why it was voided. */
+        reason: string | null;
+    }[];
 };
 
 /** The open profile brings who she is in the app and her plans. */
@@ -536,21 +551,51 @@ function StudentPlans({
                                             : 'outline'
                                     }
                                 >
-                                    {purchase.isValid ? 'Vigente' : 'Vencido'}
+                                    {purchase.isCancelled
+                                        ? 'Anulado'
+                                        : purchase.isValid
+                                          ? 'Vigente'
+                                          : 'Vencido'}
                                 </Badge>
                             </div>
-                            <p className="text-sm">
-                                {creditsLeftLabel(purchase)} ·{' '}
-                                {purchase.isValid ? 'vale hasta' : 'venció'} el{' '}
-                                {purchase.lastDay}
-                            </p>
+                            {!purchase.isCancelled && (
+                                <p className="text-sm">
+                                    {creditsLeftLabel(purchase)} ·{' '}
+                                    {purchase.isValid ? 'vale hasta' : 'venció'}{' '}
+                                    el {purchase.lastDay}
+                                </p>
+                            )}
+                            {purchase.listPrice !== null &&
+                                purchase.listPrice !== purchase.price && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {purchase.price === 0
+                                            ? 'Regalado'
+                                            : 'Precio cambiado'}{' '}
+                                        (lista: {formatClp(purchase.listPrice)})
+                                        {purchase.priceReason &&
+                                            `: «${purchase.priceReason}»`}
+                                    </p>
+                                )}
                             <p className="text-sm text-muted-foreground">
                                 Comprado el {purchase.boughtOn}
-                                {purchase.payments.map(
-                                    (payment) =>
-                                        ` · ${formatClp(payment.amount)} en ${payment.method.toLowerCase()}`,
-                                )}
                             </p>
+                            {purchase.payments.map((payment) => (
+                                <p
+                                    key={payment.id}
+                                    className="text-sm text-muted-foreground"
+                                >
+                                    <Link
+                                        href={paymentShow([slug, payment.id])}
+                                        className="underline underline-offset-4 hover:text-foreground"
+                                    >
+                                        {formatClp(payment.amount)} en{' '}
+                                        {payment.method.toLowerCase()}
+                                    </Link>
+                                    {payment.status !== 'approved' &&
+                                        ` · ${payment.statusLabel.toLowerCase()}`}
+                                    {payment.reason && `: «${payment.reason}»`}
+                                </p>
+                            ))}
                         </li>
                     ))}
                 </ul>

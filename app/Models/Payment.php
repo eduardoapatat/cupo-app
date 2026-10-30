@@ -23,6 +23,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property PaymentMethod $method
  * @property PaymentStatus $status
  * @property int|null $received_by_id
+ * @property int|null $voided_by_id
+ * @property CarbonImmutable|null $voided_at
+ * @property string|null $status_reason Why it was voided
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -52,7 +55,16 @@ class Payment extends Model
             'amount' => 'integer',
             'method' => PaymentMethod::class,
             'status' => PaymentStatus::class,
+            'voided_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Studio, $this>
+     */
+    public function studio(): BelongsTo
+    {
+        return $this->belongsTo(Studio::class);
     }
 
     /**
@@ -85,5 +97,21 @@ class Payment extends Model
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by_id');
+    }
+
+    /**
+     * Whether it went into a register that is already closed.
+     */
+    public function isInAClosedRegister(): bool
+    {
+        return $this->cashRegister?->isClosed() ?? false;
     }
 }

@@ -17,6 +17,8 @@ use App\Http\Controllers\Studio\HomeController;
 use App\Http\Controllers\Studio\MyBookingsController;
 use App\Http\Controllers\Studio\MyPlanController;
 use App\Http\Controllers\Studio\MySessionsController;
+use App\Http\Controllers\Studio\PaymentController;
+use App\Http\Controllers\Studio\PaymentVoidController;
 use App\Http\Controllers\Studio\PlanArchiveController;
 use App\Http\Controllers\Studio\PlanController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
@@ -104,6 +106,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('caja', [CashRegisterController::class, 'index'])->name('cash-register.index');
                 Route::post('caja', [CashRegisterController::class, 'store'])->name('cash-register.store');
                 Route::post('caja/{cashRegister}/cierre', [CashRegisterController::class, 'close'])->name('cash-register.close');
+
+                Route::get('pagos', [PaymentController::class, 'index'])->name('payments.index');
+                Route::get('pagos/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+                Route::post('pagos/{payment}/anulacion', [PaymentVoidController::class, 'store'])->name('payments.void.store');
 
                 Route::get('planes', [PlanController::class, 'index'])->name('plans.index');
                 Route::post('planes', [PlanController::class, 'store'])->name('plans.store');

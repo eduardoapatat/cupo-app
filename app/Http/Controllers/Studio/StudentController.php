@@ -182,7 +182,7 @@ class StudentController extends Controller
         return $membership->user->planPurchases()
             ->where('studio_id', $studio->id)
             ->with('payments')
-            ->orderByRaw('expires_at <= now()')
+            ->orderByRaw('cancelled_at IS NOT NULL OR expires_at <= now()')
             ->orderByDesc('created_at')
             ->limit(20)
             ->get()
@@ -191,13 +191,20 @@ class StudentController extends Controller
                 'name' => $purchase->name,
                 'credits' => $purchase->credits,
                 'creditsLeft' => $purchase->credits_left,
-                'isValid' => $purchase->expires_at->isFuture(),
+                'isValid' => $purchase->isValid(),
+                'isCancelled' => $purchase->isCancelled(),
+                'price' => $purchase->price,
+                'listPrice' => $purchase->list_price,
+                'priceReason' => $purchase->price_reason,
                 'boughtOn' => $purchase->created_at?->timezone(config()->string('studio.timezone'))->translatedFormat('j \d\e F'),
                 'lastDay' => $purchase->lastDay()->translatedFormat('j \d\e F'),
                 'payments' => $purchase->payments->map(fn (Payment $payment): array => [
                     'id' => $payment->id,
                     'amount' => $payment->amount,
                     'method' => $payment->method->label(),
+                    'status' => $payment->status->value,
+                    'statusLabel' => $payment->status->label(),
+                    'reason' => $payment->status_reason,
                 ])->all(),
             ])
             ->all();

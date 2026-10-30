@@ -105,7 +105,8 @@ it('takes each payment into the cash register of whoever sold, Carla\'s closed s
         ->and($today->user->name)->toBe('Camila Soto')
         ->and($today->isClosed())->toBeFalse()
         ->and($today->isToday())->toBeTrue()
-        ->and($today->payments()->count())->toBe(2)
+        ->and($today->payments()->where('status', 'approved')->count())->toBe(2)
+        ->and($today->payments()->where('status', 'voided')->sole()->status_reason)->not->toBeNull()
         ->and($yesterday->business_date->toDateString())->toBe('2026-11-03')
         ->and($yesterday->difference())->toBe(-2000)
         ->and($yesterday->closing_note)->not->toBeNull();
@@ -125,11 +126,11 @@ it('sells the studio\'s plans to its students and takes each booking from them',
 
     expect($flow->plans()->active()->pluck('name')->sort()->values()->all())->toBe(['4 clases al mes', '8 clases al mes', 'Ilimitado'])
         ->and($flow->plans()->whereNotNull('archived_at')->pluck('name')->all())->toBe(['Clase de prueba'])
-        ->and($purchases)->toHaveCount(12)
+        ->and($purchases)->toHaveCount(13)
         ->and($purchases->firstWhere('user.name', 'Ignacia Navarro')->expires_at->isPast())->toBeTrue()
         ->and($purchases->firstWhere('user.name', 'Antonia Castro')->isUnlimited())->toBeTrue()
         ->and($purchases->firstWhere('user.name', 'Javiera Morales')->credits_left)->toBeGreaterThanOrEqual(3)
-        ->and($flow->planPurchases()->has('payments')->count())->toBe(12)
+        ->and($flow->planPurchases()->has('payments')->count())->toBe(13)
         ->and($studentBookings->every(fn (Booking $booking) => $booking->plan_purchase_id !== null))->toBeTrue()
         ->and($purchases->reject->isUnlimited()->every(
             fn ($purchase) => $purchase->credits_left === $purchase->credits - $purchase->bookings()->count(),

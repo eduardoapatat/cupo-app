@@ -1,4 +1,4 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { Wallet } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -6,7 +6,9 @@ import {
     index as cashRegisterIndex,
     store as openRegister,
 } from '@/actions/App/Http/Controllers/Studio/CashRegisterController';
+import { show as paymentShow } from '@/actions/App/Http/Controllers/Studio/PaymentController';
 import InputError from '@/components/input-error';
+import PaymentStatusBadge from '@/components/payments/payment-status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,7 +36,7 @@ import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { formatClp } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
-import type { CurrentStudio } from '@/types';
+import type { CurrentStudio, PaymentRow } from '@/types';
 
 type Totals = { cash: number; card: number; transfer: number };
 
@@ -55,19 +57,8 @@ type Register = {
     closingNote: string | null;
 };
 
-type RegisterPayment = {
-    id: number;
-    time: string;
-    studentName: string;
-    planName: string;
-    method: string;
-    amount: number;
-    status: string;
-    statusLabel: string;
-};
-
 type Props = {
-    register: (Register & { payments: RegisterPayment[] }) | null;
+    register: (Register & { payments: PaymentRow[] }) | null;
     history: Register[];
     /** Every register of the team, for the owner only. */
     team: Register[] | null;
@@ -363,7 +354,13 @@ function ClosingSummary({ register }: { register: Register }) {
     );
 }
 
-function PaymentsTable({ payments }: { payments: RegisterPayment[] }) {
+function PaymentsTable({
+    slug,
+    payments,
+}: {
+    slug: string;
+    payments: PaymentRow[];
+}) {
     if (payments.length === 0) {
         return (
             <p className="rounded-xl border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
@@ -386,20 +383,35 @@ function PaymentsTable({ payments }: { payments: RegisterPayment[] }) {
                 </TableHeader>
                 <TableBody>
                     {payments.map((payment) => (
-                        <TableRow key={payment.id}>
+                        <TableRow key={payment.id} className="relative">
                             <TableCell className="tabular-nums">
                                 {payment.time}
                             </TableCell>
                             <TableCell className="whitespace-normal">
-                                <span className="block font-medium">
+                                {/* The whole row opens the payment. */}
+                                <Link
+                                    href={paymentShow([slug, payment.id])}
+                                    className="block font-medium after:absolute after:inset-0 focus-visible:outline-none after:focus-visible:ring-[3px] after:focus-visible:ring-ring/50 after:focus-visible:ring-inset"
+                                >
                                     {payment.studentName}
-                                </span>
+                                </Link>
                                 <span className="block text-muted-foreground">
                                     {payment.planName}
                                 </span>
+                                {payment.status !== 'approved' && (
+                                    <span className="mt-1 block">
+                                        <PaymentStatusBadge payment={payment} />
+                                    </span>
+                                )}
                             </TableCell>
                             <TableCell>{payment.method}</TableCell>
-                            <TableCell className="text-right font-medium tabular-nums">
+                            <TableCell
+                                className={cn(
+                                    'text-right font-medium tabular-nums',
+                                    payment.status !== 'approved' &&
+                                        'text-muted-foreground line-through',
+                                )}
+                            >
                                 {formatClp(payment.amount)}
                             </TableCell>
                         </TableRow>
@@ -541,7 +553,10 @@ function MyRegister({
                         >
                             Cobros
                         </h2>
-                        <PaymentsTable payments={register.payments} />
+                        <PaymentsTable
+                            slug={slug}
+                            payments={register.payments}
+                        />
                     </section>
                 </>
             )}

@@ -53,6 +53,7 @@ class SellPlan
                 'plan_id' => $plan->id,
                 'name' => $plan->name,
                 'price' => $amount,
+                'list_price' => $plan->price,
                 'credits' => $plan->credits,
                 'credits_left' => $plan->credits,
                 'validity_days' => $plan->validity_days,

@@ -141,5 +141,10 @@
     "Write the cash you counted in the drawer.": "Escribe el efectivo que contaste.",
     "You opened your cash register.": "Abriste tu caja.",
     "You closed the cash register.": "Cerraste la caja.",
-    "Former team member": "Ex integrante del equipo"
+    "Former team member": "Ex integrante del equipo",
+    "This payment was already voided.": "Este pago ya está anulado.",
+    "Its register is already closed: only the owner can void it.": "Su caja ya está cerrada: solo la dueña puede anularlo.",
+    "Her plan was voided.": "Se anuló su plan.",
+    "We voided the payment and its plan.": "Anulamos el pago y su plan.",
+    "Write why you void it.": "Escribe por qué lo anulas."
 }

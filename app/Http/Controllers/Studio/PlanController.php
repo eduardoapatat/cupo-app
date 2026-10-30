@@ -71,7 +71,7 @@ class PlanController extends Controller
 
         return $studio->plans()
             ->withCount([
-                'purchases as valid_count' => fn (Builder $purchases) => $purchases->where('expires_at', '>', now()),
+                'purchases as valid_count' => fn (Builder $purchases) => $purchases->whereNull('cancelled_at')->where('expires_at', '>', now()),
                 'purchases as sold_this_month_count' => fn (Builder $purchases) => $purchases->where('created_at', '>=', $monthStart),
             ])
             ->orderByRaw('archived_at IS NOT NULL')

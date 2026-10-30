@@ -22,3 +22,14 @@ it('rejects a negative payment', function () {
 
     expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update(['amount' => -1]), '23514');
 });
+
+it('voids a payment only with its date and reason', function (array $values) {
+    $payment = Payment::factory()->create();
+
+    expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update($values), '23514');
+})->with([
+    'voided without a date' => [['status' => 'voided', 'status_reason' => 'Error']],
+    'voided without a reason' => [['status' => 'voided', 'voided_at' => now()]],
+    'a date while approved' => [['voided_at' => now()]],
+    'an unknown status' => [['status' => 'refunded']],
+]);

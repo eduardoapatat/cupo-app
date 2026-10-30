@@ -144,5 +144,7 @@ it('shows her plans and payments in her profile', function () {
                 ['8 clases al mes', true],
                 ['Viejo', false],
             ])
-            ->where('student.purchases.0.payments.0', fn ($payment) => $payment['amount'] === 45000 && $payment['method'] === 'Tarjeta'));
+            ->where('student.purchases.0.payments.0', fn ($payment) => $payment['amount'] === 45000 && $payment['method'] === 'Tarjeta' && $payment['status'] === 'approved')
+            ->where('student.purchases.0.listPrice', 45000)
+            ->where('student.purchases.0.isCancelled', false));
 });

@@ -42,10 +42,10 @@ class MyPlanController extends Controller
 
         return Inertia::render('studios/my-plan', [
             'summary' => $this->planSummary($user, $studio),
-            'valid' => $purchases->filter(fn (PlanPurchase $purchase): bool => $purchase->expires_at->isFuture())
+            'valid' => $purchases->filter(fn (PlanPurchase $purchase): bool => $purchase->isValid())
                 ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
                 ->values(),
-            'past' => $purchases->reject(fn (PlanPurchase $purchase): bool => $purchase->expires_at->isFuture())
+            'past' => $purchases->reject(fn (PlanPurchase $purchase): bool => $purchase->isValid())
                 ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
                 ->values(),
             'movements' => $movements->map(fn (CreditMovement $movement): array => [
@@ -73,6 +73,7 @@ class MyPlanController extends Controller
             'dailyLimit' => $purchase->daily_limit,
             'boughtOn' => $purchase->starts_on->translatedFormat('j \d\e F'),
             'lastDay' => $purchase->lastDay()->translatedFormat('l j \d\e F'),
+            'isCancelled' => $purchase->isCancelled(),
         ];
     }
 }

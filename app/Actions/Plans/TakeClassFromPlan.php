@@ -38,7 +38,8 @@ class TakeClassFromPlan
         foreach ($candidates as $candidate) {
             $purchase = PlanPurchase::query()->whereKey($candidate->id)->lockForUpdate()->firstOrFail();
 
-            if (! $this->isUnderDailyLimit($purchase, $session)) {
+            // Voided while this booking waited for the lock.
+            if ($purchase->isCancelled() || ! $this->isUnderDailyLimit($purchase, $session)) {
                 continue;
             }
 
@@ -103,6 +104,7 @@ class TakeClassFromPlan
     {
         return $student->planPurchases()
             ->where('studio_id', $session->studio_id)
+            ->whereNull('cancelled_at')
             ->where('starts_on', '<=', $session->localStartsAt()->toDateString())
             ->where('expires_at', '>', $session->starts_at)
             ->where(fn (Builder $query) => $query->whereNull('credits')->orWhere('credits_left', '>', 0))

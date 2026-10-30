@@ -12,7 +12,8 @@ use App\Models\User;
  * Give a booking's class back to its plan: when she cancels in time, when
  * the owner returns it, or when the studio cancels the class. It runs inside
  * the cancellation's transaction. A booking without a plan (the team, or one
- * made in phase 2) and an unlimited plan have nothing to return.
+ * made in phase 2), an unlimited plan and a voided plan have nothing to
+ * return.
  */
 class ReturnClassToPlan
 {
@@ -25,6 +26,7 @@ class ReturnClassToPlan
         $returned = PlanPurchase::query()
             ->whereKey($booking->plan_purchase_id)
             ->whereNotNull('credits')
+            ->whereNull('cancelled_at')
             ->whereColumn('credits_left', '<', 'credits')
             ->increment('credits_left');
 
