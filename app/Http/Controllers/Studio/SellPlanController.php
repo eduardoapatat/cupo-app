@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Actions\CashRegisters\CashRegisterRejected;
+use App\Actions\Payments\PaymentRejected;
+use App\Actions\Payments\StoreReceipt;
 use App\Actions\Plans\SellPlan;
 use App\Enums\PaymentMethod;
 use App\Enums\StudioRole;
@@ -20,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -80,7 +83,7 @@ class SellPlanController extends Controller
     }
 
     #[Authorize('plans.sell', 'studio')]
-    public function store(SellPlanRequest $request, Studio $studio, #[CurrentUser] User $user, SellPlan $sellPlan): RedirectResponse
+    public function store(SellPlanRequest $request, Studio $studio, #[CurrentUser] User $user, SellPlan $sellPlan, StoreReceipt $storeReceipt): RedirectResponse
     {
         $membership = $this->studentMembership($studio, $request->integer('user_id'));
         abort_if($membership === null, 404);
@@ -88,14 +91,22 @@ class SellPlanController extends Controller
         $price = $request->price();
         abort_if($price !== null && $price !== $plan->price && ! $user->can('plans.discount', $studio), 403);
         $register = $this->openRegisterOf($studio, $user);
+        $receiptPath = null;
 
         try {
             if ($register === null) {
                 throw new CashRegisterRejected(__('Open your cash register to sell.'));
             }
 
-            $purchase = $sellPlan->handle($plan, $membership->user, $register, $request->paymentMethod(), $price, $request->priceReason());
-        } catch (CashRegisterRejected $rejected) {
+            $receipt = $request->receipt();
+            $receiptPath = $receipt === null ? null : $storeReceipt->handle($studio, $receipt);
+            $purchase = $sellPlan->handle($plan, $membership->user, $register, $request->paymentMethod(), $price, $request->priceReason(), $receiptPath);
+        } catch (CashRegisterRejected|PaymentRejected $rejected) {
+            // Nothing was sold, so its receipt goes too.
+            if ($receiptPath !== null) {
+                Storage::delete($receiptPath);
+            }
+
             Inertia::flash('toast', ['type' => 'error', 'message' => $rejected->getMessage()]);
 
             return back(fallback: route('studios.sell.create', $studio));

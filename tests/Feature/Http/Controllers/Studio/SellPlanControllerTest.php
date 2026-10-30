@@ -4,11 +4,14 @@ use App\Actions\Plans\SellPlan;
 use App\Enums\PaymentMethod;
 use App\Enums\StudioRole;
 use App\Models\CashRegister;
+use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -147,4 +150,21 @@ it('shows her plans and payments in her profile', function () {
             ->where('student.purchases.0.payments.0', fn ($payment) => $payment['amount'] === 45000 && $payment['method'] === 'Tarjeta' && $payment['status'] === 'approved')
             ->where('student.purchases.0.listPrice', 45000)
             ->where('student.purchases.0.isCancelled', false));
+});
+
+it('keeps the receipt of a transfer at the counter, only for a transfer', function () {
+    Storage::fake();
+    $route = route('studios.sell.store', $this->studio);
+
+    $this->actingAs($this->camila)
+        ->post($route, saleForm($this->javiera->id, $this->plan->id, ['method' => 'transfer', 'receipt' => UploadedFile::fake()->image('comprobante.png')]))
+        ->assertRedirect();
+    $this->actingAs($this->camila)
+        ->post($route, saleForm($this->javiera->id, $this->plan->id, ['method' => 'cash', 'receipt' => UploadedFile::fake()->image('comprobante.png')]))
+        ->assertRedirect();
+
+    [$transfer, $cash] = Payment::query()->orderBy('id')->get()->all();
+    Storage::assertExists($transfer->receipt_path);
+    expect($cash->receipt_path)->toBeNull()
+        ->and(Storage::allFiles())->toHaveCount(1);
 });

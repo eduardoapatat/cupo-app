@@ -36,6 +36,7 @@ class SettingsController extends Controller
                 'waitlist_cutoff_hours' => $studio->waitlist_cutoff_hours,
                 'booking_horizon_days' => $studio->booking_horizon_days,
             ],
+            'transferDetails' => $studio->transfer_details,
         ]);
     }
 

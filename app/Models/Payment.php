@@ -16,20 +16,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property int $studio_id
- * @property int $plan_purchase_id
+ * @property int|null $plan_purchase_id Null until a transfer from the app is approved
+ * @property int|null $plan_id The plan she chose, for a transfer from the app
  * @property int|null $cash_register_id The register it went into, when taken at the counter
  * @property int $user_id
  * @property int $amount
  * @property PaymentMethod $method
  * @property PaymentStatus $status
  * @property int|null $received_by_id
+ * @property string|null $receipt_path The transfer receipt, on the default disk
+ * @property int|null $reviewed_by_id
+ * @property CarbonImmutable|null $reviewed_at
  * @property int|null $voided_by_id
  * @property CarbonImmutable|null $voided_at
- * @property string|null $status_reason Why it was voided
+ * @property string|null $status_reason Why it was rejected or voided
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['studio_id', 'plan_purchase_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id'])]
+#[Fillable(['studio_id', 'plan_purchase_id', 'plan_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id', 'receipt_path'])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
@@ -55,6 +59,7 @@ class Payment extends Model
             'amount' => 'integer',
             'method' => PaymentMethod::class,
             'status' => PaymentStatus::class,
+            'reviewed_at' => 'datetime',
             'voided_at' => 'datetime',
         ];
     }
@@ -97,6 +102,22 @@ class Payment extends Model
     public function receivedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'received_by_id');
+    }
+
+    /**
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by_id');
     }
 
     /**

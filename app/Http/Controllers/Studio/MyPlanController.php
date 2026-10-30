@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Concerns\PresentsPlanSummary;
+use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CreditMovement;
 use App\Models\PlanPurchase;
@@ -40,8 +41,28 @@ class MyPlanController extends Controller
             ->limit(30)
             ->get();
 
+        // Her latest purchase from the app: waiting to be reviewed, or rejected.
+        $fromApp = $studio->payments()
+            ->where('user_id', $user->id)
+            ->whereNull('cash_register_id')
+            ->whereNotNull('plan_id')
+            ->with('plan')
+            ->latest('id')
+            ->first();
+
         return Inertia::render('studios/my-plan', [
             'summary' => $this->planSummary($user, $studio),
+            'pendingPayment' => $fromApp?->status === PaymentStatus::ToReview ? [
+                'planName' => $fromApp->plan?->name,
+                'amount' => $fromApp->amount,
+                'sentOn' => $fromApp->created_at?->timezone($timezone)->translatedFormat('j \d\e F'),
+                'receiptUrl' => route('studios.payments.receipt', [$studio, $fromApp], absolute: false),
+            ] : null,
+            'rejectedPayment' => $fromApp?->status === PaymentStatus::Rejected ? [
+                'planName' => $fromApp->plan?->name,
+                'reason' => $fromApp->status_reason,
+            ] : null,
+            'canBuy' => filled($studio->transfer_details) && $fromApp?->status !== PaymentStatus::ToReview,
             'valid' => $purchases->filter(fn (PlanPurchase $purchase): bool => $purchase->isValid())
                 ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
                 ->values(),

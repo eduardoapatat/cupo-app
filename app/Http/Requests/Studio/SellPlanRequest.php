@@ -5,6 +5,7 @@ namespace App\Http\Requests\Studio;
 use App\Enums\PaymentMethod;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 
 /**
@@ -26,6 +27,7 @@ class SellPlanRequest extends FormRequest
             'method' => ['required', Rule::enum(PaymentMethod::class)],
             'price' => ['nullable', 'integer', 'min:0', 'max:10000000'],
             'price_reason' => ['required_with:price', 'nullable', 'string', 'max:200'],
+            'receipt' => ['nullable', 'exclude_unless:method,transfer', ...ReceiptRules::rules()],
         ];
     }
 
@@ -40,6 +42,7 @@ class SellPlanRequest extends FormRequest
             'user_id.required' => __('Choose the student.'),
             'plan_id.required' => __('Choose the plan.'),
             'price_reason.required_with' => __('Write why the price changes.'),
+            ...ReceiptRules::messages(),
         ];
     }
 
@@ -54,6 +57,16 @@ class SellPlanRequest extends FormRequest
     public function price(): ?int
     {
         return $this->filled('price') ? $this->integer('price') : null;
+    }
+
+    /**
+     * The transfer receipt she brought, if any.
+     */
+    public function receipt(): ?UploadedFile
+    {
+        $receipt = $this->file('receipt');
+
+        return $this->paymentMethod() === PaymentMethod::Transfer && $receipt instanceof UploadedFile ? $receipt : null;
     }
 
     public function priceReason(): ?string

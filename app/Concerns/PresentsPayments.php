@@ -7,7 +7,7 @@ use App\Models\Payment;
 
 /**
  * A payment as the lists of «Pagos», «Caja» and the student's profile show
- * it. Load user, planPurchase and cashRegister first.
+ * it. Load user, plan, planPurchase and cashRegister first.
  */
 trait PresentsPayments
 {
@@ -24,7 +24,8 @@ trait PresentsPayments
             'date' => $takenAt?->translatedFormat('j \d\e F'),
             'time' => $takenAt?->format('H:i'),
             'studentName' => $payment->user->name,
-            'planName' => $payment->planPurchase?->name,
+            // A transfer to review has no purchase yet, only the plan she chose.
+            'planName' => $payment->planPurchase->name ?? $payment->plan?->name,
             'method' => $payment->method->label(),
             'amount' => $payment->amount,
             'status' => $payment->status->value,

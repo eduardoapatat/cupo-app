@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\CashRegisters\CloseCashRegister;
+use App\Actions\Payments\SubmitTransferReceipt;
 use App\Actions\Payments\VoidPayment;
 use App\Actions\Plans\SellPlan;
 use App\Enums\PaymentMethod;
@@ -12,6 +13,8 @@ use App\Models\Plan;
 use App\Models\Studio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -119,4 +122,87 @@ it('answers 404 for a payment of another studio', function () {
         ->assertNotFound();
 
     expect($elsewhere->refresh()->status)->toBe(PaymentStatus::Approved);
+});
+
+/**
+ * A receipt Javiera sent from the app, waiting to be reviewed.
+ */
+function receiptToReview(Studio $studio): Payment
+{
+    Storage::fake();
+    $javiera = User::factory()->memberOf($studio, StudioRole::Student)->create(['name' => 'Javiera Morales']);
+    $plan = $studio->plans()->where('name', '4 clases al mes')->first()
+        ?? Plan::factory()->for($studio)->create(['name' => '4 clases al mes', 'price' => 28000]);
+    $studio->update(['transfer_details' => 'Banco del Ejemplo']);
+
+    return app(SubmitTransferReceipt::class)->handle($plan, $javiera, UploadedFile::fake()->image('comprobante.png'));
+}
+
+it('puts the receipts to review first, and shows each one with its image', function () {
+    $payment = receiptToReview($this->studio);
+
+    $this->actingAs($this->camila)
+        ->get(route('studios.payments.index', $this->studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.status', 'por-validar')
+            ->where('toReview', 1)
+            ->where('payments.data.0.planName', '4 clases al mes')
+            ->has('payments.data', 1));
+    $this->actingAs($this->camila)
+        ->get(route('studios.payments.show', [$this->studio, $payment]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('canReview', true)
+            ->where('canVoid', false)
+            ->where('payment.receipt.isPdf', false)
+            ->where('payment.receipt.url', route('studios.payments.receipt', [$this->studio, $payment], absolute: false)));
+});
+
+it('approves a receipt into her plan, or rejects it saying why', function () {
+    $payment = receiptToReview($this->studio);
+    $other = receiptToReview($this->studio);
+
+    $this->actingAs($this->camila)
+        ->post(route('studios.payments.approve', [$this->studio, $payment]))
+        ->assertRedirect(route('studios.payments.show', [$this->studio, $payment]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Aprobado. Su plan parte hoy.']);
+    $this->actingAs($this->camila)
+        ->post(route('studios.payments.reject', [$this->studio, $other]), ['reason' => ''])
+        ->assertSessionHasErrors(['reason' => 'Escribe por qué lo rechazas: ella lo va a leer.']);
+    $this->actingAs($this->carla)
+        ->post(route('studios.payments.reject', [$this->studio, $other]), ['reason' => 'No llegó la transferencia'])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rechazado. Ella verá por qué y podrá enviar otro.']);
+    $this->actingAs($this->carla)
+        ->post(route('studios.payments.approve', [$this->studio, $other]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$this->carla->name} ya lo revisó."]);
+
+    $this->actingAs($this->camila)
+        ->get(route('studios.payments.show', [$this->studio, $payment]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('canVoid', false)
+            ->where('voidDenied', 'Llegó desde la app: solo la dueña puede anularlo.'));
+
+    expect($payment->refresh()->status)->toBe(PaymentStatus::Approved)
+        ->and($payment->planPurchase?->user_id)->toBe($payment->user_id)
+        ->and($other->refresh()->status)->toBe(PaymentStatus::Rejected);
+});
+
+it('shows a receipt only to whoever reviews payments and to the student who sent it', function () {
+    $payment = receiptToReview($this->studio);
+    $route = route('studios.payments.receipt', [$this->studio, $payment]);
+
+    $this->actingAs($this->camila)->get($route)->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+    $this->actingAs($payment->user)->get($route)->assertOk();
+    $this->actingAs($this->rosa)->get($route)->assertNotFound();
+    $this->actingAs(User::factory()->memberOf($this->studio, StudioRole::Instructor)->create())->get($route)->assertNotFound();
+    $this->actingAs($this->carla)->get(route('studios.payments.receipt', [Studio::factory()->create(), $payment]))->assertNotFound();
+});
+
+it('keeps reviewing for the front desk and the owner', function () {
+    $payment = receiptToReview($this->studio);
+
+    $this->actingAs($payment->user)
+        ->post(route('studios.payments.approve', [$this->studio, $payment]))
+        ->assertForbidden();
+
+    expect($payment->refresh()->status)->toBe(PaymentStatus::ToReview);
 });

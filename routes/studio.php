@@ -9,6 +9,7 @@ use App\Http\Controllers\Studio\AgendaController;
 use App\Http\Controllers\Studio\AgendaWaitlistController;
 use App\Http\Controllers\Studio\AttendanceController;
 use App\Http\Controllers\Studio\BookingController;
+use App\Http\Controllers\Studio\BuyPlanController;
 use App\Http\Controllers\Studio\CashRegisterController;
 use App\Http\Controllers\Studio\ClassesController;
 use App\Http\Controllers\Studio\ClassTypeController;
@@ -18,6 +19,8 @@ use App\Http\Controllers\Studio\MyBookingsController;
 use App\Http\Controllers\Studio\MyPlanController;
 use App\Http\Controllers\Studio\MySessionsController;
 use App\Http\Controllers\Studio\PaymentController;
+use App\Http\Controllers\Studio\PaymentReceiptController;
+use App\Http\Controllers\Studio\PaymentReviewController;
 use App\Http\Controllers\Studio\PaymentVoidController;
 use App\Http\Controllers\Studio\PlanArchiveController;
 use App\Http\Controllers\Studio\PlanController;
@@ -32,6 +35,7 @@ use App\Http\Controllers\Studio\StudioRulesController;
 use App\Http\Controllers\Studio\TeamController;
 use App\Http\Controllers\Studio\TeamInvitationController;
 use App\Http\Controllers\Studio\TeamMemberController;
+use App\Http\Controllers\Studio\TransferDetailsController;
 use App\Http\Controllers\Studio\WaitlistController;
 use App\Http\Controllers\StudioController;
 use App\Http\Middleware\RememberCurrentStudio;
@@ -76,6 +80,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('estudio', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('estudio', [SettingsController::class, 'update'])->name('settings.update');
+            Route::put('estudio/transferencia', [TransferDetailsController::class, 'update'])->name('settings.transfer.update');
             Route::put('estudio/enlace', [EnrollmentLinkController::class, 'update'])->name('settings.enrollment-link.update');
             Route::put('estudio/reglas', [StudioRulesController::class, 'update'])->name('settings.rules.update');
 
@@ -110,6 +115,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('pagos', [PaymentController::class, 'index'])->name('payments.index');
                 Route::get('pagos/{payment}', [PaymentController::class, 'show'])->name('payments.show');
                 Route::post('pagos/{payment}/anulacion', [PaymentVoidController::class, 'store'])->name('payments.void.store');
+                Route::post('pagos/{payment}/aprobacion', [PaymentReviewController::class, 'approve'])->name('payments.approve');
+                Route::post('pagos/{payment}/rechazo', [PaymentReviewController::class, 'reject'])->name('payments.reject');
+                Route::get('pagos/{payment}/comprobante', [PaymentReceiptController::class, 'show'])->name('payments.receipt');
 
                 Route::get('planes', [PlanController::class, 'index'])->name('plans.index');
                 Route::post('planes', [PlanController::class, 'store'])->name('plans.store');
@@ -138,6 +146,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::delete('mis-reservas/{booking}', [MyBookingsController::class, 'destroy'])->name('my-bookings.destroy');
                 Route::delete('mis-reservas/espera/{waitlistEntry}', [WaitlistController::class, 'destroy'])->name('waitlist.destroy');
                 Route::get('mi-plan', [MyPlanController::class, 'index'])->name('my-plan.index');
+                Route::get('mi-plan/comprar', [BuyPlanController::class, 'create'])->name('my-plan.buy');
+                Route::post('mi-plan/comprar', [BuyPlanController::class, 'store'])->name('my-plan.buy.store');
             });
         });
 });

@@ -24,6 +24,7 @@ use Illuminate\Support\Str;
  * @property int $waitlist_cutoff_hours
  * @property int $plan_expiry_warning_days
  * @property int $booking_horizon_days
+ * @property string|null $transfer_details Where students transfer to, as the owner wrote it
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -35,6 +36,7 @@ use Illuminate\Support\Str;
     'waitlist_cutoff_hours',
     'plan_expiry_warning_days',
     'booking_horizon_days',
+    'transfer_details',
 ])]
 class Studio extends Model
 {

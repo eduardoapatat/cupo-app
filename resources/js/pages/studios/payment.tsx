@@ -5,6 +5,10 @@ import {
     index as paymentsIndex,
     show as paymentShow,
 } from '@/actions/App/Http/Controllers/Studio/PaymentController';
+import {
+    approve as approvePayment,
+    reject as rejectPayment,
+} from '@/actions/App/Http/Controllers/Studio/PaymentReviewController';
 import { store as voidPayment } from '@/actions/App/Http/Controllers/Studio/PaymentVoidController';
 import { show as studentShow } from '@/actions/App/Http/Controllers/Studio/StudentController';
 import InputError from '@/components/input-error';
@@ -33,6 +37,10 @@ type PaymentDetail = PaymentRow & {
     /** Her membership, to open her profile; null if she left the studio. */
     studentProfileId: number | null;
     register: { personName: string; day: string; isClosed: boolean } | null;
+    /** The transfer receipt, served only to whoever may see it. */
+    receipt: { url: string; isPdf: boolean } | null;
+    reviewed: { by: string | null; at: string } | null;
+    rejectionReason: string | null;
     voided: { by: string | null; at: string; reason: string | null } | null;
     plan: {
         name: string;
@@ -49,6 +57,8 @@ type PaymentDetail = PaymentRow & {
 
 type Props = {
     payment: PaymentDetail;
+    /** A receipt from the app waiting to be approved or rejected. */
+    canReview: boolean;
     canVoid: boolean;
     /** Why she cannot void this one, when she could void others. */
     voidDenied: string | null;
@@ -75,6 +85,92 @@ function voidEffect(payment: PaymentDetail): string {
               : ` y se cancelan sus ${plan.upcomingBookings} reservas que vienen, que liberan sus cupos`;
 
     return `${classes}${bookings}. Las clases que ya tomó quedan en su historial.`;
+}
+
+/** Approve it at once, or reject it saying why: she reads the reason. */
+function ReviewActions({
+    slug,
+    payment,
+}: {
+    slug: string;
+    payment: PaymentDetail;
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div className="flex flex-wrap gap-2">
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline">Rechazar</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogTitle>Rechazar el comprobante</DialogTitle>
+                    <DialogDescription>
+                        {payment.studentName} verá el motivo en «Mi plan» y
+                        podrá enviar otro comprobante.
+                    </DialogDescription>
+                    <Form
+                        {...rejectPayment.form([slug, payment.id])}
+                        options={{ preserveScroll: true }}
+                        onSuccess={() => setOpen(false)}
+                        onError={(errors) =>
+                            focusFirstError(errors, {
+                                reason: 'reject-reason',
+                            })
+                        }
+                        className="grid gap-5"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="reject-reason">
+                                        Por qué
+                                    </Label>
+                                    <Input
+                                        id="reject-reason"
+                                        {...fieldErrorProps(
+                                            'reject-reason',
+                                            errors.reason,
+                                        )}
+                                        name="reason"
+                                        required
+                                        maxLength={200}
+                                        placeholder="El monto no coincide con el plan"
+                                    />
+                                    <InputError
+                                        id="reject-reason-error"
+                                        message={errors.reason}
+                                    />
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="outline">
+                                            Volver
+                                        </Button>
+                                    </DialogClose>
+                                    <Button type="submit" disabled={processing}>
+                                        {processing && <Spinner />}
+                                        Rechazar
+                                    </Button>
+                                </DialogFooter>
+                            </>
+                        )}
+                    </Form>
+                </DialogContent>
+            </Dialog>
+            <Form
+                {...approvePayment.form([slug, payment.id])}
+                options={{ preserveScroll: true }}
+            >
+                {({ processing }) => (
+                    <Button type="submit" disabled={processing}>
+                        {processing && <Spinner />}
+                        Aprobar
+                    </Button>
+                )}
+            </Form>
+        </div>
+    );
 }
 
 function VoidDialog({
@@ -162,7 +258,12 @@ function DetailRow({
     );
 }
 
-export default function Payment({ payment, canVoid, voidDenied }: Props) {
+export default function Payment({
+    payment,
+    canReview,
+    canVoid,
+    voidDenied,
+}: Props) {
     const { studio } = usePage().props;
 
     if (!studio) {
@@ -202,6 +303,9 @@ export default function Payment({ payment, canVoid, voidDenied }: Props) {
                             {payment.takenAt}
                         </p>
                     </div>
+                    {canReview && (
+                        <ReviewActions slug={studio.slug} payment={payment} />
+                    )}
                     {canVoid && (
                         <VoidDialog slug={studio.slug} payment={payment} />
                     )}
@@ -241,18 +345,21 @@ export default function Payment({ payment, canVoid, voidDenied }: Props) {
                                 )}
                             </DetailRow>
                             <DetailRow label="Plan">
-                                {plan?.name ?? 'Sin plan'}
+                                {payment.planName ?? 'Sin plan'}
                             </DetailRow>
                             <DetailRow label="Medio de pago">
                                 {payment.method}
                             </DetailRow>
                             <DetailRow label="Cobró">
-                                {payment.receivedBy ?? 'Nadie del equipo'}
+                                {payment.receivedBy ??
+                                    (payment.status === 'to_review'
+                                        ? 'Todavía nadie'
+                                        : 'Nadie')}
                             </DetailRow>
                             <DetailRow label="Caja">
                                 {payment.register
                                     ? `De ${payment.register.personName}, ${payment.register.day} · ${payment.register.isClosed ? 'cerrada' : 'abierta'}`
-                                    : 'Sin caja'}
+                                    : 'Ninguna: llegó por transferencia desde la app'}
                             </DetailRow>
                             {plan && (
                                 <DetailRow label="Clases">
@@ -262,6 +369,70 @@ export default function Payment({ payment, canVoid, voidDenied }: Props) {
                                 </DetailRow>
                             )}
                         </dl>
+
+                        {payment.receipt && (
+                            <section
+                                aria-labelledby="payment-receipt"
+                                className="grid gap-3 rounded-xl border p-5"
+                            >
+                                <h2
+                                    id="payment-receipt"
+                                    className="text-sm font-medium"
+                                >
+                                    Comprobante
+                                </h2>
+                                {payment.receipt.isPdf ? (
+                                    <a
+                                        href={payment.receipt.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-sm underline underline-offset-4"
+                                    >
+                                        Abrir el PDF
+                                    </a>
+                                ) : (
+                                    <a
+                                        href={payment.receipt.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="justify-self-start"
+                                    >
+                                        <img
+                                            src={payment.receipt.url}
+                                            alt={`Comprobante de ${payment.studentName}`}
+                                            className="max-h-96 rounded-lg border object-contain"
+                                        />
+                                    </a>
+                                )}
+                            </section>
+                        )}
+
+                        {payment.reviewed && (
+                            <section
+                                aria-labelledby="payment-review"
+                                className="grid gap-2 rounded-xl border p-5"
+                            >
+                                <h2
+                                    id="payment-review"
+                                    className="text-sm font-medium"
+                                >
+                                    {payment.rejectionReason !== null
+                                        ? 'Rechazo'
+                                        : 'Validación'}
+                                </h2>
+                                <p className="text-sm first-letter:uppercase">
+                                    {payment.reviewed.at}, por{' '}
+                                    {payment.reviewed.by ??
+                                        'alguien que ya no está en el equipo'}
+                                    .
+                                </p>
+                                {payment.rejectionReason && (
+                                    <p className="text-sm text-muted-foreground">
+                                        «{payment.rejectionReason}»
+                                    </p>
+                                )}
+                            </section>
+                        )}
 
                         {payment.voided && (
                             <section

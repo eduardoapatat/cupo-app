@@ -366,6 +366,7 @@ export default function SellPlan({
                                 user_id: 'sale-student',
                                 price: 'sale-price',
                                 price_reason: 'sale-price-reason',
+                                receipt: 'sale-receipt',
                             })
                         }
                         className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]"
@@ -502,6 +503,27 @@ export default function SellPlan({
                                         <p className="text-sm text-muted-foreground">
                                             {METHOD_HELP[method]}
                                         </p>
+                                        {method === 'transfer' && (
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="sale-receipt">
+                                                    Comprobante (opcional)
+                                                </Label>
+                                                <Input
+                                                    id="sale-receipt"
+                                                    {...fieldErrorProps(
+                                                        'sale-receipt',
+                                                        errors.receipt,
+                                                    )}
+                                                    name="receipt"
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,application/pdf"
+                                                />
+                                                <InputError
+                                                    id="sale-receipt-error"
+                                                    message={errors.receipt}
+                                                />
+                                            </div>
+                                        )}
                                     </section>
 
                                     {canChangePrice && (

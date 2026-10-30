@@ -9,6 +9,12 @@ use App\Models\Payment;
 use App\Models\Studio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(function () {
+    // The demo saves a receipt; keep it off the real disk.
+    Storage::fake();
+});
 
 it('seeds Estudio Flow with a demo account for every role and a student without the app', function () {
     $this->seed();
@@ -100,7 +106,8 @@ it('takes each payment into the cash register of whoever sold, Carla\'s closed s
     $today = $registers->last();
     $yesterday = $registers->firstWhere('user.name', 'Carla Rojas');
 
-    expect(Payment::whereNull('cash_register_id')->count())->toBe(0)
+    // Only the receipt sent from the app is outside a register.
+    expect(Payment::whereNull('cash_register_id')->pluck('status')->map->value->all())->toBe(['to_review'])
         ->and($registers->filter->isClosed())->toHaveCount(3)
         ->and($today->user->name)->toBe('Camila Soto')
         ->and($today->isClosed())->toBeFalse()
@@ -110,6 +117,17 @@ it('takes each payment into the cash register of whoever sold, Carla\'s closed s
         ->and($yesterday->business_date->toDateString())->toBe('2026-11-03')
         ->and($yesterday->difference())->toBe(-2000)
         ->and($yesterday->closing_note)->not->toBeNull();
+});
+
+it('takes transfers from the app, with Ignacia\'s receipt waiting to be reviewed', function () {
+    $this->seed();
+
+    $flow = Studio::where('slug', 'estudio-flow')->sole();
+    $toReview = $flow->payments()->where('status', 'to_review')->with('user')->sole();
+
+    expect($flow->transfer_details)->not->toBeNull()
+        ->and($toReview->user->name)->toBe('Ignacia Navarro');
+    Storage::assertExists($toReview->receipt_path);
 });
 
 it('sells the studio\'s plans to its students and takes each booking from them', function () {

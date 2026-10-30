@@ -30,18 +30,27 @@ type Paginated<T> = {
     next_page_url: string | null;
 };
 
-type StatusFilter = 'todos' | 'aprobados' | 'anulados';
+type StatusFilter =
+    | 'por-validar'
+    | 'aprobados'
+    | 'rechazados'
+    | 'anulados'
+    | 'todos';
 
 type Props = {
     payments: Paginated<PaymentRow>;
     filters: { status: StatusFilter; search: string };
+    /** Receipts from the app waiting for someone to check them. */
+    toReview: number;
     stats: { today: number; month: number; voidedThisMonth: number };
 };
 
 const TABS: { value: StatusFilter; label: string }[] = [
-    { value: 'todos', label: 'Todos' },
+    { value: 'por-validar', label: 'Por validar' },
     { value: 'aprobados', label: 'Aprobados' },
+    { value: 'rechazados', label: 'Rechazados' },
     { value: 'anulados', label: 'Anulados' },
+    { value: 'todos', label: 'Todos' },
 ];
 
 function paymentsUrl(slug: string, status: StatusFilter, search: string) {
@@ -86,7 +95,12 @@ function StatsStrip({ stats }: { stats: Props['stats'] }) {
     );
 }
 
-export default function Payments({ payments, filters, stats }: Props) {
+export default function Payments({
+    payments,
+    filters,
+    toReview,
+    stats,
+}: Props) {
     const { studio } = usePage().props;
     const [search, setSearch] = useState(filters.search);
     const firstRender = useRef(true);
@@ -133,7 +147,10 @@ export default function Payments({ payments, filters, stats }: Props) {
                 <StatsStrip stats={stats} />
 
                 <div className="flex flex-wrap items-end justify-between gap-4 border-b">
-                    <nav aria-label="Estado" className="-mb-px flex gap-1">
+                    <nav
+                        aria-label="Estado"
+                        className="-mb-px flex max-w-full gap-1 overflow-x-auto"
+                    >
                         {TABS.map((tab) => (
                             <Link
                                 key={tab.value}
@@ -149,12 +166,15 @@ export default function Payments({ payments, filters, stats }: Props) {
                                         : undefined
                                 }
                                 className={cn(
-                                    'border-b-2 border-transparent px-2 pb-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                                    'shrink-0 border-b-2 border-transparent px-2 pb-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
                                     filters.status === tab.value &&
                                         'border-foreground font-medium text-foreground',
                                 )}
                             >
                                 {tab.label}
+                                {tab.value === 'por-validar' &&
+                                    toReview > 0 &&
+                                    ` (${toReview})`}
                             </Link>
                         ))}
                     </nav>
@@ -178,7 +198,9 @@ export default function Payments({ payments, filters, stats }: Props) {
                     <p className="rounded-xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
                         {filters.search !== ''
                             ? `No hay pagos de «${filters.search}».`
-                            : 'Todavía no hay pagos aquí.'}
+                            : filters.status === 'por-validar'
+                              ? 'No hay comprobantes por validar.'
+                              : 'Todavía no hay pagos aquí.'}
                     </p>
                 ) : (
                     <div className="overflow-hidden rounded-xl border">
@@ -243,7 +265,9 @@ export default function Payments({ payments, filters, stats }: Props) {
                                         <TableCell
                                             className={cn(
                                                 'text-right font-medium tabular-nums',
-                                                payment.status === 'voided' &&
+                                                (payment.status === 'voided' ||
+                                                    payment.status ===
+                                                        'rejected') &&
                                                     'text-muted-foreground line-through',
                                             )}
                                         >

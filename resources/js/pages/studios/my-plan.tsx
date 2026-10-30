@@ -1,8 +1,11 @@
-import { Head } from '@inertiajs/react';
-import { Ticket } from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Clock, Ticket, TriangleAlert } from 'lucide-react';
+import { create as buyPlan } from '@/actions/App/Http/Controllers/Studio/BuyPlanController';
 import { index as myPlanIndex } from '@/actions/App/Http/Controllers/Studio/MyPlanController';
 import Heading from '@/components/heading';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -20,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { formatClp } from '@/lib/money';
 import type { CurrentStudio, PlanSummary } from '@/types';
 
 type Purchase = {
@@ -46,6 +50,17 @@ type Movement = {
 
 type Props = {
     summary: PlanSummary | null;
+    /** The plan she paid by transfer, waiting for the studio. */
+    pendingPayment: {
+        planName: string | null;
+        amount: number;
+        sentOn: string;
+        receiptUrl: string;
+    } | null;
+    /** Her last receipt, if the studio rejected it. */
+    rejectedPayment: { planName: string | null; reason: string | null } | null;
+    /** The studio takes transfers and she has none waiting. */
+    canBuy: boolean;
     valid: Purchase[];
     past: Purchase[];
     movements: Movement[];
@@ -122,17 +137,88 @@ function ValidPlan({ purchase }: { purchase: Purchase }) {
     );
 }
 
-export default function MyPlan({ summary, valid, past, movements }: Props) {
+export default function MyPlan({
+    summary,
+    pendingPayment,
+    rejectedPayment,
+    canBuy,
+    valid,
+    past,
+    movements,
+}: Props) {
+    const { studio } = usePage().props;
+    const slug = studio?.slug ?? '';
+
     return (
         <>
             <Head title="Mi plan" />
 
             <div className="flex max-w-3xl flex-col gap-6 px-4 py-6">
-                <Heading
-                    className="mb-0"
-                    title="Mi plan"
-                    description="Cuántas clases te quedan, hasta cuándo valen y en qué las usaste."
-                />
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <Heading
+                        className="mb-0"
+                        title="Mi plan"
+                        description="Cuántas clases te quedan, hasta cuándo valen y en qué las usaste."
+                    />
+                    {canBuy && rejectedPayment === null && (
+                        <Button asChild variant="outline">
+                            <Link href={buyPlan(slug)}>Comprar plan</Link>
+                        </Button>
+                    )}
+                </div>
+
+                {pendingPayment && (
+                    <Alert>
+                        <Clock />
+                        <AlertTitle className="line-clamp-none">
+                            Tu pago de {pendingPayment.planName} está por
+                            validar
+                        </AlertTitle>
+                        <AlertDescription>
+                            <p>
+                                Enviaste el comprobante de{' '}
+                                {formatClp(pendingPayment.amount)} el{' '}
+                                {pendingPayment.sentOn}. Tu plan parte cuando el
+                                estudio lo valide.
+                            </p>
+                            <a
+                                href={pendingPayment.receiptUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-4"
+                            >
+                                Ver comprobante
+                            </a>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {rejectedPayment && (
+                    <Alert>
+                        <TriangleAlert />
+                        <AlertTitle className="line-clamp-none">
+                            El estudio rechazó tu comprobante de{' '}
+                            {rejectedPayment.planName}
+                        </AlertTitle>
+                        <AlertDescription className="grid gap-3">
+                            {rejectedPayment.reason && (
+                                <p>«{rejectedPayment.reason}»</p>
+                            )}
+                            {canBuy && (
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-fit"
+                                >
+                                    <Link href={buyPlan(slug)}>
+                                        Subir otro comprobante
+                                    </Link>
+                                </Button>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {summary === null ? (
                     <div className="grid justify-items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center">
@@ -142,8 +228,9 @@ export default function MyPlan({ summary, valid, past, movements }: Props) {
                         />
                         <p className="font-medium">No tienes un plan vigente</p>
                         <p className="text-sm text-muted-foreground">
-                            Cómpralo en el mesón del estudio para reservar tus
-                            clases.
+                            {canBuy
+                                ? 'Cómpralo aquí por transferencia o en el mesón del estudio para reservar tus clases.'
+                                : 'Cómpralo en el mesón del estudio para reservar tus clases.'}
                         </p>
                     </div>
                 ) : (

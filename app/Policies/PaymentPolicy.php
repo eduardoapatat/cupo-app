@@ -10,6 +10,17 @@ use Illuminate\Auth\Access\Response;
 class PaymentPolicy
 {
     /**
+     * The receipt holds the student's bank details: only whoever reviews
+     * payments and the student herself see it. Anyone else gets a 404.
+     */
+    public function viewReceipt(User $user, Payment $payment): Response
+    {
+        return $payment->user_id === $user->id || $user->can('payments.review', $payment->studio)
+            ? Response::allow()
+            : Response::denyAsNotFound();
+    }
+
+    /**
      * The front desk (payments.void_open) voids a payment while the register
      * it went into is still open. Once it closes, or for a payment outside
      * any register, only the owner (payments.void_closed) can, so whoever
@@ -25,9 +36,11 @@ class PaymentPolicy
             return Response::allow();
         }
 
-        $inAnOpenRegister = $payment->cashRegister !== null && ! $payment->cashRegister->isClosed();
+        if ($payment->cashRegister === null) {
+            return Response::deny(__('It came in from the app: only the owner can void it.'));
+        }
 
-        return $inAnOpenRegister && $user->can('payments.void_open', $payment->studio)
+        return ! $payment->cashRegister->isClosed() && $user->can('payments.void_open', $payment->studio)
             ? Response::allow()
             : Response::deny(__('Its register is already closed: only the owner can void it.'));
     }

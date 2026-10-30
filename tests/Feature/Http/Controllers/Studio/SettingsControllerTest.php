@@ -58,3 +58,23 @@ it('validates the studio data', function () {
         ->put(route('studios.settings.update', $studio), ['name' => '', 'commune' => 'nunoa'])
         ->assertSessionHasErrors(['name' => 'El campo nombre es obligatorio.']);
 });
+
+it('saves where students transfer to, and empty turns off buying from the app', function () {
+    $studio = Studio::factory()->create();
+    $carla = User::factory()->memberOf($studio, StudioRole::Owner)->create();
+    $route = route('studios.settings.transfer.update', $studio);
+
+    $this->actingAs($carla)
+        ->put($route, ['transfer_details' => "  Banco del Ejemplo\nCuenta 000123456  "])
+        ->assertRedirect(route('studios.settings.edit', $studio))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Guardado. Las alumnas los ven al comprar un plan desde la app.']);
+
+    expect($studio->fresh()->transfer_details)->toBe("Banco del Ejemplo\nCuenta 000123456");
+
+    $this->actingAs($carla)->put($route, ['transfer_details' => ' ']);
+
+    expect($studio->fresh()->transfer_details)->toBeNull();
+    $this->actingAs(User::factory()->memberOf($studio, StudioRole::FrontDesk)->create())
+        ->put($route, ['transfer_details' => 'Otra cuenta'])
+        ->assertForbidden();
+});

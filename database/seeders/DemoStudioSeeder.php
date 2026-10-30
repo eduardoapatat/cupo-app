@@ -15,10 +15,12 @@ use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\Commune;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\StudioRole;
 use App\Models\Booking;
 use App\Models\CashRegister;
 use App\Models\ClassSession;
+use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
@@ -27,6 +29,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class DemoStudioSeeder extends Seeder
 {
@@ -87,6 +90,7 @@ class DemoStudioSeeder extends Seeder
         $this->scheduleOf($flow);
         $this->plansOf($flow);
         $this->bookingsOf($flow);
+        $this->transfersOf($flow);
 
         $paula = User::factory()->create(['name' => 'Paula Vidal', 'email' => 'paula@example.com']);
         $sur = $createStudio->handle($paula, 'Estudio Sur', Commune::LaFlorida);
@@ -193,6 +197,32 @@ class DemoStudioSeeder extends Seeder
         app(SellPlan::class)->handle($small, $students['Catalina Vega'], $today, PaymentMethod::Card);
         $mistake = app(SellPlan::class)->handle($unlimited, $students['Martina Silva'], $today, PaymentMethod::Card);
         app(VoidPayment::class)->handle($mistake->payments()->sole(), $camila, 'Era para otra alumna: no se cobró en el POS.');
+    }
+
+    /**
+     * Estudio Flow takes transfers from the app, with fictional bank details,
+     * and Ignacia, whose plan expired, sent the receipt of a new one this
+     * morning: it waits for the front desk to review it.
+     */
+    private function transfersOf(Studio $flow): void
+    {
+        $flow->update(['transfer_details' => "Banco del Ejemplo\nCuenta corriente 000123456\nA nombre de Estudio Flow\nAvisa a pagos@example.com"]);
+
+        $ignacia = User::where('name', 'Ignacia Navarro')->sole();
+        $plan = $flow->plans()->where('name', '8 clases al mes')->sole();
+        $path = "receipts/{$flow->id}/demo-ignacia.png";
+        // A plain image marked as fictional, with no real bank on it.
+        Storage::put($path, (string) file_get_contents(database_path('seeders/files/comprobante-ficticio.png')));
+
+        $payment = new Payment([
+            'studio_id' => $flow->id,
+            'plan_id' => $plan->id,
+            'user_id' => $ignacia->id,
+            'amount' => $plan->price,
+            'method' => PaymentMethod::Transfer,
+            'receipt_path' => $path,
+        ]);
+        $payment->forceFill(['status' => PaymentStatus::ToReview])->save();
     }
 
     /**

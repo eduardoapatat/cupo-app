@@ -2,8 +2,9 @@ import { Badge } from '@/components/ui/badge';
 import type { PaymentRow } from '@/types';
 
 /**
- * The status of a payment. Achromatic: a voided one is outlined, never red,
- * because voiding is a correction, not an error.
+ * The status of a payment. Achromatic: one to review is filled, to stand
+ * out; a rejected or voided one is outlined, never red, because it is a
+ * correction, not an error.
  */
 export default function PaymentStatusBadge({
     payment,
@@ -12,7 +13,13 @@ export default function PaymentStatusBadge({
 }) {
     return (
         <Badge
-            variant={payment.status === 'approved' ? 'secondary' : 'outline'}
+            variant={
+                payment.status === 'to_review'
+                    ? 'default'
+                    : payment.status === 'approved'
+                      ? 'secondary'
+                      : 'outline'
+            }
         >
             {payment.voidedAfterClosing
                 ? 'Anulado después del cierre'

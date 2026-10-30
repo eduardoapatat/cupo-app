@@ -7,10 +7,11 @@ export type PaymentRow = {
     date: string;
     time: string;
     studentName: string;
+    /** The plan bought, or the one she chose while it waits. */
     planName: string | null;
     method: string;
     amount: number;
-    status: 'approved' | 'voided';
+    status: 'to_review' | 'approved' | 'rejected' | 'voided';
     statusLabel: string;
     /** Voided once its register was closed: it stays in its frozen totals. */
     voidedAfterClosing: boolean;

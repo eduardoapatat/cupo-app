@@ -30,14 +30,18 @@ class PaymentController extends Controller
      * The tabs, by the Spanish word in the URL.
      */
     private const array STATUSES = [
+        'por-validar' => PaymentStatus::ToReview,
         'aprobados' => PaymentStatus::Approved,
+        'rechazados' => PaymentStatus::Rejected,
         'anulados' => PaymentStatus::Voided,
     ];
 
     #[Authorize('payments.review', 'studio')]
     public function index(Request $request, Studio $studio): Response
     {
-        $status = $request->string('estado')->toString();
+        $toReview = $studio->payments()->where('status', PaymentStatus::ToReview)->count();
+        // With receipts waiting, those come first.
+        $status = $request->string('estado', $toReview > 0 ? 'por-validar' : 'todos')->toString();
         $statusFilter = self::STATUSES[$status] ?? null;
         $status = $statusFilter === null ? 'todos' : $status;
         $search = mb_substr(trim($request->string('buscar')->toString()), 0, 100);
@@ -47,7 +51,7 @@ class PaymentController extends Controller
         $payments = $studio->payments()
             ->when($statusFilter, fn (Builder $query, PaymentStatus $filter) => $query->where('status', $filter))
             ->when($search !== '', fn (Builder $query) => $query->whereHas('user', fn (Builder $user) => $user->matchingSearch($search)))
-            ->with(['user', 'planPurchase', 'cashRegister'])
+            ->with(['user', 'plan', 'planPurchase', 'cashRegister'])
             ->latest('id')
             ->paginate(25)
             ->withQueryString();
@@ -55,6 +59,7 @@ class PaymentController extends Controller
         return Inertia::render('studios/payments', [
             'payments' => $payments->through(fn (Payment $payment): array => $this->presentPayment($payment)),
             'filters' => ['status' => $status, 'search' => $search],
+            'toReview' => $toReview,
             'stats' => [
                 'today' => (int) $approved()->where('created_at', '>=', now($timezone)->startOfDay()->utc())->sum('amount'),
                 'month' => (int) $approved()->where('created_at', '>=', now($timezone)->startOfMonth()->utc())->sum('amount'),
@@ -69,7 +74,7 @@ class PaymentController extends Controller
     #[Authorize('payments.review', 'studio')]
     public function show(Studio $studio, Payment $payment, #[CurrentUser] User $user, VoidPayment $voidPayment): Response
     {
-        $payment->load(['user', 'planPurchase', 'cashRegister.user', 'receivedBy', 'voidedBy']);
+        $payment->load(['user', 'plan', 'planPurchase', 'cashRegister.user', 'receivedBy', 'reviewedBy', 'voidedBy']);
         $purchase = $payment->planPurchase;
         $timezone = config()->string('studio.timezone');
         $membership = $studio->memberships()->where('user_id', $payment->user_id)->first();
@@ -80,12 +85,21 @@ class PaymentController extends Controller
                 ...$this->presentPayment($payment),
                 'takenAt' => $payment->created_at?->timezone($timezone)->translatedFormat('l j \d\e F, H:i'),
                 'receivedBy' => $payment->receivedBy?->name,
+                'receipt' => $payment->receipt_path === null ? null : [
+                    'url' => route('studios.payments.receipt', [$studio, $payment], absolute: false),
+                    'isPdf' => str_ends_with($payment->receipt_path, '.pdf'),
+                ],
+                'reviewed' => $payment->reviewed_at === null ? null : [
+                    'by' => $payment->reviewedBy?->name,
+                    'at' => $payment->reviewed_at->timezone($timezone)->translatedFormat('l j \d\e F, H:i'),
+                ],
                 'studentProfileId' => $membership?->id,
                 'register' => $payment->cashRegister === null ? null : [
                     'personName' => $payment->cashRegister->user->name ?? __('Former team member'),
                     'day' => $payment->cashRegister->business_date->translatedFormat('l j \d\e F'),
                     'isClosed' => $payment->cashRegister->isClosed(),
                 ],
+                'rejectionReason' => $payment->status === PaymentStatus::Rejected ? $payment->status_reason : null,
                 'voided' => $payment->voided_at === null ? null : [
                     'by' => $payment->voidedBy?->name,
                     'at' => $payment->voided_at->timezone($timezone)->translatedFormat('l j \d\e F, H:i'),
@@ -103,6 +117,7 @@ class PaymentController extends Controller
                     'upcomingBookings' => $purchase->isCancelled() ? 0 : $voidPayment->upcomingBookings($purchase)->count(),
                 ],
             ],
+            'canReview' => $payment->status === PaymentStatus::ToReview,
             'canVoid' => $voiding->allowed(),
             // Why she cannot void it, when she could void others.
             'voidDenied' => $voiding->denied() && $user->can('payments.void_open', $studio) && $payment->status === PaymentStatus::Approved

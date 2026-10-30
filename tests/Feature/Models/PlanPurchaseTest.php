@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Payment;
+use App\Models\Plan;
 use App\Models\PlanPurchase;
 use Illuminate\Support\Facades\DB;
 
@@ -33,3 +34,17 @@ it('voids a payment only with its date and reason', function (array $values) {
     'a date while approved' => [['voided_at' => now()]],
     'an unknown status' => [['status' => 'refunded']],
 ]);
+
+it('keeps a receipt to review without a purchase, and one at a time per student', function () {
+    $payment = Payment::factory()->create();
+    $toReview = ['status' => 'to_review', 'plan_purchase_id' => null, 'plan_id' => Plan::factory()->create()->id, 'receipt_path' => 'receipts/1/a.png'];
+
+    expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update(['plan_purchase_id' => null]), '23514');
+    expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update([...$toReview, 'receipt_path' => null]), '23514');
+    expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update(['status' => 'rejected', 'plan_purchase_id' => null]), '23514');
+
+    DB::table('payments')->where('id', $payment->id)->update($toReview);
+    $second = Payment::factory()->create(['studio_id' => $payment->studio_id, 'user_id' => $payment->user_id]);
+
+    expectSqlState(fn () => DB::table('payments')->where('id', $second->id)->update($toReview), '23505');
+});

@@ -49,7 +49,7 @@ class CashRegisterController extends Controller
             'register' => $current === null ? null : [
                 ...$this->present($current),
                 'payments' => $current->payments()
-                    ->with(['user', 'planPurchase', 'cashRegister'])
+                    ->with(['user', 'plan', 'planPurchase', 'cashRegister'])
                     ->latest('id')
                     ->get()
                     ->map(fn (Payment $payment): array => $this->presentPayment($payment)),
