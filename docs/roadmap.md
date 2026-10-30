@@ -82,18 +82,18 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
 
 ## Fase 3: planes, créditos, pagos y caja _(en curso)_
 
-Decisiones de la fase: primero las clases y después la plata; dos planes vigentes conviven y cada reserva usa el que vence antes; la clase tiene que caer dentro de la vigencia del plan; la lista de espera se salta a quien no tiene clases; recepción vende a precio de lista y solo la dueña cambia el precio, con motivo.
+Decisiones de la fase: primero las clases y después la plata; dos planes vigentes conviven y cada reserva usa el que vence antes; la clase tiene que caer dentro de la vigencia del plan; la lista de espera se salta a quien no tiene clases; recepción vende a precio de lista y solo la dueña cambia el precio, con motivo; la alumna sube el comprobante de su transferencia desde la app y su plan parte cuando el estudio lo aprueba; anular un pago anula su plan entero; para vender hay que tener la caja abierta, y una olvidada se cierra antes de abrir otra.
 
 - [x] **3.1 "Planes y clases disponibles"**:
     - «Planes» (lista con panel), «Vender plan» (una página con resumen) y la pestaña «Plan y pagos» en la ficha de la alumna;
     - reservar descuenta 1 clase del plan que vence antes, con la fila del plan bloqueada y un `UPDATE` condicional (ADR 0008) y un test de varios procesos; cancelar a tiempo, devolverla o cancelar la clase la devuelven, y queda cada movimiento;
     - «Mi plan», el estado «sin plan» en «Reservar» y en la Agenda, y los bloques de la alumna en el Inicio;
     - los planes y las compras de Estudio Flow en la demo.
-- [ ] **3.2 "Caja y pagos"**:
-    - caja por persona y día: apertura, cierre con totales por medio y la diferencia del efectivo; vender cobra en la caja abierta;
-    - transferencias con comprobante (subida de archivos) que valida recepción o la dueña;
-    - máquina de estados del pago (pendiente → por validar → aprobado, rechazado o anulado), anulaciones con motivo y una caja cerrada que solo toca la dueña;
-    - «Pagos», «Caja» y los bloques del Inicio de recepción y de la dueña.
+- [x] **3.2 "Caja y pagos"**:
+    - caja por persona y día: apertura con el efectivo inicial, cierre con los totales por medio y la diferencia del efectivo (con nota si no cuadra); vender cobra en la caja abierta de hoy, y una olvidada se cierra antes de abrir otra. Un trigger con `FOR SHARE` garantiza que un pago entra en los totales o se rechaza, nunca queda en una caja cerrada (ADR 0009), con un test de varios procesos;
+    - la alumna compra desde la app por transferencia y sube el comprobante (disco privado); recepción o la dueña lo aprueban, lo que crea su plan desde ese día, o lo rechazan con motivo; revisarlo a la vez no crea dos planes;
+    - estados del pago (por validar → aprobado o rechazado; un aprobado se anula), anulaciones con motivo que anulan el plan y cancelan sus reservas que vienen; recepción anula solo en una caja abierta y la dueña, cualquiera (`cash.review` para ver las cajas del equipo);
+    - «Caja», «Pagos» con el detalle de cada pago, «Comprar plan», los datos para transferir en «Estudio», el descuento en la ficha y los bloques del Inicio de recepción y de la dueña.
 - [ ] **3.3 "Vencimientos, reportes y Webpay"**:
     - el vencimiento de planes con el scheduler;
     - «Reportes» e ingresos del mes;
