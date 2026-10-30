@@ -35,8 +35,8 @@ function planBookingInAnotherProcess(int $sessionId, int $studentId, float $star
 }
 
 /**
- * Two classes of the same studio on the same day, three hours apart, and
- * the student's plan.
+ * Two classes of the same studio on the same day in Santiago, at 10:00 and
+ * 13:00, and the student's plan.
  *
  * @param  array<string, mixed>  $plan
  * @return array{0: list<int>, 1: PlanPurchase}
@@ -44,7 +44,7 @@ function planBookingInAnotherProcess(int $sessionId, int $studentId, float $star
 function twoClassesAndAPlan(array $plan): array
 {
     $studio = Studio::factory()->create();
-    $startsAt = now()->addDays(2)->startOfHour();
+    $startsAt = now(config()->string('studio.timezone'))->addDays(2)->setTime(10, 0)->utc();
     $sessionIds = collect([0, 3])->map(fn (int $hours): int => ClassSession::factory()->for($studio)->create([
         'instructor_id' => User::factory(),
         'starts_at' => $startsAt->addHours($hours),
