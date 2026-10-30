@@ -4,12 +4,18 @@ import { index as myPlanIndex } from '@/actions/App/Http/Controllers/Studio/MyPl
 import { index as mySessionsIndex } from '@/actions/App/Http/Controllers/Studio/MySessionsController';
 import Heading from '@/components/heading';
 import Arrivals from '@/components/home/arrivals';
+import CashRegisterSummary from '@/components/home/cash-register-summary';
 import NextBooking from '@/components/home/next-booking';
+import OwnerAlerts from '@/components/home/owner-alerts';
+import ReceiptsToReview from '@/components/home/receipts-to-review';
 import TodaySessions, { occupancy } from '@/components/home/today-sessions';
 import type {
     Arrival,
+    CashRegisterSummary as RegisterSummary,
     HomeSession,
     NextBookingSummary,
+    OwnerAlerts as Alerts,
+    ReceiptsToReviewSummary,
 } from '@/components/home/types';
 import TeachingSessionCard from '@/components/teaching-session-card';
 import type { TeachingSession } from '@/components/teaching-session-card';
@@ -50,26 +56,29 @@ type Props = {
     nextBooking: NextBookingSummary | null;
     waitingCount: number | null;
     planSummary: PlanSummary | null;
+    receiptsToReview: ReceiptsToReviewSummary | null;
+    cashRegister: RegisterSummary | null;
+    alerts: Alerts | null;
 };
 
 /** For a student without a valid plan, where to see hers. */
 function NoPlan({ slug }: { slug: string }) {
     return (
         <p className="text-sm text-muted-foreground">
-            No tienes un plan vigente. Cómpralo en el mesón.{' '}
+            No tienes un plan vigente.{' '}
             <Link
                 href={myPlanIndex(slug)}
                 className="text-foreground underline underline-offset-4"
             >
-                Mi plan
+                Ver cómo comprarlo
             </Link>
         </p>
     );
 }
 
 /*
- * What each block is about (docs/roles-y-permisos.md). The ones of phase 3
- * show as «Pronto» until plans, payments and the cash register exist.
+ * What each block is about (docs/roles-y-permisos.md). The month's income
+ * shows as «Pronto» until the reports of checkpoint 3.3.
  */
 const BLOCK_TEXT: Record<BlockKey, { title: string; description: string }> = {
     'today-occupancy': {
@@ -151,6 +160,24 @@ export default function StudioHome(props: Props) {
                 );
             case 'arrivals':
                 return <Arrivals slug={slug} arrival={props.arrivals} />;
+            case 'alerts':
+                return props.alerts ? (
+                    <OwnerAlerts slug={slug} alerts={props.alerts} />
+                ) : null;
+            case 'receipts-to-review':
+                return props.receiptsToReview ? (
+                    <ReceiptsToReview
+                        slug={slug}
+                        receipts={props.receiptsToReview}
+                    />
+                ) : null;
+            case 'cash-register':
+                return props.cashRegister ? (
+                    <CashRegisterSummary
+                        slug={slug}
+                        register={props.cashRegister}
+                    />
+                ) : null;
             case 'teaching-today':
                 return props.teachingToday?.length ? (
                     <ul className="grid gap-3">

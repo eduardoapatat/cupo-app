@@ -1,14 +1,23 @@
 <?php
 
 use App\Actions\Bookings\CancelSession;
+use App\Actions\CashRegisters\CloseCashRegister;
+use App\Actions\Payments\SubmitTransferReceipt;
+use App\Actions\Payments\VoidPayment;
+use App\Actions\Plans\SellPlan;
+use App\Enums\PaymentMethod;
 use App\Enums\StudioRole;
+use App\Models\CashRegister;
 use App\Models\ClassSession;
 use App\Models\ClassType;
+use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
 use App\Models\WaitlistEntry;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -46,7 +55,7 @@ it('shows the studio home to every member', function (StudioRole $role) {
         ->assertInertia(fn (Assert $page) => $page->component('studios/home'));
 })->with(StudioRole::cases());
 
-it('gives each role its blocks in order, with the ones of phase 3 still to come', function (StudioRole $role, array $blocks) {
+it('gives each role its blocks in order, with the month\'s income still to come', function (StudioRole $role, array $blocks) {
     $studio = Studio::factory()->create();
 
     $this->actingAs(User::factory()->memberOf($studio, $role)->create())
@@ -55,14 +64,14 @@ it('gives each role its blocks in order, with the ones of phase 3 still to come'
 })->with([
     'owner' => [StudioRole::Owner, [
         ['key' => 'today-occupancy', 'isBuilt' => true],
-        ['key' => 'alerts', 'isBuilt' => false],
+        ['key' => 'alerts', 'isBuilt' => true],
         ['key' => 'month-income', 'isBuilt' => false],
     ]],
     'front desk' => [StudioRole::FrontDesk, [
         ['key' => 'today-sessions', 'isBuilt' => true],
         ['key' => 'arrivals', 'isBuilt' => true],
-        ['key' => 'receipts-to-review', 'isBuilt' => false],
-        ['key' => 'cash-register', 'isBuilt' => false],
+        ['key' => 'receipts-to-review', 'isBuilt' => true],
+        ['key' => 'cash-register', 'isBuilt' => true],
     ]],
     'instructor' => [StudioRole::Instructor, [['key' => 'teaching-today', 'isBuilt' => true]]],
     'student' => [StudioRole::Student, [
@@ -181,6 +190,59 @@ it('tells the student how many classes she has left and until when', function ()
             'lastDay' => 'martes 1 de diciembre',
             'daysLeft' => 30,
         ]));
+});
+
+it('shows the front desk the receipts to review and the state of her register', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 16:00', 'America/Santiago'));
+    $studio = Studio::factory()->create(['transfer_details' => 'Banco del Ejemplo']);
+    $camila = User::factory()->memberOf($studio, StudioRole::FrontDesk)->create();
+    $plan = Plan::factory()->for($studio)->create(['name' => '8 clases al mes', 'price' => 45000]);
+    Storage::fake();
+    app(SubmitTransferReceipt::class)->handle($plan, User::factory()->create(['name' => 'Ignacia Navarro']), UploadedFile::fake()->image('comprobante.png'));
+    $page = fn () => $this->actingAs($camila)->get(route('studios.home', $studio));
+
+    $page()->assertInertia(fn (Assert $page) => $page
+        ->where('receiptsToReview.count', 1)
+        ->where('receiptsToReview.oldest.0.studentName', 'Ignacia Navarro')
+        ->where('cashRegister', ['state' => 'none'])
+        ->where('alerts', null));
+
+    $register = CashRegister::factory()->for($studio)->for($camila)->onDaysAgo(1)->create();
+    $page()->assertInertia(fn (Assert $page) => $page->where('cashRegister.state', 'stale'));
+
+    $register->delete();
+    $today = CashRegister::factory()->for($studio)->for($camila)->create();
+    app(SellPlan::class)->handle($plan, User::factory()->create(), $today, PaymentMethod::Card);
+    $page()->assertInertia(fn (Assert $page) => $page
+        ->where('cashRegister.state', 'open')
+        ->where('cashRegister.totals', ['cash' => 0, 'card' => 45000, 'transfer' => 0]));
+});
+
+it('alerts the owner of receipts, registers left open or short, and today\'s voids', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 16:00', 'America/Santiago'));
+    $studio = Studio::factory()->create();
+    $carla = User::factory()->memberOf($studio, StudioRole::Owner)->create();
+    $camila = User::factory()->create(['name' => 'Camila Soto']);
+    $forgotten = CashRegister::factory()->for($studio)->for($camila)->onDaysAgo(2)->create();
+    $short = CashRegister::factory()->for($studio)->for($carla)->onDaysAgo(1)->create(['opening_cash' => 20000]);
+    app(CloseCashRegister::class)->handle($short, 18000, 'Faltó sencillo');
+    CashRegister::factory()->for($studio)->for($carla)->onDaysAgo(9)->closed()->create();
+    $today = CashRegister::factory()->for($studio)->for($carla)->create();
+    $sold = app(SellPlan::class)->handle(Plan::factory()->for($studio)->create(['price' => 28000]), User::factory()->create(['name' => 'Rosa Fuentes']), $today, PaymentMethod::Cash);
+    app(VoidPayment::class)->handle($sold->payments()->sole(), $carla, 'Error');
+
+    $this->actingAs($carla)
+        ->get(route('studios.home', $studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('alerts.receiptsToReview', 0)
+            ->where('alerts.openRegisters.0.personName', 'Camila Soto')
+            ->has('alerts.openRegisters', 1)
+            ->where('alerts.registersWithDifference', fn ($registers) => collect($registers)->map(fn ($register) => [$register['difference'], $register['note']])->all() === [[-2000, 'Faltó sencillo']])
+            ->where('alerts.voidedToday.0.studentName', 'Rosa Fuentes')
+            ->where('alerts.voidedToday.0.reason', 'Error')
+            ->where('receiptsToReview', null));
+
+    expect($forgotten->refresh()->isClosed())->toBeFalse();
 });
 
 it('answers 404 to people outside the studio', function () {

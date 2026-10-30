@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Concerns\PresentsAttendees;
+use App\Concerns\PresentsPayments;
 use App\Concerns\PresentsPlanSummary;
 use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
+use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\CashRegister;
 use App\Models\ClassSession;
+use App\Models\Payment;
 use App\Models\Studio;
 use App\Models\User;
 use App\Navigation\HomeBlock;
@@ -25,6 +29,7 @@ use Inertia\Response;
 class HomeController extends Controller
 {
     use PresentsAttendees;
+    use PresentsPayments;
     use PresentsPlanSummary;
 
     public function __invoke(Studio $studio, #[CurrentUser] User $user): Response
@@ -45,7 +50,108 @@ class HomeController extends Controller
             'waitingCount' => $shows(HomeBlock::NextBooking)
                 ? $user->waitlistEntries()->waiting()->whereIn('class_session_id', $studio->classSessions()->upcoming()->select('id'))->count()
                 : null,
+            'receiptsToReview' => $shows(HomeBlock::ReceiptsToReview) ? $this->receiptsToReview($studio) : null,
+            'cashRegister' => $shows(HomeBlock::CashRegister) ? $this->cashRegister($studio, $user) : null,
+            'alerts' => $shows(HomeBlock::Alerts) ? $this->alerts($studio) : null,
         ]);
+    }
+
+    /**
+     * How many transfer receipts wait, and the oldest three, first come
+     * first served.
+     *
+     * @return array{count: int, oldest: array<int, array<string, mixed>>}
+     */
+    private function receiptsToReview(Studio $studio): array
+    {
+        $toReview = $studio->payments()->where('status', PaymentStatus::ToReview);
+
+        return [
+            'count' => (clone $toReview)->count(),
+            'oldest' => $toReview->with(['user', 'plan', 'planPurchase', 'cashRegister'])
+                ->oldest('id')
+                ->limit(3)
+                ->get()
+                ->map(fn (Payment $payment): array => $this->presentPayment($payment))
+                ->all(),
+        ];
+    }
+
+    /**
+     * Her register: none yet today, open (with what it took in), closed, or
+     * one of another day still open, to close first.
+     *
+     * @return array<string, mixed>
+     */
+    private function cashRegister(Studio $studio, User $user): array
+    {
+        $open = $user->cashRegisters()->where('studio_id', $studio->id)->open()->first();
+        $register = $open ?? $user->cashRegisters()->where('studio_id', $studio->id)->today()->first();
+
+        if ($register === null) {
+            return ['state' => 'none'];
+        }
+
+        return [
+            'state' => match (true) {
+                $register->isClosed() => 'closed',
+                $register->isToday() => 'open',
+                default => 'stale',
+            },
+            'day' => $register->business_date->translatedFormat('l j \d\e F'),
+            'openedAt' => $register->opened_at->timezone(config()->string('studio.timezone'))->format('H:i'),
+            'totals' => $register->totals(),
+            'difference' => $register->difference(),
+        ];
+    }
+
+    /**
+     * What the owner should look at: receipts waiting, registers left open
+     * on another day, registers that did not match in the last week, and
+     * today's voids.
+     *
+     * @return array<string, mixed>
+     */
+    private function alerts(Studio $studio): array
+    {
+        $timezone = config()->string('studio.timezone');
+        $today = now($timezone)->toDateString();
+        $weekAgo = now($timezone)->subDays(7)->toDateString();
+        $present = fn (CashRegister $register): array => [
+            'id' => $register->id,
+            'personName' => $register->user->name ?? __('Former team member'),
+            'day' => $register->business_date->translatedFormat('l j \d\e F'),
+            'difference' => $register->difference(),
+            'note' => $register->closing_note,
+        ];
+
+        return [
+            'receiptsToReview' => $studio->payments()->where('status', PaymentStatus::ToReview)->count(),
+            'openRegisters' => $studio->cashRegisters()->open()->whereDate('business_date', '<', $today)->with('user')->orderBy('business_date')->get()->map($present)->all(),
+            'registersWithDifference' => $studio->cashRegisters()
+                ->whereNotNull('closed_at')
+                ->whereColumn('counted_cash', '!=', 'expected_cash')
+                ->whereDate('business_date', '>=', $weekAgo)
+                ->with('user')
+                ->orderByDesc('business_date')
+                ->get()
+                ->map($present)
+                ->all(),
+            'voidedToday' => $studio->payments()
+                ->where('status', PaymentStatus::Voided)
+                ->where('voided_at', '>=', now($timezone)->startOfDay()->utc())
+                ->with(['user', 'voidedBy'])
+                ->latest('voided_at')
+                ->get()
+                ->map(fn (Payment $payment): array => [
+                    'id' => $payment->id,
+                    'studentName' => $payment->user->name,
+                    'amount' => $payment->amount,
+                    'voidedBy' => $payment->voidedBy?->name,
+                    'reason' => $payment->status_reason,
+                ])
+                ->all(),
+        ];
     }
 
     /**

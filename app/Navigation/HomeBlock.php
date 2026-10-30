@@ -46,6 +46,6 @@ enum HomeBlock: string
      */
     public function isBuilt(): bool
     {
-        return in_array($this, [self::TodayOccupancy, self::TodaySessions, self::Arrivals, self::TeachingToday, self::NextBooking, self::ClassesLeft, self::PlanExpiry], true);
+        return $this !== self::MonthIncome;
     }
 }

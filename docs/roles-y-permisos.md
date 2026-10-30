@@ -31,14 +31,14 @@ Cada permiso sale de uno de estos principios:
 
 ### Qué ve al entrar
 
-Cada rol llega al **Inicio** de su estudio. Los bloques salen de `StudioRole::homeBlocks()`, y cada uno exige el permiso de sus datos. Los de la Fase 3 se ven con «Pronto».
+Cada rol llega al **Inicio** de su estudio. Los bloques salen de `StudioRole::homeBlocks()`, y cada uno exige el permiso de sus datos. Los ingresos del mes se ven con «Pronto» hasta el punto 3.3.
 
-| Rol        | Al entrar ve                                                                                                                                  |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dueña      | Ocupación de hoy, alertas: comprobantes pendientes, cajas con diferencia y anulaciones del día _(Fase 3)_, e ingresos del mes _(Fase 3)_      |
-| Recepción  | Clases de hoy, alumnas que llegan (a la clase en curso o a la próxima), comprobantes por validar _(Fase 3)_ y el estado de su caja _(Fase 3)_ |
-| Instructor | Sus clases de hoy, con quiénes vienen y la asistencia                                                                                         |
-| Alumna     | Su próxima clase (y si está en alguna lista de espera), cuántas clases le quedan _(Fase 3)_ y cuándo vence su plan _(Fase 3)_                 |
+| Rol        | Al entrar ve                                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dueña      | Ocupación de hoy, alertas (comprobantes por validar, cajas de otro día sin cerrar, cajas con diferencia de la última semana y anulaciones del día) e ingresos del mes _(punto 3.3)_ |
+| Recepción  | Clases de hoy, alumnas que llegan (a la clase en curso o a la próxima), comprobantes por validar (los tres más antiguos) y el estado de su caja, con lo cobrado por medio           |
+| Instructor | Sus clases de hoy, con quiénes vienen y la asistencia                                                                                                                               |
+| Alumna     | Su próxima clase (y si está en alguna lista de espera), cuántas clases le quedan y cuándo vence su plan                                                                             |
 
 ### Menú
 
