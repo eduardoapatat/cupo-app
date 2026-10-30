@@ -299,7 +299,7 @@ function RegisterNotice({
     return (
         <Alert>
             <Wallet />
-            <AlertTitle>{notice.title}</AlertTitle>
+            <AlertTitle className="line-clamp-none">{notice.title}</AlertTitle>
             <AlertDescription className="grid gap-3">
                 <p>{notice.description}</p>
                 <Button asChild variant="outline" size="sm" className="w-fit">

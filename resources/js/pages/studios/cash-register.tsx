@@ -507,7 +507,7 @@ function MyRegister({
                     {!register.isClosed && !register.isToday && (
                         <Alert>
                             <Wallet />
-                            <AlertTitle>
+                            <AlertTitle className="line-clamp-none">
                                 Tu caja del {register.day} sigue abierta
                             </AlertTitle>
                             <AlertDescription>
