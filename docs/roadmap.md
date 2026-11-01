@@ -100,27 +100,36 @@ Decisiones de la fase: primero las clases y después la plata; un plan a la vez:
     - «Reportes» de la dueña, por mes: ingresos por día, medio y plan, descuentos y anulaciones; ocupación por horario y asistencia; alumnas con plan; planes que vencen en 7 días. «Ingresos del mes» en su Inicio;
     - Webpay Plus en integración, con el cliente HTTP de Laravel: confirmación con la fila bloqueada (dos a la vez crean un solo plan, con un test de varios procesos), la vuelta por `POST` sin sesión, `webpay:reconcile` cada 5 minutos y la devolución a la tarjeta al anular (ADR 0010).
 
-## Fase 4: automatizaciones
+## Cierre ✅
 
-- [ ] Recordatorios de clase, avisos de la lista de espera y aviso de vencimiento 3 días antes (por correo; en pantalla ya está desde el punto 3.3).
-- [ ] Resumen diario para la dueña.
-- [ ] Evaluar mostrar dentro de la app las invitaciones pendientes al correo de la persona (hoy llegan solo por correo).
-- [ ] Eventos, listeners, notificaciones en cola y jobs programados con `withoutOverlapping()`.
+El proyecto se cerró el 1 de noviembre de 2026, con las fases 0 a 3 terminadas:
 
-## Fase 5: API REST
-
-- [ ] Sanctum, los endpoints de la alumna, API Resources, paginación y rate limiting.
-- [ ] Documentación OpenAPI.
-
-## Fase 6: calidad
-
-- [ ] Arch tests de Pest y cobertura en CI.
-- [ ] Licencia MIT.
-
-## Fase 7: demo en línea
-
-- [ ] Seeders de la demo y cuentas con acceso de un clic.
-- [ ] Modo demo y reinicio cada noche.
-- [ ] Correos reales, despliegue y el README final.
+- [x] El README final, con capturas, cómo correrlo, las cuentas demo y lo destacado.
+- [x] La licencia MIT.
+- [x] La insignia del CI en el README.
 - [x] Repositorio público: se adelantó al 28 de octubre de 2026, con autorización explícita, junto con su descripción y sus temas en GitHub.
-- [ ] Insignia del CI en el README.
+- [x] Después del punto 3.3, a partir de las pruebas de recorrido:
+    - «Vender plan» en tres pasos;
+    - la caja con la misma forma abierta o cerrada, y el conteo por billete y moneda;
+    - «Mis clases», donde se elige una clase y se pasa lista con «Guardar»;
+    - la asistencia desde 15 minutos antes;
+    - un plan a la vez, con el siguiente en espera (ADR 0011);
+    - el turquesa como color de marca.
+
+## Ideas futuras (fuera del alcance)
+
+Quedaron planeadas, pero no se hicieron:
+
+- **Automatizaciones:**
+    - recordatorios de clase por correo;
+    - avisos de la lista de espera;
+    - el aviso de vencimiento por correo (en pantalla ya existe);
+    - un resumen diario para la dueña;
+    - las invitaciones pendientes dentro de la app.
+- **Terminar un plan y devolver lo no usado:** hoy anular deshace la venta completa y sirve para errores de cobro.
+- **API REST** con Sanctum, para la alumna, documentada con OpenAPI.
+- **Calidad:** tests de arquitectura de Pest y cobertura en el CI.
+- **Demo en línea:**
+    - despliegue, con correos reales;
+    - cuentas con acceso de un clic;
+    - un modo demo que se reinicia cada noche.
