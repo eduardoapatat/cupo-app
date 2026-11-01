@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Check, ChevronsUpDown } from 'lucide-react';
+import AppearanceMenu from '@/components/appearance-menu';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,9 +41,7 @@ function StudioSwitcher() {
 
     if (studios.length < 2) {
         return (
-            <p className="ml-auto flex shrink-0 items-center gap-2 text-sm">
-                {label}
-            </p>
+            <p className="flex shrink-0 items-center gap-2 text-sm">{label}</p>
         );
     }
 
@@ -51,7 +50,7 @@ function StudioSwitcher() {
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
-                    className="ml-auto shrink-0 gap-2 px-2 font-normal"
+                    className="shrink-0 gap-2 px-2 font-normal"
                     aria-label={`Cambiar de estudio. Estás en ${studio.name} como ${studio.roleLabel}`}
                 >
                     {label}
@@ -100,7 +99,10 @@ export function AppSidebarHeader({
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
 
-            <StudioSwitcher />
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+                <StudioSwitcher />
+                <AppearanceMenu />
+            </div>
         </header>
     );
 }
