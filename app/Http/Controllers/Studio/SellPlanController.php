@@ -128,9 +128,10 @@ class SellPlanController extends Controller
 
     /**
      * Whether she can sell now: her register of today is open, she has none
-     * yet, she already closed it, or one of another day is still open.
+     * yet, she already closed it, or one of another day is still open. An
+     * open one says since when.
      *
-     * @return array{state: 'open'|'none'|'closed'|'stale', day: string|null}
+     * @return array{state: 'open'|'none'|'closed'|'stale', day: string|null, openedAt: string|null}
      */
     private function registerState(Studio $studio, User $user): array
     {
@@ -138,13 +139,13 @@ class SellPlanController extends Controller
 
         if ($open !== null) {
             return $open->isToday()
-                ? ['state' => 'open', 'day' => null]
-                : ['state' => 'stale', 'day' => $open->business_date->translatedFormat('l j \d\e F')];
+                ? ['state' => 'open', 'day' => null, 'openedAt' => $open->opened_at->timezone(config()->string('studio.timezone'))->format('H:i')]
+                : ['state' => 'stale', 'day' => $open->business_date->translatedFormat('l j \d\e F'), 'openedAt' => null];
         }
 
         $closedToday = $user->cashRegisters()->where('studio_id', $studio->id)->today()->exists();
 
-        return ['state' => $closedToday ? 'closed' : 'none', 'day' => null];
+        return ['state' => $closedToday ? 'closed' : 'none', 'day' => null, 'openedAt' => null];
     }
 
     private function studentMembership(Studio $studio, int $userId): ?Membership

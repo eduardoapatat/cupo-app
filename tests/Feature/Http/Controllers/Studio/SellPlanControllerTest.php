@@ -46,7 +46,7 @@ it('shows the plans on sale, with the last day if sold today, and the student as
             ->where('student.name', 'Javiera Morales')
             ->where('student.plans', [['name' => '4 clases', 'creditsLeft' => 2, 'lastDay' => '27 de noviembre']])
             ->where('canChangePrice', false)
-            ->where('register', ['state' => 'open', 'day' => null])
+            ->where('register', ['state' => 'open', 'day' => null, 'openedAt' => '16:00'])
             ->has('methods', 3));
 });
 
@@ -79,7 +79,7 @@ it('sells only into her open register of today', function (Closure $register, st
 
     $this->actingAs($this->camila)
         ->get(route('studios.sell.create', $this->studio))
-        ->assertInertia(fn (Assert $page) => $page->where('register', ['state' => $state, 'day' => $day]));
+        ->assertInertia(fn (Assert $page) => $page->where('register', ['state' => $state, 'day' => $day, 'openedAt' => null]));
     $this->actingAs($this->camila)
         ->post(route('studios.sell.store', $this->studio), saleForm($this->javiera->id, $this->plan->id))
         ->assertRedirect()

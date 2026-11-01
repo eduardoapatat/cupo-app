@@ -1,6 +1,6 @@
-import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { Search, Wallet } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowLeft, ArrowRight, Check, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import {
     create as sellCreate,
     store as sellStore,
@@ -10,7 +10,7 @@ import { index as cashRegisterIndex } from '@/actions/App/Http/Controllers/Studi
 import Heading from '@/components/heading';
 import InitialsAvatar from '@/components/initials-avatar';
 import InputError from '@/components/input-error';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -67,6 +67,8 @@ type Props = {
         state: 'open' | 'none' | 'closed' | 'stale';
         /** The day of a register left open on another day. */
         day: string | null;
+        /** Since when today's register is open. */
+        openedAt: string | null;
     };
 };
 
@@ -214,6 +216,12 @@ function StudentPicker({
                     placeholder="Nombre, celular o correo"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
+                    onKeyDown={(event) => {
+                        // Enter searches; it never submits the sale.
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                        }
+                    }}
                     autoComplete="off"
                     className="pl-9"
                 />
@@ -268,45 +276,135 @@ function StudentPicker({
     );
 }
 
-/** Why she cannot sell yet, and where to fix it. */
-function RegisterNotice({
+/**
+ * Her cash register, next to the title: open since when, or what to do
+ * before selling. A filled dot is open; a hollow one, not.
+ */
+function RegisterStatus({
     slug,
     register,
 }: {
     slug: string;
     register: Props['register'];
 }) {
-    const notice = {
-        none: {
-            title: 'Abre tu caja para vender',
-            description: 'Lo que cobres hoy entra en tu caja.',
-            action: 'Abrir caja',
+    const status = {
+        open: {
+            label: `Caja abierta · desde las ${register.openedAt}`,
+            action: 'Ver caja',
         },
+        none: { label: 'Caja cerrada', action: 'Abrir caja' },
         stale: {
-            title: `Tu caja del ${register.day} sigue abierta`,
-            description:
-                'Ciérrala contando el efectivo y abre la de hoy para vender.',
-            action: 'Ir a Caja',
+            label: `Tu caja del ${register.day} sigue abierta`,
+            action: 'Cerrarla',
         },
-        closed: {
-            title: 'Ya cerraste tu caja de hoy',
-            description:
-                'Lo que se venda hoy entra en la caja de otra persona del equipo que la tenga abierta.',
-            action: 'Ver mi caja',
-        },
-    }[register.state === 'open' ? 'none' : register.state];
+        closed: { label: 'Ya cerraste tu caja de hoy', action: 'Ver caja' },
+    }[register.state];
+    const isOpen = register.state === 'open';
 
     return (
-        <Alert>
-            <Wallet />
-            <AlertTitle className="line-clamp-none">{notice.title}</AlertTitle>
-            <AlertDescription className="grid gap-3">
-                <p>{notice.description}</p>
-                <Button asChild variant="outline" size="sm" className="w-fit">
-                    <Link href={cashRegisterIndex(slug)}>{notice.action}</Link>
-                </Button>
-            </AlertDescription>
-        </Alert>
+        <div className="flex flex-wrap items-center gap-3 rounded-full border py-1 pr-1 pl-3 text-sm">
+            <span className="flex items-center gap-2">
+                <span
+                    className={cn(
+                        'size-2 rounded-full border border-foreground',
+                        isOpen && 'bg-foreground',
+                    )}
+                    aria-hidden="true"
+                />
+                <span className="first-letter:uppercase">{status.label}</span>
+            </span>
+            <Button
+                asChild
+                size="sm"
+                variant={isOpen ? 'ghost' : 'default'}
+                className="h-7 rounded-full"
+            >
+                <Link href={cashRegisterIndex(slug)}>{status.action}</Link>
+            </Button>
+        </div>
+    );
+}
+
+type Step = 1 | 2 | 3;
+
+const STEPS: { step: Step; title: string; help: string }[] = [
+    { step: 1, title: 'Alumna', help: 'A quién le vendes' },
+    { step: 2, title: 'Plan', help: 'Qué compra' },
+    { step: 3, title: 'Cobro', help: 'Cómo paga y confirmar' },
+];
+
+/**
+ * The three steps on top: the current one filled, the done ones with a
+ * check. A step can be opened once the ones before it are done.
+ */
+function Steps({
+    current,
+    reachable,
+    onSelect,
+}: {
+    current: Step;
+    reachable: (step: Step) => boolean;
+    onSelect: (step: Step) => void;
+}) {
+    return (
+        <ol className="grid grid-cols-3 gap-2 sm:gap-3">
+            {STEPS.map(({ step, title, help }) => {
+                const isCurrent = step === current;
+                const isDone = step < current;
+
+                return (
+                    <li key={step}>
+                        <button
+                            type="button"
+                            onClick={() => onSelect(step)}
+                            disabled={!reachable(step) || isCurrent}
+                            aria-current={isCurrent ? 'step' : undefined}
+                            className={cn(
+                                'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:gap-3 sm:p-4',
+                                isCurrent
+                                    ? 'border-foreground shadow-xs'
+                                    : 'enabled:hover:bg-muted/50 disabled:cursor-default',
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    'flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium tabular-nums',
+                                    isCurrent &&
+                                        'border-foreground bg-foreground text-background',
+                                    !isCurrent &&
+                                        !isDone &&
+                                        'text-muted-foreground',
+                                )}
+                            >
+                                {isDone ? (
+                                    <Check
+                                        className="size-4"
+                                        aria-label="Listo"
+                                    />
+                                ) : (
+                                    step
+                                )}
+                            </span>
+                            <span className="grid min-w-0 leading-tight">
+                                <span
+                                    className={cn(
+                                        'truncate text-sm font-medium',
+                                        !isCurrent &&
+                                            !isDone &&
+                                            'text-muted-foreground',
+                                    )}
+                                >
+                                    {title}
+                                </span>
+                                <span className="hidden truncate text-sm text-muted-foreground sm:block">
+                                    {help}
+                                </span>
+                            </span>
+                        </button>
+                    </li>
+                );
+            })}
+        </ol>
     );
 }
 
@@ -322,9 +420,25 @@ export default function SellPlan({
     const [planId, setPlanId] = useState<string>(
         plans.length === 1 ? String(plans[0].id) : '',
     );
+    const [step, setStep] = useState<Step>(initialStudent ? 2 : 1);
     const [method, setMethod] = useState('cash');
     const [changesPrice, setChangesPrice] = useState(false);
     const [price, setPrice] = useState('');
+    const headings = useRef<Partial<Record<Step, HTMLHeadingElement | null>>>(
+        {},
+    );
+    const moved = useRef(false);
+
+    // On a new step, the focus goes to its title (not on the first render).
+    useEffect(() => {
+        if (!moved.current) {
+            moved.current = true;
+
+            return;
+        }
+
+        headings.current[step]?.focus();
+    }, [step]);
 
     if (!studio) {
         return null;
@@ -337,21 +451,58 @@ export default function SellPlan({
             : (plan?.price ?? 0);
     const methodLabel =
         methods.find((option) => option.value === method)?.label ?? '';
+    const reachable = (target: Step): boolean =>
+        target === 1 ||
+        (target === 2 && student !== null) ||
+        (target === 3 && student !== null && plan !== null);
+    const canContinue = reachable((step + 1) as Step);
+    const firstName = student?.name.split(' ')[0] ?? '';
+
+    const heading = (target: Step, text: string, help: string) => (
+        <div className="grid gap-1">
+            <h2
+                ref={(element) => {
+                    headings.current[target] = element;
+                }}
+                tabIndex={-1}
+                className="font-semibold outline-none"
+            >
+                {text}
+            </h2>
+            <p className="text-sm text-muted-foreground">{help}</p>
+        </div>
+    );
+    const panel = 'rounded-xl border p-4 sm:p-6';
 
     return (
         <>
             <Head title="Vender plan" />
 
-            <div className="flex flex-col gap-6 px-4 py-6">
-                <Heading
-                    className="mb-0"
-                    title="Vender plan"
-                    description="Elige a la alumna, el plan y cómo paga. Las clases quedan disponibles al tiro."
-                />
-
-                {register.state !== 'open' && (
-                    <RegisterNotice slug={studio.slug} register={register} />
-                )}
+            <div className="flex flex-1 flex-col gap-6 px-4 pt-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="mt-0.5 shrink-0"
+                            aria-label="Volver"
+                            onClick={() =>
+                                window.history.length > 1
+                                    ? window.history.back()
+                                    : router.visit(dashboard())
+                            }
+                        >
+                            <ArrowLeft aria-hidden="true" />
+                        </Button>
+                        <Heading
+                            className="mb-0"
+                            title="Vender plan"
+                            description="Elige a la alumna, el plan y cómo paga. Las clases quedan disponibles al tiro."
+                        />
+                    </div>
+                    <RegisterStatus slug={studio.slug} register={register} />
+                </div>
 
                 {plans.length === 0 ? (
                     <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
@@ -361,148 +512,217 @@ export default function SellPlan({
                 ) : (
                     <Form
                         {...sellStore.form(studio.slug)}
-                        onError={(errors) =>
-                            focusFirstError(errors, {
-                                user_id: 'sale-student',
-                                price: 'sale-price',
-                                price_reason: 'sale-price-reason',
-                                receipt: 'sale-receipt',
-                            })
-                        }
-                        className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]"
+                        onError={(errors) => {
+                            // Back to the step of the first field with an
+                            // error, then to that field once it shows.
+                            setStep(
+                                errors.user_id ? 1 : errors.plan_id ? 2 : 3,
+                            );
+                            window.setTimeout(() =>
+                                focusFirstError(errors, {
+                                    user_id: 'sale-student',
+                                    plan_id: `sale-plan-${plans[0].id}`,
+                                    price: 'sale-price',
+                                    price_reason: 'sale-price-reason',
+                                    receipt: 'sale-receipt',
+                                }),
+                            );
+                        }}
+                        className="flex flex-1 flex-col gap-6"
                     >
                         {({ processing, errors }) => (
                             <>
-                                <div className="grid gap-8">
-                                    <section
-                                        aria-labelledby="sale-student-title"
-                                        className="grid gap-3"
-                                    >
-                                        <h2
-                                            id="sale-student-title"
-                                            className="text-sm font-medium"
-                                        >
-                                            Alumna
-                                        </h2>
-                                        <input
-                                            type="hidden"
-                                            name="user_id"
-                                            value={student?.id ?? ''}
-                                        />
-                                        <StudentPicker
-                                            slug={studio.slug}
-                                            student={student}
-                                            onChange={setStudent}
-                                            error={errors.user_id}
-                                        />
-                                    </section>
+                                <Steps
+                                    current={step}
+                                    reachable={reachable}
+                                    onSelect={setStep}
+                                />
 
-                                    <section
-                                        aria-labelledby="sale-plan-title"
-                                        className="grid gap-3"
-                                    >
-                                        <h2
-                                            id="sale-plan-title"
-                                            className="text-sm font-medium"
-                                        >
-                                            Plan
-                                        </h2>
-                                        <RadioGroup
-                                            name="plan_id"
-                                            value={planId}
-                                            onValueChange={setPlanId}
-                                            aria-labelledby="sale-plan-title"
-                                            className="grid gap-3 sm:grid-cols-2"
-                                        >
-                                            {plans.map((item) => {
-                                                const id = `sale-plan-${item.id}`;
-                                                const selected =
-                                                    String(item.id) === planId;
+                                <input
+                                    type="hidden"
+                                    name="user_id"
+                                    value={student?.id ?? ''}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="method"
+                                    value={method}
+                                />
 
-                                                return (
-                                                    <Label
-                                                        key={item.id}
-                                                        htmlFor={id}
-                                                        className={cn(
-                                                            'flex cursor-pointer items-start gap-3 rounded-xl border p-4 font-normal transition-colors hover:bg-muted/50',
-                                                            selected &&
-                                                                'border-foreground bg-muted/40',
-                                                        )}
-                                                    >
-                                                        <RadioGroupItem
-                                                            id={id}
-                                                            value={String(
-                                                                item.id,
-                                                            )}
-                                                            className="mt-0.5"
-                                                        />
-                                                        <span className="grid min-w-0 flex-1 gap-0.5">
-                                                            <span className="font-medium break-words">
-                                                                {item.name}
-                                                            </span>
-                                                            <span className="text-sm text-muted-foreground">
-                                                                {classesLabel(
-                                                                    item.credits,
-                                                                )}{' '}
-                                                                ·{' '}
-                                                                {
-                                                                    item.validityDays
-                                                                }{' '}
-                                                                días
-                                                            </span>
+                                <section
+                                    hidden={step !== 1}
+                                    className={cn(panel, 'grid gap-4')}
+                                >
+                                    {heading(
+                                        1,
+                                        '¿A quién le vendes?',
+                                        'Búscala por nombre, celular o correo.',
+                                    )}
+                                    <StudentPicker
+                                        slug={studio.slug}
+                                        student={student}
+                                        onChange={(next) => {
+                                            setStudent(next);
+
+                                            if (next) {
+                                                setStep(2);
+                                            }
+                                        }}
+                                        error={errors.user_id}
+                                    />
+                                </section>
+
+                                <section
+                                    hidden={step !== 2}
+                                    className={cn(panel, 'grid gap-4')}
+                                >
+                                    {heading(
+                                        2,
+                                        firstName
+                                            ? `¿Qué plan compra ${firstName}?`
+                                            : '¿Qué plan compra?',
+                                        'Los planes a la venta, a su precio de lista.',
+                                    )}
+                                    {student && (
+                                        <div className="flex items-start justify-between gap-3 rounded-xl border bg-muted/40 p-4">
+                                            <span className="flex min-w-0 items-start gap-3">
+                                                <InitialsAvatar
+                                                    name={student.name}
+                                                />
+                                                <span className="grid min-w-0 gap-0.5">
+                                                    <span className="truncate font-medium">
+                                                        {student.name}
+                                                    </span>
+                                                    {student.plans.length ===
+                                                    0 ? (
+                                                        <span className="text-sm text-muted-foreground">
+                                                            No tiene un plan
+                                                            vigente.
                                                         </span>
-                                                        <span className="font-medium tabular-nums">
-                                                            {formatClp(
-                                                                item.price,
+                                                    ) : (
+                                                        <ul className="grid gap-0.5 text-sm text-muted-foreground">
+                                                            {student.plans.map(
+                                                                (current) => (
+                                                                    <li
+                                                                        key={
+                                                                            current.name +
+                                                                            current.lastDay
+                                                                        }
+                                                                    >
+                                                                        {currentPlanLabel(
+                                                                            current,
+                                                                        )}
+                                                                    </li>
+                                                                ),
                                                             )}
-                                                        </span>
-                                                    </Label>
-                                                );
-                                            })}
-                                        </RadioGroup>
-                                        <InputError message={errors.plan_id} />
-                                    </section>
-
-                                    <section
-                                        aria-labelledby="sale-method-title"
-                                        className="grid gap-3"
+                                                        </ul>
+                                                    )}
+                                                </span>
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setStep(1)}
+                                            >
+                                                Cambiar
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <RadioGroup
+                                        name="plan_id"
+                                        value={planId}
+                                        onValueChange={(value) => {
+                                            setPlanId(value);
+                                            setStep(3);
+                                        }}
+                                        aria-label="Plan"
+                                        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
                                     >
-                                        <h2
-                                            id="sale-method-title"
-                                            className="text-sm font-medium"
-                                        >
-                                            Cómo paga
-                                        </h2>
-                                        <input
-                                            type="hidden"
-                                            name="method"
-                                            value={method}
-                                        />
-                                        <ToggleGroup
-                                            type="single"
-                                            variant="outline"
-                                            value={method}
-                                            onValueChange={(next) => {
-                                                if (next) {
-                                                    setMethod(next);
-                                                }
-                                            }}
-                                            aria-labelledby="sale-method-title"
-                                            className="justify-self-start"
-                                        >
-                                            {methods.map((option) => (
-                                                <ToggleGroupItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                    className="px-3"
+                                        {plans.map((item) => {
+                                            const id = `sale-plan-${item.id}`;
+                                            const selected =
+                                                String(item.id) === planId;
+
+                                            return (
+                                                <Label
+                                                    key={item.id}
+                                                    htmlFor={id}
+                                                    className={cn(
+                                                        'flex cursor-pointer items-start gap-3 rounded-xl border p-4 font-normal transition-colors hover:bg-muted/50',
+                                                        selected &&
+                                                            'border-foreground bg-muted/40',
+                                                    )}
                                                 >
-                                                    {option.label}
-                                                </ToggleGroupItem>
-                                            ))}
-                                        </ToggleGroup>
-                                        <p className="text-sm text-muted-foreground">
-                                            {METHOD_HELP[method]}
-                                        </p>
+                                                    <RadioGroupItem
+                                                        id={id}
+                                                        value={String(item.id)}
+                                                        className="mt-0.5"
+                                                    />
+                                                    <span className="grid min-w-0 flex-1 gap-0.5">
+                                                        <span className="font-medium break-words">
+                                                            {item.name}
+                                                        </span>
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {classesLabel(
+                                                                item.credits,
+                                                            )}{' '}
+                                                            ·{' '}
+                                                            {item.validityDays}{' '}
+                                                            días
+                                                        </span>
+                                                    </span>
+                                                    <span className="font-medium tabular-nums">
+                                                        {formatClp(item.price)}
+                                                    </span>
+                                                </Label>
+                                            );
+                                        })}
+                                    </RadioGroup>
+                                    <InputError message={errors.plan_id} />
+                                </section>
+
+                                <section
+                                    hidden={step !== 3}
+                                    className={cn(
+                                        panel,
+                                        'grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]',
+                                    )}
+                                >
+                                    <div className="grid gap-6">
+                                        {heading(
+                                            3,
+                                            '¿Cómo paga?',
+                                            'Cobra antes de vender: la venta entra en tu caja.',
+                                        )}
+                                        <div className="grid gap-3">
+                                            <ToggleGroup
+                                                type="single"
+                                                variant="outline"
+                                                value={method}
+                                                onValueChange={(next) => {
+                                                    if (next) {
+                                                        setMethod(next);
+                                                    }
+                                                }}
+                                                aria-label="Medio de pago"
+                                                className="justify-self-start"
+                                            >
+                                                {methods.map((option) => (
+                                                    <ToggleGroupItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                        className="px-3"
+                                                    >
+                                                        {option.label}
+                                                    </ToggleGroupItem>
+                                                ))}
+                                            </ToggleGroup>
+                                            <p className="text-sm text-muted-foreground">
+                                                {METHOD_HELP[method]}
+                                            </p>
+                                        </div>
+
                                         {method === 'transfer' && (
                                             <div className="grid gap-2">
                                                 <Label htmlFor="sale-receipt">
@@ -524,152 +744,193 @@ export default function SellPlan({
                                                 />
                                             </div>
                                         )}
-                                    </section>
 
-                                    {canChangePrice && (
-                                        <section
-                                            aria-label="Precio"
-                                            className="grid gap-4"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Checkbox
-                                                    id="sale-changes-price"
-                                                    checked={changesPrice}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) => {
-                                                        setChangesPrice(
-                                                            checked === true,
-                                                        );
-                                                        setPrice(
-                                                            plan
-                                                                ? String(
-                                                                      plan.price,
-                                                                  )
-                                                                : '',
-                                                        );
-                                                    }}
-                                                />
-                                                <Label htmlFor="sale-changes-price">
-                                                    Cambiar el precio o regalar
-                                                    el plan
-                                                </Label>
+                                        {canChangePrice && (
+                                            <div className="grid gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Checkbox
+                                                        id="sale-changes-price"
+                                                        checked={changesPrice}
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) => {
+                                                            setChangesPrice(
+                                                                checked ===
+                                                                    true,
+                                                            );
+                                                            setPrice(
+                                                                plan
+                                                                    ? String(
+                                                                          plan.price,
+                                                                      )
+                                                                    : '',
+                                                            );
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="sale-changes-price">
+                                                        Cambiar el precio o
+                                                        regalar el plan
+                                                    </Label>
+                                                </div>
+                                                {changesPrice && (
+                                                    <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                                                        <div className="grid content-start gap-2">
+                                                            <Label htmlFor="sale-price">
+                                                                Precio (pesos)
+                                                            </Label>
+                                                            <Input
+                                                                id="sale-price"
+                                                                {...fieldErrorProps(
+                                                                    'sale-price',
+                                                                    errors.price,
+                                                                )}
+                                                                name="price"
+                                                                type="number"
+                                                                inputMode="numeric"
+                                                                min={0}
+                                                                value={price}
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    setPrice(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                required
+                                                            />
+                                                            <InputError
+                                                                id="sale-price-error"
+                                                                message={
+                                                                    errors.price
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="grid content-start gap-2">
+                                                            <Label htmlFor="sale-price-reason">
+                                                                Por qué
+                                                            </Label>
+                                                            <Input
+                                                                id="sale-price-reason"
+                                                                {...fieldErrorProps(
+                                                                    'sale-price-reason',
+                                                                    errors.price_reason,
+                                                                )}
+                                                                name="price_reason"
+                                                                maxLength={200}
+                                                                required
+                                                                placeholder="Descuento por traer a una amiga"
+                                                            />
+                                                            <InputError
+                                                                id="sale-price-reason-error"
+                                                                message={
+                                                                    errors.price_reason
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {changesPrice && (
-                                                <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
-                                                    <div className="grid content-start gap-2">
-                                                        <Label htmlFor="sale-price">
-                                                            Precio (pesos)
-                                                        </Label>
-                                                        <Input
-                                                            id="sale-price"
-                                                            {...fieldErrorProps(
-                                                                'sale-price',
-                                                                errors.price,
-                                                            )}
-                                                            name="price"
-                                                            type="number"
-                                                            inputMode="numeric"
-                                                            min={0}
-                                                            value={price}
-                                                            onChange={(event) =>
-                                                                setPrice(
-                                                                    event.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            required
-                                                        />
-                                                        <InputError
-                                                            id="sale-price-error"
-                                                            message={
-                                                                errors.price
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="grid content-start gap-2">
-                                                        <Label htmlFor="sale-price-reason">
-                                                            Por qué
-                                                        </Label>
-                                                        <Input
-                                                            id="sale-price-reason"
-                                                            {...fieldErrorProps(
-                                                                'sale-price-reason',
-                                                                errors.price_reason,
-                                                            )}
-                                                            name="price_reason"
-                                                            maxLength={200}
-                                                            required
-                                                            placeholder="Descuento por traer a una amiga"
-                                                        />
-                                                        <InputError
-                                                            id="sale-price-reason-error"
-                                                            message={
-                                                                errors.price_reason
-                                                            }
-                                                        />
-                                                    </div>
+                                        )}
+                                    </div>
+
+                                    <Card className="bg-muted/40 shadow-none lg:sticky lg:top-4">
+                                        <CardHeader>
+                                            <CardTitle>
+                                                <h3>Resumen</h3>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                {student?.name}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="grid gap-4">
+                                            {plan && (
+                                                <div className="grid gap-1">
+                                                    <p className="font-medium break-words">
+                                                        {plan.name}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {classesLabel(
+                                                            plan.credits,
+                                                        )}
+                                                        {plan.dailyLimit !==
+                                                            null &&
+                                                            `, hasta ${plan.dailyLimit} al día`}
+                                                    </p>
+                                                    <p className="text-sm first-letter:uppercase">
+                                                        Vale hasta el{' '}
+                                                        {plan.lastDay}
+                                                    </p>
                                                 </div>
                                             )}
-                                        </section>
-                                    )}
-                                </div>
-
-                                <Card className="lg:sticky lg:top-4">
-                                    <CardHeader>
-                                        <CardTitle>
-                                            <h2>Resumen</h2>
-                                        </CardTitle>
-                                        <CardDescription>
-                                            {student
-                                                ? student.name
-                                                : 'Elige a la alumna.'}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="grid gap-4">
-                                        {plan ? (
-                                            <div className="grid gap-1">
-                                                <p className="font-medium break-words">
-                                                    {plan.name}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {classesLabel(plan.credits)}
-                                                    {plan.dailyLimit !== null &&
-                                                        `, hasta ${plan.dailyLimit} al día`}
-                                                </p>
-                                                <p className="text-sm first-letter:uppercase">
-                                                    Vale hasta el {plan.lastDay}
-                                                </p>
+                                            <Separator />
+                                            <div className="flex items-baseline justify-between gap-4">
+                                                <span className="text-sm text-muted-foreground">
+                                                    Total · {methodLabel}
+                                                </span>
+                                                <span className="text-2xl font-semibold tabular-nums">
+                                                    {formatClp(total)}
+                                                </span>
                                             </div>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">
-                                                Elige el plan.
-                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </section>
+
+                                {/* The way forward, always at hand. */}
+                                <div className="sticky bottom-0 z-10 -mx-4 mt-auto flex items-center justify-between gap-3 border-t bg-background px-4 py-3">
+                                    <p className="flex min-w-0 items-center gap-2 text-sm">
+                                        <Badge variant="secondary">
+                                            Paso {step} de 3
+                                        </Badge>
+                                        <span className="hidden truncate text-muted-foreground sm:inline">
+                                            {STEPS[step - 1].help}
+                                        </span>
+                                    </p>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        {register.state !== 'open' && (
+                                            <span className="hidden text-sm text-muted-foreground md:inline">
+                                                Abre tu caja para vender
+                                            </span>
                                         )}
-                                        <Separator />
-                                        <div className="flex items-baseline justify-between gap-4">
-                                            <span className="text-sm text-muted-foreground">
-                                                Total · {methodLabel}
-                                            </span>
-                                            <span className="text-2xl font-semibold tabular-nums">
-                                                {formatClp(total)}
-                                            </span>
-                                        </div>
-                                        <Button
-                                            type="submit"
-                                            size="lg"
-                                            disabled={
-                                                processing ||
-                                                !student ||
-                                                !plan ||
-                                                register.state !== 'open'
-                                            }
-                                        >
-                                            {processing && <Spinner />}
-                                            Vender
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                        {step > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                onClick={() =>
+                                                    setStep((step - 1) as Step)
+                                                }
+                                            >
+                                                Atrás
+                                            </Button>
+                                        )}
+                                        {step < 3 ? (
+                                            <Button
+                                                type="button"
+                                                disabled={!canContinue}
+                                                onClick={() =>
+                                                    setStep((step + 1) as Step)
+                                                }
+                                            >
+                                                Continuar
+                                                <ArrowRight aria-hidden="true" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                type="submit"
+                                                disabled={
+                                                    processing ||
+                                                    !student ||
+                                                    !plan ||
+                                                    register.state !== 'open'
+                                                }
+                                            >
+                                                {processing && <Spinner />}
+                                                Vender {formatClp(total)}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </>
                         )}
                     </Form>
