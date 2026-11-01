@@ -507,7 +507,8 @@ function creditsLeftLabel(purchase: StudentPurchase): string {
         return 'Clases ilimitadas';
     }
 
-    if (!purchase.isValid) {
+    // A plan waiting its turn says what it has left, like a valid one.
+    if (!purchase.isValid && !purchase.isQueued) {
         const used =
             purchase.credits -
             (purchase.creditsLeft ?? 0) -
@@ -587,9 +588,15 @@ function StudentPlans({
                             {!purchase.isCancelled &&
                                 (purchase.isQueued ? (
                                     <p className="text-sm">
-                                        {classesLabel(purchase.credits)} · parte
-                                        el {purchase.startsOn}, cuando termine
-                                        su plan actual, y vale hasta el{' '}
+                                        {purchase.credits !== null &&
+                                        purchase.creditsLeft !==
+                                            purchase.credits
+                                            ? creditsLeftLabel(purchase)
+                                            : classesLabel(
+                                                  purchase.credits,
+                                              )}{' '}
+                                        · parte el {purchase.startsOn}, cuando
+                                        termine su plan actual, y vale hasta el{' '}
                                         {purchase.lastDay}
                                     </p>
                                 ) : (

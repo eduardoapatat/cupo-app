@@ -76,6 +76,23 @@ type Props = {
     movements: Movement[];
 };
 
+/**
+ * A plan waiting its turn: «8 clases», or «Te quedan 6 de 8 (2 ya
+ * reservadas)» when she already booked classes of its days.
+ */
+function queuedClassesLabel(purchase: Purchase): string {
+    if (purchase.credits === null) {
+        return 'Clases ilimitadas';
+    }
+
+    const left = purchase.creditsLeft ?? 0;
+    const booked = purchase.credits - left;
+
+    return booked === 0
+        ? `${purchase.credits} clases`
+        : `Te quedan ${left} de ${purchase.credits} (${booked === 1 ? '1 ya reservada' : `${booked} ya reservadas`})`;
+}
+
 function classesLeftLabel(count: number): string {
     return count === 1 ? 'Te queda 1 clase' : `Te quedan ${count} clases`;
 }
@@ -445,10 +462,8 @@ export default function MyPlan({
                                         termine tu plan actual.
                                     </span>
                                     <span className="text-muted-foreground">
-                                        {purchase.credits === null
-                                            ? 'Clases ilimitadas'
-                                            : `${purchase.credits} clases`}{' '}
-                                        · vale hasta el {purchase.lastDay}
+                                        {queuedClassesLabel(purchase)} · vale
+                                        hasta el {purchase.lastDay}
                                     </span>
                                 </li>
                             ))}
