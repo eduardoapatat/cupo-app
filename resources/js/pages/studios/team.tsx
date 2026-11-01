@@ -323,10 +323,16 @@ export default function Team({ members, invitations, roles }: Props) {
 
                 <Tabs defaultValue="members" className="gap-4">
                     <TabsList variant="line">
-                        <TabsTrigger value="members">
+                        <TabsTrigger
+                            value="members"
+                            className="after:bg-primary"
+                        >
                             Equipo <Count value={members.length} />
                         </TabsTrigger>
-                        <TabsTrigger value="invitations">
+                        <TabsTrigger
+                            value="invitations"
+                            className="after:bg-primary"
+                        >
                             Invitaciones pendientes{' '}
                             <Count value={invitations.length} />
                         </TabsTrigger>

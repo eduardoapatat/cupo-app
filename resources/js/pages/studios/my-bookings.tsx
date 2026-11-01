@@ -127,13 +127,21 @@ export default function MyBookings({ upcoming, waiting, history }: Props) {
 
                 <Tabs defaultValue="upcoming" className="gap-4">
                     <TabsList variant="line">
-                        <TabsTrigger value="upcoming">
+                        <TabsTrigger
+                            value="upcoming"
+                            className="after:bg-primary"
+                        >
                             Próximas{' '}
                             <span className="text-muted-foreground tabular-nums">
                                 ({upcoming.length})
                             </span>
                         </TabsTrigger>
-                        <TabsTrigger value="history">Historial</TabsTrigger>
+                        <TabsTrigger
+                            value="history"
+                            className="after:bg-primary"
+                        >
+                            Historial
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="upcoming" className="grid gap-6">

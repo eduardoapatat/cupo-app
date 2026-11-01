@@ -412,7 +412,7 @@ function StudentListItem({
                 preserveScroll
                 aria-current={selected ? 'page' : undefined}
                 className={cn(
-                    'flex items-center gap-3 border-l-2 border-transparent px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset',
+                    'flex items-center gap-3 border-r-[3px] border-transparent px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset',
                     selected && 'border-primary bg-muted hover:bg-muted',
                 )}
             >
@@ -686,11 +686,19 @@ function StudentProfile({
                 {/* Swipes sideways when it does not fit; the padding keeps the underline. */}
                 <div className="overflow-x-auto pb-1.5">
                     <TabsList variant="line">
-                        <TabsTrigger value="data">Datos</TabsTrigger>
-                        <TabsTrigger value="bookings" disabled>
+                        <TabsTrigger value="data" className="after:bg-primary">
+                            Datos
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="bookings"
+                            className="after:bg-primary"
+                            disabled
+                        >
                             Reservas <Badge variant="outline">Pronto</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="plan">Plan y pagos</TabsTrigger>
+                        <TabsTrigger value="plan" className="after:bg-primary">
+                            Plan y pagos
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
