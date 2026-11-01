@@ -93,6 +93,7 @@ class DemoStudioSeeder extends Seeder
         $this->plansOf($flow);
         $this->bookingsOf($flow);
         $this->transfersOf($flow);
+        $this->webpayOf($flow);
 
         $paula = User::factory()->create(['name' => 'Paula Vidal', 'email' => 'paula@example.com']);
         $sur = $createStudio->handle($paula, 'Estudio Sur', Commune::LaFlorida);
@@ -229,6 +230,58 @@ class DemoStudioSeeder extends Seeder
             'receipt_path' => $path,
         ]);
         $payment->forceFill(['status' => PaymentStatus::ToReview])->save();
+    }
+
+    /**
+     * Payments with Webpay, with fictional authorization data: last night
+     * Josefa paid 4 classes, and this morning Martina cancelled at Webpay.
+     */
+    private function webpayOf(Studio $flow): void
+    {
+        $small = $flow->plans()->where('name', '4 clases al mes')->sole();
+        $josefa = User::where('name', 'Josefa Reyes')->sole();
+        $martina = User::where('name', 'Martina Silva')->sole();
+        $lastNight = now(config()->string('studio.timezone'))->startOfDay()->subDay()->setTime(21, 15)->utc();
+
+        $purchase = app(SellPlan::class)->newPurchase($small, $josefa, null, $small->price);
+        $yesterday = now(config()->string('studio.timezone'))->startOfDay()->subDay();
+        $purchase->forceFill([
+            'starts_on' => $yesterday->toDateString(),
+            'expires_at' => $yesterday->addDays($small->validity_days)->utc(),
+            'created_at' => $lastNight,
+            'updated_at' => $lastNight,
+        ])->save();
+        $paid = new Payment([
+            'studio_id' => $flow->id,
+            'plan_purchase_id' => $purchase->id,
+            'plan_id' => $small->id,
+            'user_id' => $josefa->id,
+            'amount' => $small->price,
+            'method' => PaymentMethod::Webpay,
+            'paid_at' => $lastNight,
+            'webpay_buy_order' => 'cupodemo0001',
+        ]);
+        $paid->forceFill([
+            'webpay_token' => str_repeat('0', 63).'1',
+            'webpay_authorization_code' => '123456',
+            'card_last_digits' => '6623',
+            'created_at' => $lastNight->subMinutes(2),
+            'updated_at' => $lastNight,
+        ])->save();
+
+        $cancelled = new Payment([
+            'studio_id' => $flow->id,
+            'plan_id' => $small->id,
+            'user_id' => $martina->id,
+            'amount' => $small->price,
+            'method' => PaymentMethod::Webpay,
+            'webpay_buy_order' => 'cupodemo0002',
+        ]);
+        $cancelled->forceFill([
+            'status' => PaymentStatus::Failed,
+            'status_reason' => 'Anulaste el pago en Webpay.',
+            'webpay_token' => str_repeat('0', 63).'2',
+        ])->save();
     }
 
     /**

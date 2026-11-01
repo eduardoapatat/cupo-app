@@ -3,8 +3,8 @@ import type { PaymentRow } from '@/types';
 
 /**
  * The status of a payment. Achromatic: one to review is filled, to stand
- * out; a rejected or voided one is outlined, never red, because it is a
- * correction, not an error.
+ * out; a rejected, voided or failed one is outlined, never red, because it
+ * is a correction, not an error, and one pending at Webpay too.
  */
 export default function PaymentStatusBadge({
     payment,

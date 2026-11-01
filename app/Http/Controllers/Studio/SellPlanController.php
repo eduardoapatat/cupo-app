@@ -53,7 +53,7 @@ class SellPlanController extends Controller
                 'lastDay' => $today->addDays($plan->validity_days - 1)->translatedFormat('l j \d\e F'),
             ]),
             'student' => $student === null ? null : $this->presentStudent($studio, $student),
-            'methods' => array_map(fn (PaymentMethod $method): array => ['value' => $method->value, 'label' => $method->label()], PaymentMethod::cases()),
+            'methods' => array_map(fn (PaymentMethod $method): array => ['value' => $method->value, 'label' => $method->label()], PaymentMethod::atTheCounter()),
             'canChangePrice' => $user->can('plans.discount', $studio),
             'register' => $this->registerState($studio, $user),
         ]);

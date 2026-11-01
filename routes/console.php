@@ -28,3 +28,9 @@ Schedule::command('plans:expire')
     ->dailyAt('00:20')
     ->timezone(config()->string('studio.timezone'))
     ->withoutOverlapping();
+
+// Every 5 minutes, the Webpay payments of students who did not come back
+// from paying are confirmed with Transbank, or fail once the form expired.
+Schedule::command('webpay:reconcile')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

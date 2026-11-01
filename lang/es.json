@@ -164,5 +164,17 @@
     "Rejected. She will see why and can send another one.": "Rechazado. Ella verá por qué y podrá enviar otro.",
     "Saved. Students cannot buy from the app until you add them.": "Guardado. Las alumnas no pueden comprar desde la app hasta que los agregues.",
     "Saved. Students see them when they buy a plan from the app.": "Guardado. Las alumnas los ven al comprar un plan desde la app.",
-    "It came in from the app: only the owner can void it.": "Llegó desde la app: solo la dueña puede anularlo."
+    "It came in from the app: only the owner can void it.": "Llegó desde la app: solo la dueña puede anularlo.",
+    "Webpay did not answer.": "Webpay no respondió.",
+    "Webpay is not answering right now. Try again in a moment: nothing was charged.": "Webpay no responde en este momento. Prueba de nuevo en un rato: no se cobró nada.",
+    "The amount paid does not match the plan.": "El monto pagado no coincide con el plan.",
+    "The payment was not completed.": "No se completó el pago.",
+    "Webpay declined the payment.": "Webpay rechazó el pago.",
+    "The price when she started paying.": "El precio de cuando empezó a pagar.",
+    "You cancelled the payment at Webpay.": "Anulaste el pago en Webpay.",
+    "You paid with Webpay. Your plan is active now.": "Pagaste con Webpay. Tu plan ya está activo.",
+    "We are still confirming your payment with Webpay. Check again in a few minutes.": "Todavía estamos confirmando tu pago con Webpay. Revisa de nuevo en unos minutos.",
+    "You cancelled the payment at Webpay: nothing was charged.": "Anulaste el pago en Webpay: no se cobró nada.",
+    "Webpay declined the payment: nothing was charged.": "Webpay rechazó el pago: no se cobró nada.",
+    "It was paid with Webpay: only the owner can void it.": "Se pagó con Webpay: solo la dueña puede anularlo."
 }

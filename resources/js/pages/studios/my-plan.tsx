@@ -61,6 +61,10 @@ type Props = {
     } | null;
     /** Her last receipt, if the studio rejected it. */
     rejectedPayment: { planName: string | null; reason: string | null } | null;
+    /** A Webpay payment she has not finished, or Transbank has not settled. */
+    webpayPending: { planName: string | null; amount: number } | null;
+    /** Her last Webpay payment, which did not go through. */
+    failedPayment: { planName: string | null; reason: string | null } | null;
     /** The studio takes transfers and she has none waiting. */
     canBuy: boolean;
     valid: Purchase[];
@@ -143,6 +147,8 @@ export default function MyPlan({
     summary,
     pendingPayment,
     rejectedPayment,
+    webpayPending,
+    failedPayment,
     canBuy,
     valid,
     past,
@@ -162,11 +168,13 @@ export default function MyPlan({
                         title="Mi plan"
                         description="Cuántas clases te quedan, hasta cuándo valen y en qué las usaste."
                     />
-                    {canBuy && rejectedPayment === null && (
-                        <Button asChild variant="outline">
-                            <Link href={buyPlan(slug)}>Comprar plan</Link>
-                        </Button>
-                    )}
+                    {canBuy &&
+                        rejectedPayment === null &&
+                        failedPayment === null && (
+                            <Button asChild variant="outline">
+                                <Link href={buyPlan(slug)}>Comprar plan</Link>
+                            </Button>
+                        )}
                 </div>
 
                 {summary?.expiresSoon && (
@@ -221,6 +229,50 @@ export default function MyPlan({
                     </Alert>
                 )}
 
+                {webpayPending && (
+                    <Alert>
+                        <Clock />
+                        <AlertTitle className="line-clamp-none">
+                            Tu pago de {webpayPending.planName} con Webpay no ha
+                            terminado
+                        </AlertTitle>
+                        <AlertDescription>
+                            Si pagaste {formatClp(webpayPending.amount)}, lo
+                            confirmamos con Webpay en unos minutos y tu plan
+                            aparece aquí. Si no, no se cobra nada.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {failedPayment && (
+                    <Alert>
+                        <TriangleAlert />
+                        <AlertTitle className="line-clamp-none">
+                            Tu pago de {failedPayment.planName} con Webpay no se
+                            completó
+                        </AlertTitle>
+                        <AlertDescription className="grid gap-3">
+                            <p>
+                                {failedPayment.reason
+                                    ? `${failedPayment.reason} No se cobró nada.`
+                                    : 'No se cobró nada.'}
+                            </p>
+                            {canBuy && (
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-fit"
+                                >
+                                    <Link href={buyPlan(slug)}>
+                                        Intentar de nuevo
+                                    </Link>
+                                </Button>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {rejectedPayment && (
                     <Alert>
                         <TriangleAlert />
@@ -257,7 +309,7 @@ export default function MyPlan({
                         <p className="font-medium">No tienes un plan vigente</p>
                         <p className="text-sm text-muted-foreground">
                             {canBuy
-                                ? 'Cómpralo aquí por transferencia o en el mesón del estudio para reservar tus clases.'
+                                ? 'Cómpralo aquí con Webpay, o en el mesón del estudio, para reservar tus clases.'
                                 : 'Cómpralo en el mesón del estudio para reservar tus clases.'}
                         </p>
                     </div>

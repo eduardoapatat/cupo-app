@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    /*
+     * Webpay Plus by Transbank, REST API v1.2. The defaults are the public
+     * integration (sandbox) credentials that Transbank publishes in its
+     * docs and SDKs: they move no real money. Production would need each
+     * studio's own commerce code, which is out of this project's scope.
+     */
+    'webpay' => [
+        'base_url' => env('WEBPAY_BASE_URL', 'https://webpay3gint.transbank.cl'),
+        'commerce_code' => env('WEBPAY_COMMERCE_CODE', '597055555532'),
+        'api_key' => env('WEBPAY_API_KEY', '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C'),
+    ],
+
 ];

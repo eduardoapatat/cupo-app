@@ -11,7 +11,13 @@ export type PaymentRow = {
     planName: string | null;
     method: string;
     amount: number;
-    status: 'to_review' | 'approved' | 'rejected' | 'voided';
+    status:
+        | 'to_review'
+        | 'approved'
+        | 'rejected'
+        | 'voided'
+        | 'pending'
+        | 'failed';
     statusLabel: string;
     /** Voided once its register was closed: it stays in its frozen totals. */
     voidedAfterClosing: boolean;

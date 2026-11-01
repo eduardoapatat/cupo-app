@@ -42,7 +42,8 @@ class MyPlanController extends Controller
             ->limit(30)
             ->get();
 
-        // Her latest purchase from the app: waiting to be reviewed, or rejected.
+        // Her latest purchase from the app: a transfer waiting to be reviewed
+        // or rejected, or a Webpay payment still pending or not completed.
         $fromApp = $studio->payments()
             ->where('user_id', $user->id)
             ->whereNull('cash_register_id')
@@ -63,7 +64,16 @@ class MyPlanController extends Controller
                 'planName' => $fromApp->plan?->name,
                 'reason' => $fromApp->status_reason,
             ] : null,
-            'canBuy' => filled($studio->transfer_details) && $fromApp?->status !== PaymentStatus::ToReview,
+            'webpayPending' => $fromApp?->status === PaymentStatus::Pending ? [
+                'planName' => $fromApp->plan?->name,
+                'amount' => $fromApp->amount,
+            ] : null,
+            'failedPayment' => $fromApp?->status === PaymentStatus::Failed ? [
+                'planName' => $fromApp->plan?->name,
+                'reason' => $fromApp->status_reason,
+            ] : null,
+            // Webpay is always on, so she can buy unless a receipt waits.
+            'canBuy' => $fromApp?->status !== PaymentStatus::ToReview,
             'valid' => $purchases->filter(fn (PlanPurchase $purchase): bool => $purchase->isValid())
                 ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
                 ->values(),

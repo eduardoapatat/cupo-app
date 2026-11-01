@@ -38,7 +38,9 @@ use App\Http\Controllers\Studio\TeamInvitationController;
 use App\Http\Controllers\Studio\TeamMemberController;
 use App\Http\Controllers\Studio\TransferDetailsController;
 use App\Http\Controllers\Studio\WaitlistController;
+use App\Http\Controllers\Studio\WebpayPaymentController;
 use App\Http\Controllers\StudioController;
+use App\Http\Controllers\WebpayReturnController;
 use App\Http\Middleware\RememberCurrentStudio;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +65,17 @@ Route::get('activar-cuenta/{user}', [AccountActivationController::class, 'show']
 Route::post('activar-cuenta/{user}', [AccountActivationController::class, 'store'])
     ->whereNumber('user')
     ->name('activation.store');
+
+// Webpay sends the student back here after paying. A cancellation in the
+// integration environment comes back by a cross-site POST, which carries no
+// session cookie: that route runs without the web middleware, so it opens no
+// session that would log her out, and only redirects to the GET.
+Route::post('webpay/retorno', [WebpayReturnController::class, 'redirectToGet'])
+    ->withoutMiddleware('web')
+    ->name('webpay.return.post');
+Route::get('webpay/retorno', [WebpayReturnController::class, 'show'])
+    ->middleware('auth')
+    ->name('webpay.return');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('inicio', DashboardController::class)->name('dashboard');
@@ -151,6 +164,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('mi-plan', [MyPlanController::class, 'index'])->name('my-plan.index');
                 Route::get('mi-plan/comprar', [BuyPlanController::class, 'create'])->name('my-plan.buy');
                 Route::post('mi-plan/comprar', [BuyPlanController::class, 'store'])->name('my-plan.buy.store');
+                Route::post('mi-plan/comprar/webpay', [WebpayPaymentController::class, 'store'])->name('my-plan.webpay.store');
+                Route::get('mi-plan/webpay/{payment}', [WebpayPaymentController::class, 'show'])->name('my-plan.webpay');
             });
         });
 });

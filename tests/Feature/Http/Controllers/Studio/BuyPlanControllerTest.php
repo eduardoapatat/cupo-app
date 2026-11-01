@@ -81,12 +81,15 @@ it('shows her why it was rejected, so she can send another one', function () {
             ->where('canBuy', true));
 });
 
-it('offers no purchase from the app while the studio has no transfer details', function () {
+it('takes no transfer from the app while the studio has no transfer details, only Webpay', function () {
     $this->studio->update(['transfer_details' => null]);
 
     $this->actingAs($this->javiera)
         ->get(route('studios.my-plan.index', $this->studio))
-        ->assertInertia(fn (Assert $page) => $page->where('canBuy', false));
+        ->assertInertia(fn (Assert $page) => $page->where('canBuy', true));
+    $this->actingAs($this->javiera)
+        ->get(route('studios.my-plan.buy', $this->studio))
+        ->assertInertia(fn (Assert $page) => $page->where('transferDetails', null)->has('plans', 1));
     $this->actingAs($this->javiera)
         ->post(route('studios.my-plan.buy.store', $this->studio), ['plan_id' => $this->plan->id, 'receipt' => UploadedFile::fake()->image('comprobante.png')])
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'El estudio todavía no recibe transferencias desde la app.']);

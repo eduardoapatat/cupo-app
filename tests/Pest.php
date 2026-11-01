@@ -4,6 +4,7 @@ use App\Actions\Bookings\BookSession;
 use App\Enums\BookingKind;
 use App\Models\Booking;
 use App\Models\ClassSession;
+use App\Models\Payment;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
@@ -102,4 +103,36 @@ function bookWithPlan(ClassSession $session, User $student, ?User $by = null): B
     }
 
     return app(BookSession::class)->handle($session, $student, BookingKind::Student, $by ?? $student);
+}
+
+/**
+ * Transbank's answer to creating a transaction.
+ */
+function webpayCreated(string $token = 'tok-123'): array
+{
+    return ['token' => $token, 'url' => 'https://webpay3gint.transbank.cl/webpayserver/initTransaction'];
+}
+
+/**
+ * Transbank's answer to confirming or reading a transaction.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function webpayTransaction(Payment $payment, array $overrides = []): array
+{
+    return [
+        'vci' => 'TSY',
+        'amount' => $payment->amount,
+        'status' => 'AUTHORIZED',
+        'buy_order' => $payment->webpay_buy_order,
+        'session_id' => (string) $payment->user_id,
+        'card_detail' => ['card_number' => '6623'],
+        'accounting_date' => '1029',
+        'transaction_date' => now()->toIso8601String(),
+        'authorization_code' => '1213',
+        'payment_type_code' => 'VN',
+        'response_code' => 0,
+        'installments_number' => 0,
+        ...$overrides,
+    ];
 }

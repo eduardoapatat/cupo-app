@@ -72,7 +72,7 @@ it('adds up the month\'s income by day, by method and by plan, with discounts an
             ->has('income.byDay', 15)
             ->where('income.byDay.2', ['date' => '2026-11-03', 'label' => '3 nov.', 'total' => 85000])
             ->where('income.byDay.9.total', 28000)
-            ->where('income.byMethod', fn ($methods) => collect($methods)->pluck('total', 'method')->all() === ['cash' => 45000, 'card' => 40000, 'transfer' => 28000])
+            ->where('income.byMethod', fn ($methods) => collect($methods)->pluck('total', 'method')->all() === ['cash' => 45000, 'card' => 40000, 'transfer' => 28000, 'webpay' => 0])
             ->where('income.byPlan', [
                 ['name' => '8 clases al mes', 'sold' => 2, 'total' => 85000],
                 ['name' => '4 clases al mes', 'sold' => 1, 'total' => 28000],

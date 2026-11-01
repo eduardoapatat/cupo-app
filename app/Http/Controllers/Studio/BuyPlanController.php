@@ -16,8 +16,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * «Comprar plan»: the student pays a plan by bank transfer and uploads the
- * receipt. Her plan starts when the studio approves it.
+ * «Comprar plan»: the student pays a plan with Webpay, and her plan starts
+ * once Transbank approves it (WebpayPaymentController); or, if the studio
+ * wrote its transfer details, by bank transfer, uploading the receipt, and
+ * her plan starts when the studio approves it.
  */
 class BuyPlanController extends Controller
 {

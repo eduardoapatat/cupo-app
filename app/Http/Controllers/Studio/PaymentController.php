@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Studio;
 
 use App\Actions\Payments\VoidPayment;
 use App\Concerns\PresentsPayments;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
@@ -100,6 +101,12 @@ class PaymentController extends Controller
                     'isClosed' => $payment->cashRegister->isClosed(),
                 ],
                 'rejectionReason' => $payment->status === PaymentStatus::Rejected ? $payment->status_reason : null,
+                'webpay' => $payment->method !== PaymentMethod::Webpay ? null : [
+                    'buyOrder' => $payment->webpay_buy_order,
+                    'authorizationCode' => $payment->webpay_authorization_code,
+                    'cardLastDigits' => $payment->card_last_digits,
+                    'failureReason' => $payment->status === PaymentStatus::Failed ? $payment->status_reason : null,
+                ],
                 'voided' => $payment->voided_at === null ? null : [
                     'by' => $payment->voidedBy?->name,
                     'at' => $payment->voided_at->timezone($timezone)->translatedFormat('l j \d\e F, H:i'),

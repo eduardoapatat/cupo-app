@@ -41,6 +41,13 @@ type PaymentDetail = PaymentRow & {
     receipt: { url: string; isPdf: boolean } | null;
     reviewed: { by: string | null; at: string } | null;
     rejectionReason: string | null;
+    /** Paid online: what Transbank answered. */
+    webpay: {
+        buyOrder: string;
+        authorizationCode: string | null;
+        cardLastDigits: string | null;
+        failureReason: string | null;
+    } | null;
     voided: { by: string | null; at: string; reason: string | null } | null;
     plan: {
         name: string;
@@ -350,17 +357,44 @@ export default function Payment({
                             <DetailRow label="Medio de pago">
                                 {payment.method}
                             </DetailRow>
-                            <DetailRow label="Cobró">
-                                {payment.receivedBy ??
-                                    (payment.status === 'to_review'
-                                        ? 'Todavía nadie'
-                                        : 'Nadie')}
-                            </DetailRow>
-                            <DetailRow label="Caja">
-                                {payment.register
-                                    ? `De ${payment.register.personName}, ${payment.register.day} · ${payment.register.isClosed ? 'cerrada' : 'abierta'}`
-                                    : 'Ninguna: llegó por transferencia desde la app'}
-                            </DetailRow>
+                            {payment.webpay ? (
+                                <>
+                                    <DetailRow label="Tarjeta">
+                                        {payment.webpay.cardLastDigits
+                                            ? `Terminada en ${payment.webpay.cardLastDigits}`
+                                            : 'Sin datos'}
+                                        {payment.webpay.authorizationCode &&
+                                            ` · autorización ${payment.webpay.authorizationCode}`}
+                                    </DetailRow>
+                                    <DetailRow label="Orden de compra">
+                                        <span className="font-mono text-sm">
+                                            {payment.webpay.buyOrder}
+                                        </span>
+                                    </DetailRow>
+                                    {payment.webpay.failureReason && (
+                                        <DetailRow label="Por qué no se completó">
+                                            {payment.webpay.failureReason}
+                                        </DetailRow>
+                                    )}
+                                    <DetailRow label="Caja">
+                                        Ninguna: se pagó en línea con Webpay
+                                    </DetailRow>
+                                </>
+                            ) : (
+                                <>
+                                    <DetailRow label="Cobró">
+                                        {payment.receivedBy ??
+                                            (payment.status === 'to_review'
+                                                ? 'Todavía nadie'
+                                                : 'Nadie')}
+                                    </DetailRow>
+                                    <DetailRow label="Caja">
+                                        {payment.register
+                                            ? `De ${payment.register.personName}, ${payment.register.day} · ${payment.register.isClosed ? 'cerrada' : 'abierta'}`
+                                            : 'Ninguna: llegó por transferencia desde la app'}
+                                    </DetailRow>
+                                </>
+                            )}
                             {plan && (
                                 <DetailRow label="Clases">
                                     {plan.isCancelled

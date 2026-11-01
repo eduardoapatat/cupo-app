@@ -11,6 +11,7 @@ use App\Enums\StudioRole;
 use App\Models\CashRegister;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -115,6 +116,27 @@ it('leaves a payment of a closed register to the owner', function () {
             ->where('payment.voidedAfterClosing', true)
             ->where('payment.plan.isCancelled', true)
             ->where('canVoid', false));
+});
+
+it('leaves a Webpay payment to the owner, and shows what Transbank answered', function () {
+    $payment = Payment::factory()->create([
+        'plan_purchase_id' => PlanPurchase::factory()->for($this->studio),
+        'method' => PaymentMethod::Webpay,
+        'webpay_buy_order' => 'cupo261029ABC',
+        'webpay_authorization_code' => '1213',
+        'card_last_digits' => '6623',
+    ]);
+
+    $this->actingAs($this->camila)
+        ->get(route('studios.payments.show', [$this->studio, $payment]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('payment.method', 'Webpay')
+            ->where('payment.webpay', ['buyOrder' => 'cupo261029ABC', 'authorizationCode' => '1213', 'cardLastDigits' => '6623', 'failureReason' => null])
+            ->where('canVoid', false)
+            ->where('voidDenied', 'Se pagó con Webpay: solo la dueña puede anularlo.'));
+    $this->actingAs($this->camila)
+        ->post(route('studios.payments.void.store', [$this->studio, $payment]), ['reason' => 'Error'])
+        ->assertForbidden();
 });
 
 it('keeps payments for the front desk and the owner, and each studio its own', function (StudioRole $role) {

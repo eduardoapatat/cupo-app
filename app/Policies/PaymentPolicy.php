@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
@@ -34,6 +35,10 @@ class PaymentPolicy
 
         if ($user->can('payments.void_closed', $payment->studio)) {
             return Response::allow();
+        }
+
+        if ($payment->method === PaymentMethod::Webpay) {
+            return Response::deny(__('It was paid with Webpay: only the owner can void it.'));
         }
 
         if ($payment->cashRegister === null) {

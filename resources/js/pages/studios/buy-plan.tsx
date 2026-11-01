@@ -1,10 +1,12 @@
 import { Form, Head, usePage } from '@inertiajs/react';
+import { CreditCard, Landmark } from 'lucide-react';
 import { useState } from 'react';
 import {
     create as buyPlan,
     store as buyPlanStore,
 } from '@/actions/App/Http/Controllers/Studio/BuyPlanController';
 import { index as myPlanIndex } from '@/actions/App/Http/Controllers/Studio/MyPlanController';
+import { store as webpayStore } from '@/actions/App/Http/Controllers/Studio/WebpayPaymentController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,8 @@ type Props = {
     transferDetails: string | null;
 };
 
+type Method = 'webpay' | 'transfer';
+
 function classesLabel(credits: number | null): string {
     if (credits === null) {
         return 'Clases ilimitadas';
@@ -50,6 +54,8 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
     const [planId, setPlanId] = useState<string>(
         plans.length === 1 ? String(plans[0].id) : '',
     );
+    const [method, setMethod] = useState<Method>('webpay');
+    const takesTransfers = transferDetails !== null;
 
     if (!studio) {
         return null;
@@ -65,16 +71,20 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                 <Heading
                     className="mb-0"
                     title="Comprar plan"
-                    description="Elige tu plan, transfiere y sube el comprobante. Tu plan parte cuando el estudio lo valide."
+                    description="Elige tu plan y págalo con Webpay, o por transferencia si el estudio la recibe."
                 />
 
-                {transferDetails === null || plans.length === 0 ? (
+                {plans.length === 0 ? (
                     <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-                        Por ahora el estudio vende sus planes solo en el mesón.
+                        Por ahora el estudio no tiene planes a la venta en la
+                        app.
                     </p>
                 ) : (
                     <Form
-                        {...buyPlanStore.form(studio.slug)}
+                        key={method}
+                        {...(method === 'webpay'
+                            ? webpayStore.form(studio.slug)
+                            : buyPlanStore.form(studio.slug))}
                         onError={(errors) =>
                             focusFirstError(errors, {
                                 plan_id: `buy-plan-${plans[0].id}`,
@@ -152,53 +162,132 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                     </section>
 
                                     <section
-                                        aria-labelledby="buy-transfer-title"
+                                        aria-labelledby="buy-method-title"
                                         className="grid gap-3"
                                     >
                                         <h2
-                                            id="buy-transfer-title"
+                                            id="buy-method-title"
                                             className="text-sm font-medium"
                                         >
-                                            2. Transfiere
-                                            {plan &&
-                                                ` ${formatClp(plan.price)}`}{' '}
-                                            a
+                                            2. Cómo pagas
                                         </h2>
-                                        <p className="rounded-xl border bg-muted/40 p-4 text-sm whitespace-pre-line">
-                                            {transferDetails}
-                                        </p>
+                                        <RadioGroup
+                                            value={method}
+                                            onValueChange={(value) =>
+                                                setMethod(value as Method)
+                                            }
+                                            aria-labelledby="buy-method-title"
+                                            className="grid gap-3 sm:grid-cols-2"
+                                        >
+                                            {(
+                                                [
+                                                    {
+                                                        value: 'webpay',
+                                                        icon: CreditCard,
+                                                        title: 'Webpay',
+                                                        text: 'Débito o crédito. Tu plan parte al tiro.',
+                                                    },
+                                                    ...(takesTransfers
+                                                        ? [
+                                                              {
+                                                                  value: 'transfer',
+                                                                  icon: Landmark,
+                                                                  title: 'Transferencia',
+                                                                  text: 'Subes el comprobante y parte cuando el estudio lo valide.',
+                                                              },
+                                                          ]
+                                                        : []),
+                                                ] as const
+                                            ).map((option) => {
+                                                const id = `buy-method-${option.value}`;
+
+                                                return (
+                                                    <Label
+                                                        key={option.value}
+                                                        htmlFor={id}
+                                                        className={cn(
+                                                            'flex cursor-pointer items-start gap-3 rounded-xl border p-4 font-normal transition-colors hover:bg-muted/50',
+                                                            option.value ===
+                                                                method &&
+                                                                'border-foreground bg-muted/40',
+                                                        )}
+                                                    >
+                                                        <RadioGroupItem
+                                                            id={id}
+                                                            value={option.value}
+                                                            className="mt-0.5"
+                                                        />
+                                                        <span className="grid min-w-0 flex-1 gap-0.5">
+                                                            <span className="flex items-center gap-2 font-medium">
+                                                                <option.icon
+                                                                    className="size-4"
+                                                                    aria-hidden="true"
+                                                                />
+                                                                {option.title}
+                                                            </span>
+                                                            <span className="text-sm text-muted-foreground">
+                                                                {option.text}
+                                                            </span>
+                                                        </span>
+                                                    </Label>
+                                                );
+                                            })}
+                                        </RadioGroup>
                                     </section>
 
-                                    <section className="grid gap-2">
-                                        <Label
-                                            htmlFor="buy-receipt"
-                                            className="text-sm font-medium"
-                                        >
-                                            3. Sube el comprobante
-                                        </Label>
-                                        <Input
-                                            id="buy-receipt"
-                                            {...fieldErrorProps(
-                                                'buy-receipt',
-                                                errors.receipt,
-                                                'buy-receipt-help',
-                                            )}
-                                            name="receipt"
-                                            type="file"
-                                            accept="image/jpeg,image/png,application/pdf"
-                                            required
-                                        />
-                                        <p
-                                            id="buy-receipt-help"
-                                            className="text-sm text-muted-foreground"
-                                        >
-                                            Una captura o un PDF de hasta 5 MB.
-                                        </p>
-                                        <InputError
-                                            id="buy-receipt-error"
-                                            message={errors.receipt}
-                                        />
-                                    </section>
+                                    {method === 'transfer' && (
+                                        <>
+                                            <section
+                                                aria-labelledby="buy-transfer-title"
+                                                className="grid gap-3"
+                                            >
+                                                <h2
+                                                    id="buy-transfer-title"
+                                                    className="text-sm font-medium"
+                                                >
+                                                    3. Transfiere
+                                                    {plan &&
+                                                        ` ${formatClp(plan.price)}`}{' '}
+                                                    a
+                                                </h2>
+                                                <p className="rounded-xl border bg-muted/40 p-4 text-sm whitespace-pre-line">
+                                                    {transferDetails}
+                                                </p>
+                                            </section>
+
+                                            <section className="grid gap-2">
+                                                <Label
+                                                    htmlFor="buy-receipt"
+                                                    className="text-sm font-medium"
+                                                >
+                                                    4. Sube el comprobante
+                                                </Label>
+                                                <Input
+                                                    id="buy-receipt"
+                                                    {...fieldErrorProps(
+                                                        'buy-receipt',
+                                                        errors.receipt,
+                                                        'buy-receipt-help',
+                                                    )}
+                                                    name="receipt"
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,application/pdf"
+                                                    required
+                                                />
+                                                <p
+                                                    id="buy-receipt-help"
+                                                    className="text-sm text-muted-foreground"
+                                                >
+                                                    Una captura o un PDF de
+                                                    hasta 5 MB.
+                                                </p>
+                                                <InputError
+                                                    id="buy-receipt-error"
+                                                    message={errors.receipt}
+                                                />
+                                            </section>
+                                        </>
+                                    )}
                                 </div>
 
                                 <Card className="lg:sticky lg:top-6">
@@ -219,8 +308,9 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                                         `, hasta ${plan.dailyLimit} al día`}
                                                 </span>
                                                 <span className="text-muted-foreground">
-                                                    Si lo validan hoy, vale
-                                                    hasta el {plan.lastDay}.
+                                                    {method === 'webpay'
+                                                        ? `Si lo pagas hoy, vale hasta el ${plan.lastDay}.`
+                                                        : `Si lo validan hoy, vale hasta el ${plan.lastDay}.`}
                                                 </span>
                                             </div>
                                         ) : (
@@ -231,15 +321,18 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                         <Separator />
                                         <div className="flex items-baseline justify-between gap-4">
                                             <span className="text-sm text-muted-foreground">
-                                                Total por transferencia
+                                                {method === 'webpay'
+                                                    ? 'Total con Webpay'
+                                                    : 'Total por transferencia'}
                                             </span>
                                             <span className="text-2xl font-semibold tabular-nums">
                                                 {formatClp(plan?.price ?? 0)}
                                             </span>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
-                                            Tu plan parte cuando el estudio
-                                            valide el pago.
+                                            {method === 'webpay'
+                                                ? 'Pagas en Webpay y vuelves aquí con tu plan activo.'
+                                                : 'Tu plan parte cuando el estudio valide el pago.'}
                                         </p>
                                         <Button
                                             type="submit"
@@ -247,7 +340,9 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                             disabled={processing || !plan}
                                         >
                                             {processing && <Spinner />}
-                                            Enviar comprobante
+                                            {method === 'webpay'
+                                                ? 'Pagar con Webpay'
+                                                : 'Enviar comprobante'}
                                         </Button>
                                     </CardContent>
                                 </Card>

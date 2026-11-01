@@ -24,7 +24,7 @@ class SellPlanRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer'],
             'plan_id' => ['required', 'integer'],
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            'method' => ['required', Rule::enum(PaymentMethod::class)->only(PaymentMethod::atTheCounter())],
             'price' => ['nullable', 'integer', 'min:0', 'max:10000000'],
             'price_reason' => ['required_with:price', 'nullable', 'string', 'max:200'],
             'receipt' => ['nullable', 'exclude_unless:method,transfer', ...ReceiptRules::rules()],

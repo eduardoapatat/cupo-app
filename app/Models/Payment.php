@@ -26,6 +26,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $paid_at When the money came in: when it was sold, or when a transfer from the app was approved
  * @property int|null $received_by_id
  * @property string|null $receipt_path The transfer receipt, on the default disk
+ * @property string|null $webpay_buy_order
+ * @property string|null $webpay_token
+ * @property string|null $webpay_url Where her browser pays it, while pending
+ * @property string|null $webpay_authorization_code
+ * @property string|null $card_last_digits
  * @property int|null $reviewed_by_id
  * @property CarbonImmutable|null $reviewed_at
  * @property int|null $voided_by_id
@@ -34,7 +39,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['studio_id', 'plan_purchase_id', 'plan_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id', 'receipt_path', 'paid_at'])]
+#[Fillable(['studio_id', 'plan_purchase_id', 'plan_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id', 'receipt_path', 'paid_at', 'webpay_buy_order'])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CashRegister;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
@@ -57,3 +58,25 @@ it('keeps a receipt to review without a purchase, and one at a time per student'
 
     expectSqlState(fn () => DB::table('payments')->where('id', $second->id)->update($toReview), '23505');
 });
+
+it('keeps a Webpay payment with its buy order, its plan while pending, a reason if it failed, and out of any register', function (Closure $values) {
+    $payment = Payment::factory()->create();
+    $approved = $payment->only(['status', 'paid_at', 'plan_purchase_id']);
+
+    DB::table('payments')->where('id', $payment->id)->update([
+        'method' => 'webpay',
+        'webpay_buy_order' => 'cupo1',
+        'status' => 'pending',
+        'plan_purchase_id' => null,
+        'paid_at' => null,
+        'plan_id' => Plan::factory()->create()->id,
+    ]);
+
+    expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update($values($approved)), '23514');
+})->with([
+    'webpay without a buy order' => [fn () => ['webpay_buy_order' => null]],
+    'a buy order on another method' => [fn () => ['method' => 'card']],
+    'pending without its plan' => [fn () => ['plan_id' => null]],
+    'failed without a reason' => [fn () => ['status' => 'failed']],
+    'into a register' => [fn (array $approved) => [...$approved, 'cash_register_id' => CashRegister::factory()->create()->id]],
+]);

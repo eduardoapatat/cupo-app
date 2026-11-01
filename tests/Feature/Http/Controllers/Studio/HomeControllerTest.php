@@ -270,7 +270,7 @@ it('shows the owner the month\'s income, against the same stretch of last month'
         ->assertInertia(fn (Assert $page) => $page
             ->where('monthIncome.total', 73000)
             ->where('monthIncome.previous', 20000)
-            ->where('monthIncome.byMethod', fn ($methods) => collect($methods)->pluck('total', 'method')->all() === ['cash' => 45000, 'card' => 28000, 'transfer' => 0]));
+            ->where('monthIncome.byMethod', fn ($methods) => collect($methods)->pluck('total', 'method')->all() === ['cash' => 45000, 'card' => 28000, 'transfer' => 0, 'webpay' => 0]));
 });
 
 it('answers 404 to people outside the studio', function () {

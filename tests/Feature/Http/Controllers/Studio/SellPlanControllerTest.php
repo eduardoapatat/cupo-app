@@ -124,6 +124,7 @@ it('sells only plans on sale to students of the studio', function () {
     $this->actingAs($this->camila)->post($route, saleForm($this->javiera->id, $elsewhere->id))->assertNotFound();
     $this->actingAs($this->camila)->post($route, saleForm($stranger->id, $this->plan->id))->assertNotFound();
     $this->actingAs($this->camila)->post($route, saleForm($this->camila->id, $this->plan->id))->assertNotFound();
+    $this->actingAs($this->camila)->post($route, saleForm($this->javiera->id, $this->plan->id, ['method' => 'webpay']))->assertSessionHasErrors('method');
 
     expect(PlanPurchase::count())->toBe(0);
 });
