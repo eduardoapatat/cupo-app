@@ -80,9 +80,9 @@ Decisiones de la fase: se reserva hasta 14 días antes (regla del estudio); un c
     - la asistencia: quien da la clase marca a quien vino, hasta el fin del día siguiente (la dueña corrige siempre), y `attendance:close` deja cada noche como «Faltó» a quien no se marcó;
     - el Inicio de cada rol con datos reales y el horario de Estudio Flow en los datos demo.
 
-## Fase 3: planes, créditos, pagos y caja _(en curso)_
+## Fase 3: planes, créditos, pagos y caja ✅
 
-Decisiones de la fase: primero las clases y después la plata; dos planes vigentes conviven y cada reserva usa el que vence antes; la clase tiene que caer dentro de la vigencia del plan; la lista de espera se salta a quien no tiene clases; recepción vende a precio de lista y solo la dueña cambia el precio, con motivo; la alumna sube el comprobante de su transferencia desde la app y su plan parte cuando el estudio lo aprueba; anular un pago anula su plan entero; para vender hay que tener la caja abierta, y una olvidada se cierra antes de abrir otra.
+Decisiones de la fase: primero las clases y después la plata; dos planes vigentes conviven y cada reserva usa el que vence antes; la clase tiene que caer dentro de la vigencia del plan; la lista de espera se salta a quien no tiene clases; recepción vende a precio de lista y solo la dueña cambia el precio, con motivo; la alumna sube el comprobante de su transferencia desde la app y su plan parte cuando el estudio lo aprueba; anular un pago anula su plan entero; para vender hay que tener la caja abierta, y una olvidada se cierra antes de abrir otra; al vencer, las clases sin usar se pierden con un movimiento que dice cuántas, y la alumna ve el aviso desde los días de aviso del estudio; los reportes van con gráficos (recharts); anular un pago de Webpay le pide la devolución a Transbank, y sin devolución no se anula.
 
 - [x] **3.1 "Planes y clases disponibles"**:
     - «Planes» (lista con panel), «Vender plan» (una página con resumen) y la pestaña «Plan y pagos» en la ficha de la alumna;
@@ -94,14 +94,15 @@ Decisiones de la fase: primero las clases y después la plata; dos planes vigent
     - la alumna compra desde la app por transferencia y sube el comprobante (disco privado); recepción o la dueña lo aprueban, lo que crea su plan desde ese día, o lo rechazan con motivo; revisarlo a la vez no crea dos planes;
     - estados del pago (por validar → aprobado o rechazado; un aprobado se anula), anulaciones con motivo que anulan el plan y cancelan sus reservas que vienen; recepción anula solo en una caja abierta y la dueña, cualquiera (`cash.review` para ver las cajas del equipo);
     - «Caja», «Pagos» con el detalle de cada pago, «Comprar plan», los datos para transferir en «Estudio», el descuento en la ficha y los bloques del Inicio de recepción y de la dueña.
-- [ ] **3.3 "Vencimientos, reportes y Webpay"**:
-    - el vencimiento de planes con el scheduler;
-    - «Reportes» e ingresos del mes;
-    - la compra en línea con Webpay Plus en sandbox, con confirmación idempotente, y el cierre de la fase.
+- [x] **3.3 "Vencimientos, reportes y Webpay"**:
+    - `plans:expire` cada noche: las clases que quedaban en un plan vencido salen en un solo movimiento («Vencieron sin usar»), con la fila bloqueada e idempotente; el aviso a la alumna en su Inicio y en «Mi plan», con «Renovar»;
+    - `paid_at` en cada pago, para contar los ingresos el día en que entró la plata;
+    - «Reportes» de la dueña, por mes: ingresos por día, medio y plan, descuentos y anulaciones; ocupación por horario y asistencia; alumnas con plan; planes que vencen en 7 días. «Ingresos del mes» en su Inicio;
+    - Webpay Plus en integración, con el cliente HTTP de Laravel: confirmación con la fila bloqueada (dos a la vez crean un solo plan, con un test de varios procesos), la vuelta por `POST` sin sesión, `webpay:reconcile` cada 5 minutos y la devolución a la tarjeta al anular (ADR 0010).
 
 ## Fase 4: automatizaciones
 
-- [ ] Recordatorios de clase, avisos de la lista de espera y aviso de vencimiento 3 días antes.
+- [ ] Recordatorios de clase, avisos de la lista de espera y aviso de vencimiento 3 días antes (por correo; en pantalla ya está desde el punto 3.3).
 - [ ] Resumen diario para la dueña.
 - [ ] Evaluar mostrar dentro de la app las invitaciones pendientes al correo de la persona (hoy llegan solo por correo).
 - [ ] Eventos, listeners, notificaciones en cola y jobs programados con `withoutOverlapping()`.
