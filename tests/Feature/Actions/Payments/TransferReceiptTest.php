@@ -6,6 +6,7 @@ use App\Actions\Payments\SubmitTransferReceipt;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Plan;
+use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -89,4 +90,16 @@ it('rejects saying why, lets her send another, and reviews each receipt once', f
         ->toThrow(PaymentRejected::class, 'Camila ya lo revisó.');
     expect(app(SubmitTransferReceipt::class)->handle($this->plan, $this->rosa, receiptFile())->status)
         ->toBe(PaymentStatus::ToReview);
+});
+
+it('queues the approved plan after the one she is still using', function () {
+    $current = PlanPurchase::factory()->for($this->studio)->for($this->rosa)->create(['credits' => 8, 'credits_left' => 3, 'expires_at' => CarbonImmutable::parse('2026-11-10', 'America/Santiago')->utc()]);
+    $payment = app(SubmitTransferReceipt::class)->handle($this->plan, $this->rosa, receiptFile());
+
+    app(ReviewPayment::class)->approve($payment, $this->camila);
+
+    expect($payment->refresh()->planPurchase)
+        ->starts_on->toDateString()->toBe('2026-11-10')
+        ->isQueued()->toBeTrue()
+        ->and($current->fresh()->isValid())->toBeTrue();
 });

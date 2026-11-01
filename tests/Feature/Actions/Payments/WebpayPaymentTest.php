@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\PlanPurchase;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Factory;
@@ -193,4 +194,12 @@ it('does not ask for the refund twice when Transbank already gave it back', func
 
     expect($payment->refresh()->status)->toBe(PaymentStatus::Voided);
     Http::assertNotSent(fn (Request $request) => str_ends_with($request->url(), '/refunds'));
+});
+
+it('queues the plan paid with Webpay after the one she is still using', function () {
+    PlanPurchase::factory()->for($this->plan->studio)->for($this->javiera)->create(['credits' => 8, 'credits_left' => 3, 'expires_at' => CarbonImmutable::parse('2026-11-10', 'America/Santiago')->utc()]);
+
+    $payment = approvedWebpayPayment($this->plan, $this->javiera);
+
+    expect($payment->planPurchase?->starts_on->toDateString())->toBe('2026-11-10');
 });

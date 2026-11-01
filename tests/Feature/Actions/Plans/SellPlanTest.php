@@ -1,11 +1,15 @@
 <?php
 
+use App\Actions\Bookings\BookSession;
 use App\Actions\CashRegisters\CashRegisterRejected;
 use App\Actions\Plans\SellPlan;
+use App\Enums\BookingKind;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\CashRegister;
+use App\Models\ClassSession;
 use App\Models\Plan;
+use App\Models\PlanPurchase;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -80,4 +84,79 @@ it('sells nothing into a register that was closed meanwhile', function () {
     expect(fn () => app(SellPlan::class)->handle($plan, User::factory()->create(), $stale, PaymentMethod::Cash))
         ->toThrow(CashRegisterRejected::class, 'Tu caja se cerró, así que no se cobró nada.');
     expect($plan->purchases()->count())->toBe(0);
+});
+
+/**
+ * Sell her the plan and say on which day it starts and its last day.
+ *
+ * @return array{0: string, 1: string}
+ */
+function soldDays(object $test): array
+{
+    $purchase = app(SellPlan::class)->handle($test->plan, $test->rosa, $test->register, PaymentMethod::Cash);
+
+    return [$purchase->starts_on->toDateString(), $purchase->lastDay()->toDateString()];
+}
+
+describe('one plan at a time', function () {
+    beforeEach(function () {
+        $this->plan = Plan::factory()->create(['name' => '8 clases al mes', 'price' => 45000, 'credits' => 8, 'validity_days' => 30]);
+        $this->rosa = User::factory()->create();
+        $this->register = registerFor($this->plan);
+    });
+
+    it('starts today when she has no plan', function () {
+        expect(soldDays($this))->toBe(['2026-10-29', '2026-11-27']);
+    });
+
+    it('waits until her current plan ends while it has classes, one after the other', function () {
+        soldDays($this);
+
+        $second = app(SellPlan::class)->handle($this->plan, $this->rosa, $this->register, PaymentMethod::Cash);
+        $third = app(SellPlan::class)->handle($this->plan, $this->rosa, $this->register, PaymentMethod::Cash);
+
+        expect($second->starts_on->toDateString())->toBe('2026-11-28')
+            ->and($second->lastDay()->toDateString())->toBe('2026-12-27')
+            ->and($second->isQueued())->toBeTrue()
+            ->and($second->isValid())->toBeFalse()
+            ->and($third->starts_on->toDateString())->toBe('2026-12-28')
+            ->and($this->rosa->planPurchases()->valid()->count())->toBe(1)
+            ->and($this->rosa->planPurchases()->queued()->count())->toBe(2);
+    });
+
+    it('waits after an unlimited plan too', function () {
+        app(SellPlan::class)->handle(Plan::factory()->for($this->plan->studio)->unlimited()->create(['validity_days' => 30]), $this->rosa, $this->register, PaymentMethod::Cash);
+
+        expect(soldDays($this)[0])->toBe('2026-11-28');
+    });
+
+    it('starts today when her current plan has no classes left', function () {
+        $used = app(SellPlan::class)->handle($this->plan, $this->rosa, $this->register, PaymentMethod::Cash);
+        $used->update(['credits_left' => 0]);
+
+        expect(soldDays($this)[0])->toBe('2026-10-29');
+    });
+
+    it('counts the plans of each studio apart', function () {
+        PlanPurchase::factory()->for($this->rosa)->create();
+
+        expect(soldDays($this)[0])->toBe('2026-10-29');
+    });
+
+    it('pays each class with the plan running on its day', function () {
+        $current = app(SellPlan::class)->handle($this->plan, $this->rosa, $this->register, PaymentMethod::Cash);
+        $next = app(SellPlan::class)->handle($this->plan, $this->rosa, $this->register, PaymentMethod::Cash);
+        $class = fn (string $at) => ClassSession::factory()->for($this->plan->studio)->create([
+            'instructor_id' => User::factory(),
+            'starts_at' => CarbonImmutable::parse($at, 'America/Santiago')->utc(),
+            'ends_at' => CarbonImmutable::parse($at, 'America/Santiago')->addMinutes(50)->utc(),
+        ]);
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'America/Santiago'));
+
+        $before = app(BookSession::class)->handle($class('2026-11-27 19:00'), $this->rosa, BookingKind::Student, $this->rosa);
+        $after = app(BookSession::class)->handle($class('2026-11-28 19:00'), $this->rosa, BookingKind::Student, $this->rosa);
+
+        expect($before->plan_purchase_id)->toBe($current->id)
+            ->and($after->plan_purchase_id)->toBe($next->id);
+    });
 });

@@ -234,7 +234,8 @@ class DemoStudioSeeder extends Seeder
 
     /**
      * Payments with Webpay, with fictional authorization data: last night
-     * Josefa paid 4 classes, and this morning Martina cancelled at Webpay.
+     * Josefa paid 4 classes ahead, which wait until her current plan ends,
+     * and this morning Martina cancelled at Webpay.
      */
     private function webpayOf(Studio $flow): void
     {
@@ -244,13 +245,8 @@ class DemoStudioSeeder extends Seeder
         $lastNight = now(config()->string('studio.timezone'))->startOfDay()->subDay()->setTime(21, 15)->utc();
 
         $purchase = app(SellPlan::class)->newPurchase($small, $josefa, null, $small->price);
-        $yesterday = now(config()->string('studio.timezone'))->startOfDay()->subDay();
-        $purchase->forceFill([
-            'starts_on' => $yesterday->toDateString(),
-            'expires_at' => $yesterday->addDays($small->validity_days)->utc(),
-            'created_at' => $lastNight,
-            'updated_at' => $lastNight,
-        ])->save();
+        // She still has classes in her plan, so this one waits its turn.
+        $purchase->forceFill(['created_at' => $lastNight, 'updated_at' => $lastNight])->save();
         $paid = new Payment([
             'studio_id' => $flow->id,
             'plan_purchase_id' => $purchase->id,

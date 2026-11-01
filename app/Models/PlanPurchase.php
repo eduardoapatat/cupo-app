@@ -115,11 +115,21 @@ class PlanPurchase extends Model
     }
 
     /**
-     * Whether it still pays for classes: not voided and not expired.
+     * Whether it is her current plan: not voided, already started and not
+     * expired. A plan bought ahead waits its turn (isQueued) until then.
      */
     public function isValid(): bool
     {
-        return ! $this->isCancelled() && $this->expires_at->isFuture();
+        return ! $this->isCancelled() && ! $this->isQueued() && $this->expires_at->isFuture();
+    }
+
+    /**
+     * Bought while another plan was still running: it starts on a later day.
+     */
+    public function isQueued(): bool
+    {
+        return ! $this->isCancelled()
+            && $this->starts_on->toDateString() > now(config()->string('studio.timezone'))->toDateString();
     }
 
     public function isUnlimited(): bool
@@ -155,12 +165,25 @@ class PlanPurchase extends Model
     }
 
     /**
-     * Purchases still valid now.
+     * Purchases valid now: started and not expired.
      *
      * @param  Builder<self>  $query
      */
     public function scopeValid(Builder $query): void
     {
-        $query->whereNull('cancelled_at')->where('expires_at', '>', now());
+        $query->whereNull('cancelled_at')
+            ->where('starts_on', '<=', now(config()->string('studio.timezone'))->toDateString())
+            ->where('expires_at', '>', now());
+    }
+
+    /**
+     * Purchases waiting their turn: they start on a later day.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeQueued(Builder $query): void
+    {
+        $query->whereNull('cancelled_at')
+            ->where('starts_on', '>', now(config()->string('studio.timezone'))->toDateString());
     }
 }
