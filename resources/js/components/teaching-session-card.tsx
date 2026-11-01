@@ -37,8 +37,11 @@ export default function TeachingSessionCard({
     slug: string;
     session: TeachingSession;
 }) {
-    // A class that started opens with its list, to mark who missed it.
-    const marksAttendance = session.hasStarted && !session.isCancelled;
+    // A class whose attendance opened (a few minutes before it starts)
+    // opens with its list, to mark who came.
+    const marksAttendance =
+        !session.isCancelled &&
+        (session.hasStarted || session.attendanceIsOpen);
 
     return (
         <li className="rounded-xl border p-4">
@@ -92,7 +95,7 @@ export default function TeachingSessionCard({
                             {marksAttendance && (
                                 <p className="text-sm text-muted-foreground">
                                     {session.attendanceIsOpen
-                                        ? `Marca a quien vino, hasta ${session.attendanceClosesLabel}. Quien no quede marcado, cuenta como que faltó.`
+                                        ? `${session.hasStarted ? 'Marca a quien vino' : `Empieza a las ${session.startsAt}: ya puedes marcar a quien llegó`}, hasta ${session.attendanceClosesLabel}. Quien no quede marcado, cuenta como que faltó.`
                                         : 'La asistencia ya cerró.'}
                                 </p>
                             )}

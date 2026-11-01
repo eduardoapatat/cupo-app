@@ -756,7 +756,10 @@ function SessionPanel({
     session: SessionDetail;
 }) {
     const canAct = !session.isCancelled && !session.hasStarted;
-    const marksAttendance = !session.isCancelled && session.hasStarted;
+    // Attendance opens a few minutes before the start, as students arrive.
+    const marksAttendance =
+        !session.isCancelled &&
+        (session.hasStarted || session.attendanceIsOpen);
     const isFull = session.bookedCount >= session.capacity;
 
     return (
@@ -792,10 +795,10 @@ function SessionPanel({
                             : '.'}
                     </p>
                 )}
-                {!session.isCancelled && session.hasStarted && (
+                {marksAttendance && (
                     <p className="rounded-lg bg-muted p-3 text-sm">
                         {session.attendanceIsOpen
-                            ? `La clase ya empezó. Marca a quien vino, hasta ${session.attendanceClosesLabel}; quien no quede marcado cuenta como que faltó.`
+                            ? `${session.hasStarted ? 'La clase ya empezó. Marca a quien vino' : `La clase empieza a las ${session.startsAt}. Ya puedes marcar a quien llegó`}, hasta ${session.attendanceClosesLabel}; quien no quede marcado cuenta como que faltó.`
                             : session.canCorrectClosedAttendance
                               ? 'La asistencia de esta clase ya cerró, pero como dueña puedes corregirla.'
                               : 'Esta clase ya terminó y su asistencia ya cerró.'}

@@ -41,6 +41,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Attendance
+    |--------------------------------------------------------------------------
+    |
+    | Minutes before a class starts when its attendance opens, so the front
+    | desk marks students as they arrive. It closes at the end of the day
+    | after the class.
+    |
+    */
+
+    'attendance_opens_minutes_before' => (int) env('STUDIO_ATTENDANCE_OPENS_MINUTES_BEFORE', 15),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Rules
     |--------------------------------------------------------------------------
     |

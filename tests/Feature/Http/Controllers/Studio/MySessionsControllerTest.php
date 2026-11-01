@@ -70,3 +70,17 @@ it('is for whoever teaches, not for students', function () {
         ->get(route('studios.my-sessions.index', $studio))
         ->assertForbidden();
 });
+
+it('opens the attendance of her next class 15 minutes before it starts', function () {
+    $studio = Studio::factory()->create();
+    $fernanda = User::factory()->memberOf($studio, StudioRole::Instructor)->create();
+    taughtClass($studio, $fernanda, '2026-11-02 12:10');
+    taughtClass($studio, $fernanda, '2026-11-02 13:20');
+
+    $this->actingAs($fernanda)
+        ->get(route('studios.my-sessions.index', $studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('days.0.sessions.0.hasStarted', false)
+            ->where('days.0.sessions.0.attendanceIsOpen', true)
+            ->where('days.0.sessions.1.attendanceIsOpen', false));
+});

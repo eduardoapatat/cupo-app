@@ -27,9 +27,9 @@ function bookingForAttendance(): Booking
     return bookWithPlan($session, $javiera);
 }
 
-it('marks who came from the start of the class, and undoes it', function () {
+it('marks who came from 15 minutes before the class, and undoes it', function () {
     $booking = bookingForAttendance();
-    $this->travelTo(CarbonImmutable::parse('2026-11-03 19:00', 'America/Santiago'));
+    $this->travelTo(CarbonImmutable::parse('2026-11-03 18:45', 'America/Santiago'));
 
     expect(app(MarkAttendance::class)->handle($booking, true)->status)->toBe(BookingStatus::Attended)
         ->and(app(MarkAttendance::class)->handle($booking, false)->status)->toBe(BookingStatus::Confirmed);
@@ -41,19 +41,20 @@ it('keeps the attendance open until the end of the next day', function (string $
 
     expect($booking->classSession->attendanceIsOpen())->toBe($isOpen);
 })->with([
-    'before it starts' => ['2026-11-03 18:59', false],
+    'more than 15 minutes before' => ['2026-11-03 18:44', false],
+    '15 minutes before' => ['2026-11-03 18:45', true],
     'the next day at 23:59' => ['2026-11-04 23:59', true],
     'two days later' => ['2026-11-05 00:00', false],
 ]);
 
-it('does not mark before the class starts or after the attendance closes', function (string $now) {
+it('does not mark before the attendance opens or after it closes', function (string $now) {
     $booking = bookingForAttendance();
     $this->travelTo(CarbonImmutable::parse($now, 'America/Santiago'));
 
     expect(fn () => app(MarkAttendance::class)->handle($booking, true))
         ->toThrow(BookingRejected::class, 'La asistencia de esta clase no se puede marcar ahora.');
     expect($booking->fresh()->status)->toBe(BookingStatus::Confirmed);
-})->with(['2026-11-03 18:59', '2026-11-05 00:00']);
+})->with(['2026-11-03 18:44', '2026-11-05 00:00']);
 
 it('lets a closed attendance be corrected only when asked to, back to a no-show', function () {
     $booking = bookingForAttendance();

@@ -163,13 +163,22 @@ class ClassSession extends Model
     }
 
     /**
-     * Whether its attendance can be marked now: from its start until
-     * attendanceClosesAt(), unless the studio cancelled it.
+     * The first moment to mark who came: a few minutes before it starts
+     * (studio.attendance_opens_minutes_before), as students arrive.
+     */
+    public function attendanceOpensAt(): CarbonImmutable
+    {
+        return $this->starts_at->subMinutes(config()->integer('studio.attendance_opens_minutes_before'));
+    }
+
+    /**
+     * Whether its attendance can be marked now: from attendanceOpensAt()
+     * until attendanceClosesAt(), unless the studio cancelled it.
      */
     public function attendanceIsOpen(): bool
     {
         return $this->status === ClassSessionStatus::Scheduled
-            && now()->greaterThanOrEqualTo($this->starts_at)
+            && now()->greaterThanOrEqualTo($this->attendanceOpensAt())
             && now()->lessThanOrEqualTo($this->attendanceClosesAt());
     }
 
