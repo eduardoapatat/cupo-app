@@ -1,6 +1,7 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { Wallet } from 'lucide-react';
+import { ChevronDown, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import {
     close as closeRegister,
     index as cashRegisterIndex,
@@ -13,6 +14,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -20,7 +26,29 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+    InputGroupText,
+} from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -33,7 +61,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
-import { formatClp } from '@/lib/money';
+import { clpDigits, formatClp, formatClpDigits } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { CurrentStudio, PaymentRow } from '@/types';
@@ -75,61 +103,244 @@ function differenceLabel(difference: number): string {
         : `Sobra ${formatClp(difference)}`;
 }
 
-function OpenRegisterCard({ slug }: { slug: string }) {
+/** The bills and coins of Chile, to count the drawer. */
+const DENOMINATIONS = {
+    bills: [20000, 10000, 5000, 2000, 1000],
+    coins: [500, 100, 50, 10],
+} as const;
+
+type Counts = Record<number, string>;
+
+/**
+ * An amount of cash, typed as a total or counted bill by bill. Counting
+ * fills the total; typing the total clears the count, so they never show
+ * two different figures.
+ */
+function useCashAmount() {
+    const [digits, setDigits] = useState('');
+    const [counts, setCounts] = useState<Counts>({});
+
+    return {
+        digits,
+        counts,
+        type(text: string) {
+            setDigits(clpDigits(text));
+            setCounts({});
+        },
+        count(denomination: number, text: string) {
+            const next = { ...counts, [denomination]: clpDigits(text) };
+            const total = Object.entries(next).reduce(
+                (sum, [value, quantity]) =>
+                    sum + Number(value) * Number(quantity || 0),
+                0,
+            );
+            setCounts(next);
+            setDigits(total === 0 ? '' : String(total));
+        },
+        reset() {
+            setDigits('');
+            setCounts({});
+        },
+    };
+}
+
+/**
+ * The amount in pesos: «$» before it, «CLP» after it and its thousands
+ * dots as she types. The form gets the plain number.
+ */
+function CashAmountField({
+    id,
+    name,
+    label,
+    amount,
+    error,
+    describedBy = [],
+    children,
+}: {
+    id: string;
+    name: string;
+    label: string;
+    amount: ReturnType<typeof useCashAmount>;
+    error?: string;
+    describedBy?: string[];
+    children?: ReactNode;
+}) {
     return (
-        <section className="grid max-w-md gap-4 rounded-xl border p-6">
-            <div className="grid gap-1">
-                <h2 className="font-semibold">Abre tu caja</h2>
-                <p className="text-sm text-muted-foreground">
-                    Cuenta el efectivo con que partes. Lo que vendas hoy entra
-                    en tu caja.
+        <Field data-invalid={error ? true : undefined}>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <InputGroup className="h-12">
+                <InputGroupAddon>
+                    <InputGroupText className="text-lg">$</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                    id={id}
+                    {...fieldErrorProps(id, error, ...describedBy)}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    required
+                    placeholder="0"
+                    value={formatClpDigits(amount.digits)}
+                    onChange={(event) => amount.type(event.target.value)}
+                    className="text-xl font-semibold tabular-nums md:text-xl"
+                />
+                <InputGroupAddon align="inline-end">
+                    <InputGroupText>CLP</InputGroupText>
+                </InputGroupAddon>
+            </InputGroup>
+            <input type="hidden" name={name} value={amount.digits} />
+            {children}
+            <FieldError id={`${id}-error`}>{error}</FieldError>
+        </Field>
+    );
+}
+
+/** Count the drawer bill by bill and coin by coin; the total adds itself. */
+function CashCount({
+    idPrefix,
+    amount,
+}: {
+    idPrefix: string;
+    amount: ReturnType<typeof useCashAmount>;
+}) {
+    const groups = [
+        { legend: 'Billetes', values: DENOMINATIONS.bills },
+        { legend: 'Monedas', values: DENOMINATIONS.coins },
+    ];
+
+    return (
+        <Collapsible className="grid gap-3">
+            <CollapsibleTrigger asChild>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="group justify-self-start px-2"
+                >
+                    <ChevronDown
+                        className="transition-transform group-data-[state=open]:rotate-180"
+                        aria-hidden="true"
+                    />
+                    Contar billetes y monedas
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="grid gap-4">
+                {groups.map((group) => (
+                    <FieldSet key={group.legend} className="gap-2">
+                        <FieldLegend variant="label">
+                            {group.legend}
+                        </FieldLegend>
+                        <FieldGroup className="grid grid-cols-2 gap-2">
+                            {group.values.map((value) => {
+                                const id = `${idPrefix}-${value}`;
+
+                                return (
+                                    <InputGroup key={value}>
+                                        <InputGroupAddon>
+                                            <label
+                                                htmlFor={id}
+                                                className="min-w-14 text-left tabular-nums"
+                                            >
+                                                {formatClp(value)}
+                                            </label>
+                                            <span aria-hidden="true">×</span>
+                                        </InputGroupAddon>
+                                        <InputGroupInput
+                                            id={id}
+                                            inputMode="numeric"
+                                            autoComplete="off"
+                                            placeholder="0"
+                                            value={amount.counts[value] ?? ''}
+                                            onChange={(event) =>
+                                                amount.count(
+                                                    value,
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="tabular-nums"
+                                        />
+                                    </InputGroup>
+                                );
+                            })}
+                        </FieldGroup>
+                    </FieldSet>
+                ))}
+                <p className="flex justify-between border-t pt-3 text-sm">
+                    <span className="text-muted-foreground">Total contado</span>
+                    <span className="font-medium tabular-nums">
+                        {formatClp(Number(amount.digits || 0))}
+                    </span>
                 </p>
-            </div>
-            <Form
-                {...openRegister.form(slug)}
-                onError={(errors) =>
-                    focusFirstError(errors, { opening_cash: 'opening-cash' })
-                }
-                className="grid gap-4"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-2">
-                            <Label htmlFor="opening-cash">
-                                Efectivo inicial (pesos)
-                            </Label>
-                            <Input
+            </CollapsibleContent>
+        </Collapsible>
+    );
+}
+
+/** Today in words, in the studio's time zone: «Sábado 31 de octubre». */
+function todayLabel(): string {
+    const label = new Intl.DateTimeFormat('es-CL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'America/Santiago',
+    })
+        .format(new Date())
+        .replace(',', '');
+
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** No register yet today: where the shift starts, with the cash she has. */
+function OpenRegisterCard({ slug }: { slug: string }) {
+    const amount = useCashAmount();
+
+    return (
+        <Empty className="mx-auto w-full max-w-md border">
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <Wallet />
+                </EmptyMedia>
+                <EmptyTitle>Abre tu caja de hoy</EmptyTitle>
+                <EmptyDescription>
+                    {todayLabel()}. Lo que vendas hoy entra en tu caja.
+                </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent className="max-w-none text-left">
+                <Form
+                    {...openRegister.form(slug)}
+                    onError={(errors) =>
+                        focusFirstError(errors, {
+                            opening_cash: 'opening-cash',
+                        })
+                    }
+                    className="grid w-full gap-4"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <CashAmountField
                                 id="opening-cash"
-                                {...fieldErrorProps(
-                                    'opening-cash',
-                                    errors.opening_cash,
-                                )}
                                 name="opening_cash"
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={10000000}
-                                step={1}
-                                required
-                                placeholder="20000"
-                            />
-                            <InputError
-                                id="opening-cash-error"
-                                message={errors.opening_cash}
-                            />
-                        </div>
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            className="justify-self-start"
-                        >
-                            {processing && <Spinner />}
-                            Abrir caja
-                        </Button>
-                    </>
-                )}
-            </Form>
-        </section>
+                                label="Efectivo con que partes"
+                                amount={amount}
+                                error={errors.opening_cash}
+                            >
+                                <CashCount
+                                    idPrefix="opening-count"
+                                    amount={amount}
+                                />
+                            </CashAmountField>
+                            <Button
+                                type="submit"
+                                size="lg"
+                                disabled={processing || amount.digits === ''}
+                            >
+                                {processing && <Spinner />}
+                                Abrir caja
+                            </Button>
+                        </>
+                    )}
+                </Form>
+            </EmptyContent>
+        </Empty>
     );
 }
 
@@ -141,13 +352,15 @@ function CloseRegisterDialog({
     register: Register;
 }) {
     const [open, setOpen] = useState(false);
-    const [counted, setCounted] = useState('');
+    const counted = useCashAmount();
     const difference =
-        counted === '' ? null : Number(counted) - register.expectedCash;
+        counted.digits === ''
+            ? null
+            : Number(counted.digits) - register.expectedCash;
 
     function onOpenChange(next: boolean) {
         if (next) {
-            setCounted('');
+            counted.reset();
         }
 
         setOpen(next);
@@ -158,7 +371,7 @@ function CloseRegisterDialog({
             <DialogTrigger asChild>
                 <Button>Cerrar caja</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
                 <DialogTitle>
                     {register.isToday
                         ? 'Cerrar tu caja'
@@ -207,29 +420,14 @@ function CloseRegisterDialog({
                                 </div>
                             </dl>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="counted-cash">
-                                    Efectivo contado (pesos)
-                                </Label>
-                                <Input
-                                    id="counted-cash"
-                                    {...fieldErrorProps(
-                                        'counted-cash',
-                                        errors.counted_cash,
-                                        'counted-cash-difference',
-                                    )}
-                                    name="counted_cash"
-                                    type="number"
-                                    inputMode="numeric"
-                                    min={0}
-                                    max={10000000}
-                                    step={1}
-                                    required
-                                    value={counted}
-                                    onChange={(event) =>
-                                        setCounted(event.target.value)
-                                    }
-                                />
+                            <CashAmountField
+                                id="counted-cash"
+                                name="counted_cash"
+                                label="Efectivo contado"
+                                amount={counted}
+                                error={errors.counted_cash}
+                                describedBy={['counted-cash-difference']}
+                            >
                                 <p
                                     id="counted-cash-difference"
                                     aria-live="polite"
@@ -240,14 +438,14 @@ function CloseRegisterDialog({
                                     )}
                                 >
                                     {difference === null
-                                        ? 'Escribe lo que contaste.'
+                                        ? 'Escribe lo que contaste, o cuéntalo por billete.'
                                         : differenceLabel(difference)}
                                 </p>
-                                <InputError
-                                    id="counted-cash-error"
-                                    message={errors.counted_cash}
+                                <CashCount
+                                    idPrefix="closing-count"
+                                    amount={counted}
                                 />
-                            </div>
+                            </CashAmountField>
 
                             {difference !== null && difference !== 0 && (
                                 <div className="grid gap-2">
