@@ -182,6 +182,7 @@ class StudentController extends Controller
         return $membership->user->planPurchases()
             ->where('studio_id', $studio->id)
             ->with('payments')
+            ->withExpiredCredits()
             ->orderByRaw('cancelled_at IS NOT NULL OR expires_at <= now()')
             ->orderByDesc('created_at')
             ->limit(20)
@@ -193,6 +194,7 @@ class StudentController extends Controller
                 'creditsLeft' => $purchase->credits_left,
                 'isValid' => $purchase->isValid(),
                 'isCancelled' => $purchase->isCancelled(),
+                'expiredCredits' => $purchase->expiredCredits(),
                 'price' => $purchase->price,
                 'listPrice' => $purchase->list_price,
                 'priceReason' => $purchase->price_reason,

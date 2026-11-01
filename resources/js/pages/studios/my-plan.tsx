@@ -36,6 +36,8 @@ type Purchase = {
     lastDay: string;
     /** Its payment was voided, which voids the plan. */
     isCancelled: boolean;
+    /** The classes it had left when it expired. */
+    expiredCredits: number;
 };
 
 type Movement = {
@@ -166,6 +168,32 @@ export default function MyPlan({
                         </Button>
                     )}
                 </div>
+
+                {summary?.expiresSoon && (
+                    <Alert>
+                        <Clock />
+                        <AlertTitle className="line-clamp-none">
+                            Tu plan vence el {summary.lastDay}
+                        </AlertTitle>
+                        <AlertDescription className="grid gap-3">
+                            <p>
+                                {summary.isUnlimited
+                                    ? 'Renuévalo para seguir reservando.'
+                                    : `Te ${summary.classesLeft === 1 ? 'queda 1 clase' : `quedan ${summary.classesLeft} clases`}: las que no uses hasta ese día vencen. Renuévalo para seguir reservando.`}
+                            </p>
+                            {canBuy && (
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-fit"
+                                >
+                                    <Link href={buyPlan(slug)}>Renovar</Link>
+                                </Button>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {pendingPayment && (
                     <Alert>
@@ -348,6 +376,8 @@ export default function MyPlan({
                                         {purchase.isCancelled
                                             ? 'Anulado'
                                             : `Venció el ${purchase.lastDay}`}
+                                        {purchase.expiredCredits > 0 &&
+                                            ` · ${purchase.expiredCredits === 1 ? '1 clase vencida' : `${purchase.expiredCredits} clases vencidas`} sin usar`}
                                     </span>
                                 </li>
                             ))}

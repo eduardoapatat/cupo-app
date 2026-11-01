@@ -49,6 +49,27 @@ it('shows her valid plans, the classes taken and returned, and her past plans', 
     expect($plan->fresh()->credits_left)->toBe(8);
 });
 
+it('warns her from the studio\'s warning days on, and shows the classes that expired unused', function () {
+    $this->studio->update(['plan_expiry_warning_days' => 3]);
+    $plan = PlanPurchase::factory()->for($this->studio)->for($this->javiera)->create(['validity_days' => 4, 'credits_left' => 2]);
+    $expired = PlanPurchase::factory()->for($this->studio)->for($this->javiera)->expired()->create(['credits' => 8, 'credits_left' => 3]);
+    $this->artisan('plans:expire');
+    $page = fn () => $this->actingAs($this->javiera)->get(route('studios.my-plan.index', $this->studio));
+
+    $page()->assertInertia(fn (Assert $page) => $page
+        ->where('summary.expiresSoon', false)
+        ->where('past.0.expiredCredits', 3)
+        ->where('movements.0.reason', 'Vencieron sin usar')
+        ->where('movements.0.delta', -3));
+
+    $plan->update(['expires_at' => CarbonImmutable::parse('2026-11-05', 'America/Santiago')->utc()]);
+
+    $page()->assertInertia(fn (Assert $page) => $page
+        ->where('summary.daysLeft', 3)
+        ->where('summary.expiresSoon', true));
+    expect($expired->refresh()->credits_left)->toBe(0);
+});
+
 it('is only for students', function () {
     $this->actingAs(User::factory()->memberOf($this->studio, StudioRole::FrontDesk)->create())
         ->get(route('studios.my-plan.index', $this->studio))

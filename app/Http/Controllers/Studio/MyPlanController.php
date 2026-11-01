@@ -28,6 +28,7 @@ class MyPlanController extends Controller
     {
         $purchases = $user->planPurchases()
             ->where('studio_id', $studio->id)
+            ->withExpiredCredits()
             ->orderByDesc('expires_at')
             ->orderByDesc('id')
             ->get();
@@ -95,6 +96,7 @@ class MyPlanController extends Controller
             'boughtOn' => $purchase->starts_on->translatedFormat('j \d\e F'),
             'lastDay' => $purchase->lastDay()->translatedFormat('l j \d\e F'),
             'isCancelled' => $purchase->isCancelled(),
+            'expiredCredits' => $purchase->expiredCredits(),
         ];
     }
 }

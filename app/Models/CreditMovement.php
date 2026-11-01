@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One class taken from (-1) or returned to (+1) a plan.
+ * One class taken from (-1) or returned to (+1) a plan, or the classes
+ * it had left when it expired (-N).
  *
  * @property int $id
  * @property int $plan_purchase_id

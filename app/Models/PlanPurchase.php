@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CreditMovementReason;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlanPurchaseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -132,6 +133,25 @@ class PlanPurchase extends Model
     public function lastDay(): CarbonImmutable
     {
         return $this->expires_at->timezone(config()->string('studio.timezone'))->subDay()->startOfDay();
+    }
+
+    /**
+     * The classes it had left when it expired, once plans:expire took them.
+     * Load them with the withExpiredCredits scope.
+     */
+    public function expiredCredits(): int
+    {
+        return -(int) ($this->getAttribute('expired_credits') ?? 0);
+    }
+
+    /**
+     * Adds expired_credits: the sum of its expiry movements (negative).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeWithExpiredCredits(Builder $query): void
+    {
+        $query->withSum(['creditMovements as expired_credits' => fn (Builder $movements) => $movements->where('reason', CreditMovementReason::Expired)], 'delta');
     }
 
     /**

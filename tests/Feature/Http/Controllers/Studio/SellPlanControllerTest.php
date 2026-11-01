@@ -136,7 +136,8 @@ it('keeps the sale for the front desk and the owner', function (StudioRole $role
 
 it('shows her plans and payments in her profile', function () {
     app(SellPlan::class)->handle($this->plan, $this->javiera, $this->register, PaymentMethod::Card);
-    PlanPurchase::factory()->for($this->studio)->for($this->javiera)->expired()->create(['name' => 'Viejo']);
+    PlanPurchase::factory()->for($this->studio)->for($this->javiera)->expired()->create(['name' => 'Viejo', 'credits' => 8, 'credits_left' => 2]);
+    $this->artisan('plans:expire');
 
     $this->actingAs($this->camila)
         ->get(route('studios.students.show', [$this->studio, $this->javiera->memberships()->sole(), 'pestana' => 'plan']))
@@ -149,7 +150,8 @@ it('shows her plans and payments in her profile', function () {
             ])
             ->where('student.purchases.0.payments.0', fn ($payment) => $payment['amount'] === 45000 && $payment['method'] === 'Tarjeta' && $payment['status'] === 'approved')
             ->where('student.purchases.0.listPrice', 45000)
-            ->where('student.purchases.0.isCancelled', false));
+            ->where('student.purchases.0.isCancelled', false)
+            ->where('student.purchases.1.expiredCredits', 2));
 });
 
 it('keeps the receipt of a transfer at the counter, only for a transfer', function () {

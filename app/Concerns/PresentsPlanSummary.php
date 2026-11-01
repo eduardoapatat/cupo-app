@@ -15,9 +15,10 @@ trait PresentsPlanSummary
     /**
      * Null when she has no valid plan. Unlimited when any of her valid plans
      * is; otherwise the classes left of all of them together. lastDay is the
-     * last day of the plan that lasts the longest.
+     * last day of the plan that lasts the longest, and expiresSoon tells her
+     * from the studio's warning days on (plan_expiry_warning_days).
      *
-     * @return array{isUnlimited: bool, classesLeft: int|null, lastDay: string, daysLeft: int}|null
+     * @return array{isUnlimited: bool, classesLeft: int|null, lastDay: string, daysLeft: int, expiresSoon: bool}|null
      */
     private function planSummary(User $student, Studio $studio): ?array
     {
@@ -30,12 +31,14 @@ trait PresentsPlanSummary
         $isUnlimited = $valid->contains(fn (PlanPurchase $purchase): bool => $purchase->isUnlimited());
         $lastDay = $valid->map(fn (PlanPurchase $purchase) => $purchase->lastDay())->max();
         $today = now(config()->string('studio.timezone'))->startOfDay();
+        $daysLeft = (int) $today->diffInDays($lastDay) + 1;
 
         return [
             'isUnlimited' => $isUnlimited,
             'classesLeft' => $isUnlimited ? null : (int) $valid->sum('credits_left'),
             'lastDay' => $lastDay->translatedFormat('l j \d\e F'),
-            'daysLeft' => (int) $today->diffInDays($lastDay) + 1,
+            'daysLeft' => $daysLeft,
+            'expiresSoon' => $daysLeft <= $studio->plan_expiry_warning_days,
         ];
     }
 }

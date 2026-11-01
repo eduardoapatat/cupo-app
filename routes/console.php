@@ -21,3 +21,10 @@ Schedule::command('attendance:close')
     ->dailyAt('00:15')
     ->timezone(config()->string('studio.timezone'))
     ->withoutOverlapping();
+
+// Every night, the plans that expired at midnight lose the classes they
+// had left, with a movement that says how many.
+Schedule::command('plans:expire')
+    ->dailyAt('00:20')
+    ->timezone(config()->string('studio.timezone'))
+    ->withoutOverlapping();

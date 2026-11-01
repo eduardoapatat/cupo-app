@@ -8,12 +8,14 @@ use App\Actions\Bookings\JoinWaitlist;
 use App\Actions\CashRegisters\OpenCashRegister;
 use App\Actions\Classes\GenerateSessions;
 use App\Actions\Payments\VoidPayment;
+use App\Actions\Plans\ExpireUnusedClasses;
 use App\Actions\Plans\SellPlan;
 use App\Actions\Plans\TakeClassFromPlan;
 use App\Actions\Studios\CreateStudio;
 use App\Enums\BookingKind;
 use App\Enums\BookingStatus;
 use App\Enums\Commune;
+use App\Enums\CreditMovementReason;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\StudioRole;
@@ -148,8 +150,9 @@ class DemoStudioSeeder extends Seeder
     /**
      * The studio's plans, and the ones its students bought at the counter,
      * each into the cash register of whoever sold it: ten days ago Camila
-     * sold Antonia the unlimited one, Rosa 4 classes and most of the rest
-     * 8; Ignacia's plan, sold 45 days ago, already expired. Yesterday Carla
+     * sold Rosa 4 classes and most of the rest 8. Ignacia's plan, sold 45
+     * days ago, expired with its 4 classes unused, and Antonia's unlimited
+     * one, sold 27 days ago, expires in 3 days. Yesterday Carla
      * sold Florencia hers and closed her register $2.000 short. Today
      * Camila's register is open, with two sales and one she voided.
      */
@@ -173,14 +176,17 @@ class DemoStudioSeeder extends Seeder
 
         // One register at a time: each person has only one open.
         $longAgo = $this->registerInThePast($flow, $camila, daysAgo: 45);
-        $this->sellInThePast($small, $students['Ignacia Navarro'], $longAgo, PaymentMethod::Transfer);
+        $this->expireInThePast($this->sellInThePast($small, $students['Ignacia Navarro'], $longAgo, PaymentMethod::Transfer));
         $this->closeInThePast($longAgo);
+
+        $almostAMonthAgo = $this->registerInThePast($flow, $camila, daysAgo: 27);
+        $this->sellInThePast($unlimited, $students['Antonia Castro'], $almostAMonthAgo, PaymentMethod::Cash);
+        $this->closeInThePast($almostAMonthAgo);
 
         $tenDaysAgo = $this->registerInThePast($flow, $camila, daysAgo: 10);
 
-        foreach ($students->except(['Ignacia Navarro', 'Florencia Rivas']) as $student) {
+        foreach ($students->except(['Ignacia Navarro', 'Florencia Rivas', 'Antonia Castro']) as $student) {
             match ($student->name) {
-                'Antonia Castro' => $this->sellInThePast($unlimited, $student, $tenDaysAgo, PaymentMethod::Cash),
                 'Rosa Fuentes' => $this->sellInThePast($small, $student, $tenDaysAgo, PaymentMethod::Cash),
                 default => $this->sellInThePast($pack, $student, $tenDaysAgo, PaymentMethod::Card),
             };
@@ -265,7 +271,7 @@ class DemoStudioSeeder extends Seeder
      * A sale made on the day of a register at 11:00, as SellPlan would have
      * left it then.
      */
-    private function sellInThePast(Plan $plan, User $student, CashRegister $register, PaymentMethod $method): void
+    private function sellInThePast(Plan $plan, User $student, CashRegister $register, PaymentMethod $method): PlanPurchase
     {
         $soldOn = CarbonImmutable::parse($register->business_date->toDateString(), config()->string('studio.timezone'));
         $soldAt = $soldOn->setTime(11, 0)->utc();
@@ -296,6 +302,21 @@ class DemoStudioSeeder extends Seeder
             'received_by_id' => $register->user_id,
         ]);
         $payment->forceFill(['created_at' => $soldAt, 'updated_at' => $soldAt])->save();
+
+        return $purchase;
+    }
+
+    /**
+     * The classes an expired plan had left, taken the night after its last
+     * day, as plans:expire would have done then.
+     */
+    private function expireInThePast(PlanPurchase $purchase): void
+    {
+        app(ExpireUnusedClasses::class)->handle($purchase);
+
+        $purchase->creditMovements()
+            ->where('reason', CreditMovementReason::Expired)
+            ->update(['created_at' => $purchase->expires_at->addMinutes(20)]);
     }
 
     /**

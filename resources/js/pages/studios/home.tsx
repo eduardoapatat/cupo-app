@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
+import { create as buyPlan } from '@/actions/App/Http/Controllers/Studio/BuyPlanController';
 import { index as myPlanIndex } from '@/actions/App/Http/Controllers/Studio/MyPlanController';
 import { index as mySessionsIndex } from '@/actions/App/Http/Controllers/Studio/MySessionsController';
 import Heading from '@/components/heading';
@@ -230,6 +231,17 @@ export default function StudioHome(props: Props) {
                             {props.planSummary.daysLeft === 1
                                 ? 'Hoy es su último día.'
                                 : `Quedan ${props.planSummary.daysLeft} días.`}
+                            {props.planSummary.expiresSoon && (
+                                <>
+                                    {' '}
+                                    <Link
+                                        href={buyPlan(slug)}
+                                        className="text-foreground underline underline-offset-4"
+                                    >
+                                        Renovar
+                                    </Link>
+                                </>
+                            )}
                         </p>
                     </div>
                 );
@@ -239,9 +251,15 @@ export default function StudioHome(props: Props) {
     }
 
     function description(key: BlockKey): string {
-        return key === 'today-occupancy' && props.todaySessions
-            ? spotsLabel(props.todaySessions)
-            : BLOCK_TEXT[key].description;
+        if (key === 'today-occupancy' && props.todaySessions) {
+            return spotsLabel(props.todaySessions);
+        }
+
+        if (key === 'plan-expiry' && props.planSummary?.expiresSoon) {
+            return 'Vence pronto: renuévalo para seguir reservando.';
+        }
+
+        return BLOCK_TEXT[key].description;
     }
 
     const built = props.blocks.filter((block) => block.isBuilt);

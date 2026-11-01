@@ -7,4 +7,6 @@ export type PlanSummary = {
     classesLeft: number | null;
     lastDay: string;
     daysLeft: number;
+    /** From the studio's warning days before it expires. */
+    expiresSoon: boolean;
 };

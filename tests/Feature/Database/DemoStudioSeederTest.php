@@ -108,7 +108,7 @@ it('takes each payment into the cash register of whoever sold, Carla\'s closed s
 
     // Only the receipt sent from the app is outside a register.
     expect(Payment::whereNull('cash_register_id')->pluck('status')->map->value->all())->toBe(['to_review'])
-        ->and($registers->filter->isClosed())->toHaveCount(3)
+        ->and($registers->filter->isClosed())->toHaveCount(4)
         ->and($today->user->name)->toBe('Camila Soto')
         ->and($today->isClosed())->toBeFalse()
         ->and($today->isToday())->toBeTrue()
@@ -136,7 +136,7 @@ it('sells the studio\'s plans to its students and takes each booking from them',
     $this->seed();
 
     $flow = Studio::where('slug', 'estudio-flow')->sole();
-    $purchases = $flow->planPurchases()->with('user')->get();
+    $purchases = $flow->planPurchases()->with('user')->withExpiredCredits()->get();
     $studentBookings = Booking::query()
         ->whereIn('class_session_id', $flow->classSessions()->select('id'))
         ->where('kind', 'student')
@@ -146,11 +146,13 @@ it('sells the studio\'s plans to its students and takes each booking from them',
         ->and($flow->plans()->whereNotNull('archived_at')->pluck('name')->all())->toBe(['Clase de prueba'])
         ->and($purchases)->toHaveCount(13)
         ->and($purchases->firstWhere('user.name', 'Ignacia Navarro')->expires_at->isPast())->toBeTrue()
+        ->and($purchases->firstWhere('user.name', 'Ignacia Navarro')->expiredCredits())->toBe(4)
         ->and($purchases->firstWhere('user.name', 'Antonia Castro')->isUnlimited())->toBeTrue()
+        ->and($purchases->firstWhere('user.name', 'Antonia Castro')->lastDay()->toDateString())->toBe('2026-11-06')
         ->and($purchases->firstWhere('user.name', 'Javiera Morales')->credits_left)->toBeGreaterThanOrEqual(3)
         ->and($flow->planPurchases()->has('payments')->count())->toBe(13)
         ->and($studentBookings->every(fn (Booking $booking) => $booking->plan_purchase_id !== null))->toBeTrue()
         ->and($purchases->reject->isUnlimited()->every(
-            fn ($purchase) => $purchase->credits_left === $purchase->credits - $purchase->bookings()->count(),
+            fn ($purchase) => $purchase->credits_left === $purchase->credits - $purchase->bookings()->count() - $purchase->expiredCredits(),
         ))->toBeTrue();
 });

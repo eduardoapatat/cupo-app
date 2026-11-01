@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Why a class left or came back to a plan.
+ * Why classes left or came back to a plan.
  */
 enum CreditMovementReason: string
 {
@@ -19,6 +19,9 @@ enum CreditMovementReason: string
     /** The owner returned it after the cancellation window (bookings.override). */
     case Returned = 'returned';
 
+    /** The plan expired with classes left (plans:expire). */
+    case Expired = 'expired';
+
     public function label(): string
     {
         return match ($this) {
@@ -26,6 +29,7 @@ enum CreditMovementReason: string
             self::CancelledOnTime => 'Cancelada a tiempo',
             self::SessionCancelled => 'El estudio canceló la clase',
             self::Returned => 'Devuelta por el estudio',
+            self::Expired => 'Vencieron sin usar',
         };
     }
 }

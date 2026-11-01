@@ -71,6 +71,8 @@ type StudentPurchase = {
     isValid: boolean;
     /** Its payment was voided, which voids the plan. */
     isCancelled: boolean;
+    /** The classes it had left when it expired. */
+    expiredCredits: number;
     price: number;
     /** The plan's price when it was sold; null for older sales. */
     listPrice: number | null;
@@ -493,7 +495,14 @@ function creditsLeftLabel(purchase: StudentPurchase): string {
     }
 
     if (!purchase.isValid) {
-        return `Usó ${purchase.credits - (purchase.creditsLeft ?? 0)} de ${purchase.credits} clases`;
+        const used =
+            purchase.credits -
+            (purchase.creditsLeft ?? 0) -
+            purchase.expiredCredits;
+
+        return purchase.expiredCredits > 0
+            ? `Usó ${used} de ${purchase.credits} clases · vencieron ${purchase.expiredCredits}`
+            : `Usó ${used} de ${purchase.credits} clases`;
     }
 
     return `Le quedan ${purchase.creditsLeft ?? 0} de ${purchase.credits} clases`;
