@@ -17,11 +17,14 @@ const OPTIONS: { value: Appearance; icon: LucideIcon; label: string }[] = [
 ];
 
 /**
- * Light, dark or the system's, from an icon at the top right: the sun in
- * light mode, the moon in dark mode.
+ * Light, dark or the system's, from an icon at the top right. The icon is
+ * the one chosen (sun, moon or screen), so «Sistema» shows as such even
+ * when the system is dark.
  */
 export default function AppearanceMenu() {
     const { appearance, updateAppearance } = useAppearance();
+    const current =
+        OPTIONS.find((option) => option.value === appearance) ?? OPTIONS[2];
 
     return (
         <DropdownMenu>
@@ -30,10 +33,9 @@ export default function AppearanceMenu() {
                     variant="ghost"
                     size="icon"
                     className="shrink-0"
-                    aria-label="Apariencia"
+                    aria-label={`Apariencia: ${current.label}`}
                 >
-                    <Sun className="dark:hidden" aria-hidden="true" />
-                    <Moon className="hidden dark:block" aria-hidden="true" />
+                    <current.icon aria-hidden="true" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
