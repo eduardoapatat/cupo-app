@@ -1,4 +1,7 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
+import type { LucideIcon } from 'lucide-react';
+import { CalendarClock, Landmark, Store } from 'lucide-react';
+import { useState } from 'react';
 import {
     edit,
     update,
@@ -20,6 +23,7 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { fieldErrorProps, focusFirstError } from '@/lib/form';
 import { dashboard } from '@/routes';
@@ -33,6 +37,15 @@ type Props = {
     /** Where students transfer to; null while she has not written them. */
     transferDetails: string | null;
 };
+
+type TabValue = 'general' | 'reservas' | 'pagos';
+
+/* The studio's sections, in the order she sets it up. */
+const TABS: { value: TabValue; label: string; icon: LucideIcon }[] = [
+    { value: 'general', label: 'General', icon: Store },
+    { value: 'reservas', label: 'Reservas', icon: CalendarClock },
+    { value: 'pagos', label: 'Pagos', icon: Landmark },
+];
 
 /** With them, students can buy a plan from the app by transfer. */
 function TransferDetailsForm({
@@ -61,7 +74,7 @@ function TransferDetailsForm({
                         </CardTitle>
                         <CardDescription>
                             Las alumnas los ven al comprar un plan desde la app.
-                            Sin ellos, solo compran en el mesón.
+                            Sin ellos, desde la app solo pagan con Webpay.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-2 pb-6">
@@ -112,6 +125,31 @@ export default function StudioSettings({
     const communeLabel = communes.find(
         (commune) => commune.value === details.commune,
     )?.label;
+    const { url } = usePage();
+    const [tab, setTab] = useState<TabValue>(() => {
+        // From Inertia's URL, which the server render has too.
+        const asked = new URLSearchParams(url.split('?')[1] ?? '').get(
+            'pestana',
+        );
+
+        return TABS.some((item) => item.value === asked)
+            ? (asked as TabValue)
+            : 'general';
+    });
+
+    // The tab goes in the address, so a reload or a shared link opens it.
+    function chooseTab(value: string) {
+        setTab(value as TabValue);
+        const url = new URL(window.location.href);
+
+        if (value === 'general') {
+            url.searchParams.delete('pestana');
+        } else {
+            url.searchParams.set('pestana', value);
+        }
+
+        window.history.replaceState(window.history.state, '', url);
+    }
 
     return (
         <>
@@ -137,9 +175,37 @@ export default function StudioSettings({
                     </div>
                 </header>
 
-                {/* The short cards stay in view while the rules scroll. */}
-                <div className="grid max-w-6xl items-start gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
-                    <div className="grid gap-6 xl:sticky xl:top-6">
+                <Tabs
+                    value={tab}
+                    onValueChange={chooseTab}
+                    className="max-w-5xl gap-6"
+                >
+                    {/* A line under the tabs, the active one underlined in teal. */}
+                    <div className="border-b">
+                        <TabsList
+                            variant="line"
+                            aria-label="Secciones del estudio"
+                            className="h-11 gap-4 p-0"
+                        >
+                            {TABS.map(({ value, label, icon: Icon }) => (
+                                <TabsTrigger
+                                    key={value}
+                                    value={value}
+                                    className="flex-none px-1 after:bg-primary group-data-[orientation=horizontal]/tabs:after:-bottom-0.5 data-[state=active]:text-foreground"
+                                >
+                                    <Icon aria-hidden="true" />
+                                    {label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </div>
+
+                    {/* Mounted while hidden, so a tab keeps what she typed. */}
+                    <TabsContent
+                        value="general"
+                        forceMount
+                        className="w-full data-[state=inactive]:hidden"
+                    >
                         <Form
                             {...update.form(details.slug)}
                             options={{ preserveScroll: true }}
@@ -163,7 +229,7 @@ export default function StudioSettings({
                                             errors={errors}
                                         />
                                     </CardContent>
-                                    <CardFooter className="flex-col items-stretch gap-3 border-t bg-muted/40 py-4">
+                                    <CardFooter className="flex-col items-stretch gap-3 border-t bg-muted/40 py-4 sm:flex-row sm:items-center sm:justify-between">
                                         <p className="text-sm text-muted-foreground">
                                             Cambiar el nombre no cambia su
                                             dirección en Cupo.
@@ -171,7 +237,7 @@ export default function StudioSettings({
                                         <Button
                                             type="submit"
                                             disabled={processing || !isDirty}
-                                            className="self-end"
+                                            className="self-end sm:self-auto"
                                         >
                                             {processing && <Spinner />}
                                             Guardar
@@ -180,14 +246,27 @@ export default function StudioSettings({
                                 </Card>
                             )}
                         </Form>
+                    </TabsContent>
+
+                    <TabsContent
+                        value="reservas"
+                        forceMount
+                        className="w-full data-[state=inactive]:hidden"
+                    >
+                        <StudioRulesForm slug={details.slug} rules={rules} />
+                    </TabsContent>
+
+                    <TabsContent
+                        value="pagos"
+                        forceMount
+                        className="w-full data-[state=inactive]:hidden"
+                    >
                         <TransferDetailsForm
                             slug={details.slug}
                             transferDetails={transferDetails}
                         />
-                    </div>
-
-                    <StudioRulesForm slug={details.slug} rules={rules} />
-                </div>
+                    </TabsContent>
+                </Tabs>
             </div>
         </>
     );

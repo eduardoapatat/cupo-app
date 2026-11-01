@@ -607,8 +607,18 @@ export default function CashRegister({ register, history, team }: Props) {
                 ) : (
                     <Tabs defaultValue="mine" className="gap-6">
                         <TabsList variant="line">
-                            <TabsTrigger value="mine">Mi caja</TabsTrigger>
-                            <TabsTrigger value="team">Equipo</TabsTrigger>
+                            <TabsTrigger
+                                value="mine"
+                                className="after:bg-primary"
+                            >
+                                Mi caja
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="team"
+                                className="after:bg-primary"
+                            >
+                                Equipo
+                            </TabsTrigger>
                         </TabsList>
                         <TabsContent value="mine">{mine}</TabsContent>
                         <TabsContent value="team" className="grid gap-3">

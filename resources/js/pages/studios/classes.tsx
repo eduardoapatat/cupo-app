@@ -661,10 +661,13 @@ export default function Classes({
 
                 <Tabs value={tab} onValueChange={setTab} className="gap-4">
                     <TabsList variant="line">
-                        <TabsTrigger value="schedule">
+                        <TabsTrigger
+                            value="schedule"
+                            className="after:bg-primary"
+                        >
                             Horario <Count value={slots.length} />
                         </TabsTrigger>
-                        <TabsTrigger value="types">
+                        <TabsTrigger value="types" className="after:bg-primary">
                             Tipos de clase <Count value={classTypes.length} />
                         </TabsTrigger>
                     </TabsList>
