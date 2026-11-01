@@ -37,6 +37,7 @@ it('keeps the receipt and waits to be reviewed, with no plan yet', function () {
         ->plan_id->toBe($this->plan->id)
         ->plan_purchase_id->toBeNull()
         ->cash_register_id->toBeNull()
+        ->paid_at->toBeNull()
         ->and($this->rosa->planPurchases()->exists())->toBeFalse();
     Storage::assertExists($payment->receipt_path);
 });
@@ -65,6 +66,7 @@ it('starts her plan from the day it is approved, at the price she paid', functio
         ->plan_purchase_id->toBe($purchase->id)
         ->reviewed_by_id->toBe($this->camila->id)
         ->received_by_id->toBe($this->camila->id)
+        ->paid_at->toEqual(now())
         ->and($purchase)
         ->price->toBe(45000)
         ->list_price->toBe(50000)

@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $amount
  * @property PaymentMethod $method
  * @property PaymentStatus $status
+ * @property CarbonImmutable|null $paid_at When the money came in: when it was sold, or when a transfer from the app was approved
  * @property int|null $received_by_id
  * @property string|null $receipt_path The transfer receipt, on the default disk
  * @property int|null $reviewed_by_id
@@ -33,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['studio_id', 'plan_purchase_id', 'plan_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id', 'receipt_path'])]
+#[Fillable(['studio_id', 'plan_purchase_id', 'plan_id', 'cash_register_id', 'user_id', 'amount', 'method', 'received_by_id', 'receipt_path', 'paid_at'])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
@@ -59,6 +60,7 @@ class Payment extends Model
             'amount' => 'integer',
             'method' => PaymentMethod::class,
             'status' => PaymentStatus::class,
+            'paid_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'voided_at' => 'datetime',
         ];

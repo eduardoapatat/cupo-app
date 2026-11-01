@@ -83,6 +83,7 @@ class SellPlan
                 'method' => $method,
                 'received_by_id' => $register->user_id,
                 'receipt_path' => $receiptPath,
+                'paid_at' => now(),
             ]);
 
             return $purchase;

@@ -35,9 +35,18 @@ it('voids a payment only with its date and reason', function (array $values) {
     'an unknown status' => [['status' => 'refunded']],
 ]);
 
+it('dates a payment exactly when it was approved', function (array $values) {
+    $payment = Payment::factory()->create();
+
+    expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update($values), '23514');
+})->with([
+    'approved without a date' => [['paid_at' => null]],
+    'to review with a date' => [['status' => 'to_review', 'plan_purchase_id' => null, 'plan_id' => null, 'receipt_path' => 'receipts/1/a.png']],
+]);
+
 it('keeps a receipt to review without a purchase, and one at a time per student', function () {
     $payment = Payment::factory()->create();
-    $toReview = ['status' => 'to_review', 'plan_purchase_id' => null, 'plan_id' => Plan::factory()->create()->id, 'receipt_path' => 'receipts/1/a.png'];
+    $toReview = ['status' => 'to_review', 'plan_purchase_id' => null, 'plan_id' => Plan::factory()->create()->id, 'receipt_path' => 'receipts/1/a.png', 'paid_at' => null];
 
     expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update(['plan_purchase_id' => null]), '23514');
     expectSqlState(fn () => DB::table('payments')->where('id', $payment->id)->update([...$toReview, 'receipt_path' => null]), '23514');

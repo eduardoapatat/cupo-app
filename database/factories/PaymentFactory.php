@@ -26,6 +26,7 @@ class PaymentFactory extends Factory
             'amount' => 45000,
             'method' => PaymentMethod::Cash,
             'received_by_id' => null,
+            'paid_at' => now(),
         ];
     }
 }

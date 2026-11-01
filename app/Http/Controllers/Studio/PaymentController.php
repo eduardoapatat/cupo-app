@@ -61,8 +61,8 @@ class PaymentController extends Controller
             'filters' => ['status' => $status, 'search' => $search],
             'toReview' => $toReview,
             'stats' => [
-                'today' => (int) $approved()->where('created_at', '>=', now($timezone)->startOfDay()->utc())->sum('amount'),
-                'month' => (int) $approved()->where('created_at', '>=', now($timezone)->startOfMonth()->utc())->sum('amount'),
+                'today' => (int) $approved()->where('paid_at', '>=', now($timezone)->startOfDay()->utc())->sum('amount'),
+                'month' => (int) $approved()->where('paid_at', '>=', now($timezone)->startOfMonth()->utc())->sum('amount'),
                 'voidedThisMonth' => $studio->payments()
                     ->where('status', PaymentStatus::Voided)
                     ->where('voided_at', '>=', now($timezone)->startOfMonth()->utc())

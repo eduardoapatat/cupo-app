@@ -53,6 +53,7 @@ it('sells a copy of the plan for its days from today, paid at the list price int
         ->user_id->toBe($javiera->id)
         ->cash_register_id->toBe($register->id)
         ->received_by_id->toBe($camila->id)
+        ->paid_at->toEqual(now())
         ->and($register->totals())->toBe(['cash' => 45000, 'card' => 0, 'transfer' => 0]);
 });
 

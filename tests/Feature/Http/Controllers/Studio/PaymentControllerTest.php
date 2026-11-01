@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\CashRegisters\CloseCashRegister;
+use App\Actions\Payments\ReviewPayment;
 use App\Actions\Payments\SubmitTransferReceipt;
 use App\Actions\Payments\VoidPayment;
 use App\Actions\Plans\SellPlan;
@@ -52,6 +53,17 @@ it('lists the payments by status, searching by student, with the totals', functi
             ->where('payments.data.0.studentName', 'Rosa Fuentes')
             ->where('payments.data.0.planName', '8 clases al mes')
             ->has('payments.data', 1));
+});
+
+it('counts a transfer on the day it was approved, not the day it was sent', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-31 20:00', 'America/Santiago'));
+    $payment = receiptToReview($this->studio);
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 10:00', 'America/Santiago'));
+    app(ReviewPayment::class)->approve($payment, $this->camila);
+
+    $this->actingAs($this->camila)
+        ->get(route('studios.payments.index', $this->studio))
+        ->assertInertia(fn (Assert $page) => $page->where('stats.today', 28000)->where('stats.month', 28000));
 });
 
 it('shows a payment with its plan, its register and the price it was sold at', function () {

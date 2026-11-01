@@ -300,6 +300,7 @@ class DemoStudioSeeder extends Seeder
             'amount' => $plan->price,
             'method' => $method,
             'received_by_id' => $register->user_id,
+            'paid_at' => $soldAt,
         ]);
         $payment->forceFill(['created_at' => $soldAt, 'updated_at' => $soldAt])->save();
 

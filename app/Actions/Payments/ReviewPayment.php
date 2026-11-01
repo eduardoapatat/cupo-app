@@ -33,6 +33,7 @@ class ReviewPayment
 
             $locked->forceFill([
                 'status' => PaymentStatus::Approved,
+                'paid_at' => now(),
                 'plan_purchase_id' => $purchase->id,
                 'received_by_id' => $by->id,
                 'reviewed_by_id' => $by->id,
