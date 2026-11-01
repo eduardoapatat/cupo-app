@@ -32,7 +32,7 @@ export function AppSidebar() {
     const { studio } = usePage().props;
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

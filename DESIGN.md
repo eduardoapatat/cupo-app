@@ -122,7 +122,7 @@ A ledger palette: paper, ink and pencil grays, one studio teal, and red kept for
 The base is **Studio Teal** (`#3bcbbd`). White text on it reads at only 2:1, so where it carries white text it is darkened along its own hue until it passes WCAG AA:
 
 - **Deep Teal** (`#1f7a71`, 5.2:1 with white): the primary button, primary badges, checked controls and single-series charts in light mode.
-- **Sidebar Teal** (`#228178`, 4.7:1 with white): the light-mode sidebar and the inset frame around the content, with white text and icons. The section labels of the sidebar are full white, not 70%.
+- **Sidebar Teal** (`#228178`, 4.7:1 with white): the light-mode sidebar, with white text and icons. The sidebar sits flush at the side (shadcn's `sidebar` variant, not `inset`), so the content reaches the edges with no frame. The section labels of the sidebar are full white, not 70%.
 - **Pressed Teal** (`#1b675f`): the active and hovered sidebar item, darker than the sidebar so its white text stays above 6:1.
 - **Studio Teal** itself: the focus ring in light mode, and in dark mode the primary button (with ink text, 6:1), charts and the logo tile.
 - **Night Teal** (`#0f3b37`): the dark-mode sidebar, with chalk text (11.8:1).
