@@ -2,10 +2,12 @@
 
 use App\Actions\Bookings\BookSession;
 use App\Actions\Bookings\CancelBooking;
+use App\Actions\Plans\SellPlan;
 use App\Enums\BookingKind;
 use App\Enums\StudioRole;
 use App\Models\ClassSession;
 use App\Models\ClassType;
+use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
 use App\Models\User;
@@ -68,6 +70,25 @@ it('warns her from the studio\'s warning days on, and shows the classes that exp
         ->where('summary.daysLeft', 3)
         ->where('summary.expiresSoon', true));
     expect($expired->refresh()->credits_left)->toBe(0);
+});
+
+it('shows the plan she bought ahead as waiting, without the warning to renew', function () {
+    $this->studio->update(['plan_expiry_warning_days' => 3]);
+    $plan = Plan::factory()->for($this->studio)->create(['name' => '8 clases al mes', 'credits' => 8, 'validity_days' => 30]);
+    PlanPurchase::factory()->for($this->studio)->for($this->javiera)->create(['credits_left' => 4, 'expires_at' => CarbonImmutable::parse('2026-11-04', 'America/Santiago')->utc()]);
+    app(SellPlan::class)->newPurchase($plan, $this->javiera, null, $plan->price);
+
+    $this->actingAs($this->javiera)
+        ->get(route('studios.my-plan.index', $this->studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('valid', 1)
+            ->where('queued.0.name', '8 clases al mes')
+            ->where('queued.0.startsOn', 'miércoles 4 de noviembre')
+            ->where('queued.0.lastDay', 'jueves 3 de diciembre')
+            ->has('past', 0)
+            ->where('summary.classesLeft', 4)
+            ->where('summary.expiresSoon', false)
+            ->where('summary.next', ['name' => '8 clases al mes', 'startsOn' => 'miércoles 4 de noviembre']));
 });
 
 it('is only for students', function () {

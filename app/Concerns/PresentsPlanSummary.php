@@ -18,7 +18,10 @@ trait PresentsPlanSummary
      * last day of the plan that lasts the longest, and expiresSoon tells her
      * from the studio's warning days on (plan_expiry_warning_days).
      *
-     * @return array{isUnlimited: bool, classesLeft: int|null, lastDay: string, daysLeft: int, expiresSoon: bool}|null
+     * next is the plan she already bought that waits its turn, if any: then
+     * expiresSoon is false, since she renewed.
+     *
+     * @return array{isUnlimited: bool, classesLeft: int|null, lastDay: string, daysLeft: int, expiresSoon: bool, next: array{name: string, startsOn: string}|null}|null
      */
     private function planSummary(User $student, Studio $studio): ?array
     {
@@ -32,13 +35,18 @@ trait PresentsPlanSummary
         $lastDay = $valid->map(fn (PlanPurchase $purchase) => $purchase->lastDay())->max();
         $today = now(config()->string('studio.timezone'))->startOfDay();
         $daysLeft = (int) $today->diffInDays($lastDay) + 1;
+        $next = $student->planPurchases()->where('studio_id', $studio->id)->queued()->orderBy('starts_on')->first();
 
         return [
             'isUnlimited' => $isUnlimited,
             'classesLeft' => $isUnlimited ? null : (int) $valid->sum('credits_left'),
             'lastDay' => $lastDay->translatedFormat('l j \d\e F'),
             'daysLeft' => $daysLeft,
-            'expiresSoon' => $daysLeft <= $studio->plan_expiry_warning_days,
+            'expiresSoon' => $next === null && $daysLeft <= $studio->plan_expiry_warning_days,
+            'next' => $next === null ? null : [
+                'name' => $next->name,
+                'startsOn' => $next->starts_on->translatedFormat('l j \d\e F'),
+            ],
         ];
     }
 }

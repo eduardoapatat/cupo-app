@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Studio;
 
 use App\Actions\Payments\PaymentRejected;
 use App\Actions\Payments\SubmitTransferReceipt;
+use App\Actions\Plans\SellPlan;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Studio\BuyPlanRequest;
 use App\Models\Plan;
@@ -24,9 +25,11 @@ use Inertia\Response;
 class BuyPlanController extends Controller
 {
     #[Authorize('self.buy_plan', 'studio')]
-    public function create(Studio $studio): Response
+    public function create(Studio $studio, #[CurrentUser] User $user, SellPlan $sellPlan): Response
     {
         $today = now(config()->string('studio.timezone'))->startOfDay();
+        // One plan at a time: a new one waits until her current one ends.
+        $startsOn = $sellPlan->nextStartFor($studio->id, $user);
 
         return Inertia::render('studios/buy-plan', [
             'plans' => $studio->plans()->active()->orderBy('price')->get()->map(fn (Plan $plan): array => [
@@ -36,9 +39,10 @@ class BuyPlanController extends Controller
                 'credits' => $plan->credits,
                 'validityDays' => $plan->validity_days,
                 'dailyLimit' => $plan->daily_limit,
-                'lastDay' => $today->addDays($plan->validity_days - 1)->translatedFormat('l j \d\e F'),
+                'lastDay' => $startsOn->addDays($plan->validity_days - 1)->translatedFormat('l j \d\e F'),
             ]),
             'transferDetails' => $studio->transfer_details,
+            'startsOn' => $startsOn->greaterThan($today) ? $startsOn->translatedFormat('l j \d\e F') : null,
         ]);
     }
 

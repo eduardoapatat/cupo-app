@@ -37,6 +37,8 @@ type Props = {
     plans: BuyablePlan[];
     /** Where to transfer; null while the studio has not written them. */
     transferDetails: string | null;
+    /** A new plan waits until her current one ends: from this day, in words. Null if it starts today. */
+    startsOn: string | null;
 };
 
 type Method = 'webpay' | 'transfer';
@@ -49,7 +51,7 @@ function classesLabel(credits: number | null): string {
     return credits === 1 ? '1 clase' : `${credits} clases`;
 }
 
-export default function BuyPlan({ plans, transferDetails }: Props) {
+export default function BuyPlan({ plans, transferDetails, startsOn }: Props) {
     const { studio } = usePage().props;
     const [planId, setPlanId] = useState<string>(
         plans.length === 1 ? String(plans[0].id) : '',
@@ -309,8 +311,12 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                                 </span>
                                                 <span className="text-muted-foreground">
                                                     {method === 'webpay'
-                                                        ? `Si lo pagas hoy, vale hasta el ${plan.lastDay}.`
-                                                        : `Si lo validan hoy, vale hasta el ${plan.lastDay}.`}
+                                                        ? startsOn
+                                                            ? `Parte el ${startsOn}, cuando termine tu plan actual, y vale hasta el ${plan.lastDay}.`
+                                                            : `Si lo pagas hoy, vale hasta el ${plan.lastDay}.`
+                                                        : startsOn
+                                                          ? `Parte el ${startsOn}, cuando termine tu plan actual, y vale hasta el ${plan.lastDay}.`
+                                                          : `Si lo validan hoy, vale hasta el ${plan.lastDay}.`}
                                                 </span>
                                             </div>
                                         ) : (

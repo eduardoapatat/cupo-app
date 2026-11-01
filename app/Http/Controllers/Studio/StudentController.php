@@ -193,6 +193,8 @@ class StudentController extends Controller
                 'credits' => $purchase->credits,
                 'creditsLeft' => $purchase->credits_left,
                 'isValid' => $purchase->isValid(),
+                'isQueued' => $purchase->isQueued(),
+                'startsOn' => $purchase->starts_on->translatedFormat('j \d\e F'),
                 'isCancelled' => $purchase->isCancelled(),
                 'expiredCredits' => $purchase->expiredCredits(),
                 'price' => $purchase->price,

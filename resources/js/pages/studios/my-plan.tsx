@@ -33,6 +33,8 @@ type Purchase = {
     creditsLeft: number | null;
     dailyLimit: number | null;
     boughtOn: string;
+    /** The day it starts, in words: for a plan waiting its turn. */
+    startsOn: string;
     lastDay: string;
     /** Its payment was voided, which voids the plan. */
     isCancelled: boolean;
@@ -68,6 +70,8 @@ type Props = {
     /** The studio takes transfers and she has none waiting. */
     canBuy: boolean;
     valid: Purchase[];
+    /** Bought ahead: each starts when the one before ends. */
+    queued: Purchase[];
     past: Purchase[];
     movements: Movement[];
 };
@@ -151,6 +155,7 @@ export default function MyPlan({
     failedPayment,
     canBuy,
     valid,
+    queued,
     past,
     movements,
 }: Props) {
@@ -338,6 +343,12 @@ export default function MyPlan({
                                         ? 'Último día'
                                         : `Quedan ${summary.daysLeft} días`}
                                 </span>
+                                {summary.next && (
+                                    <span className="text-sm">
+                                        Después sigue {summary.next.name}, desde
+                                        el {summary.next.startsOn}.
+                                    </span>
+                                )}
                             </dd>
                         </div>
                     </dl>
@@ -409,6 +420,41 @@ export default function MyPlan({
                         </div>
                     )}
                 </section>
+
+                {queued.length > 0 && (
+                    <section aria-labelledby="queued" className="grid gap-3">
+                        <h2 id="queued" className="text-sm font-medium">
+                            En espera
+                        </h2>
+                        <ul className="grid gap-3 sm:grid-cols-2">
+                            {queued.map((purchase) => (
+                                <li
+                                    key={purchase.id}
+                                    className="grid gap-1 rounded-xl border border-dashed p-4 text-sm"
+                                >
+                                    <span className="flex flex-wrap items-center justify-between gap-2">
+                                        <span className="font-medium">
+                                            {purchase.name}
+                                        </span>
+                                        <Badge variant="outline">
+                                            En espera
+                                        </Badge>
+                                    </span>
+                                    <span className="first-letter:uppercase">
+                                        Parte el {purchase.startsOn}, cuando
+                                        termine tu plan actual.
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        {purchase.credits === null
+                                            ? 'Clases ilimitadas'
+                                            : `${purchase.credits} clases`}{' '}
+                                        · vale hasta el {purchase.lastDay}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
 
                 {past.length > 0 && (
                     <section aria-labelledby="past" className="grid gap-3">

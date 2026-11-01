@@ -133,6 +133,8 @@ it('counts the students with a plan, their first plans and the classes that expi
     PlanPurchase::factory()->for($this->studio)->for($rosa)->create(['created_at' => CarbonImmutable::parse('2026-11-05')]);
     PlanPurchase::factory()->for($this->studio)->create(['created_at' => CarbonImmutable::parse('2026-11-08')]);
     PlanPurchase::factory()->for($this->studio)->create(['created_at' => CarbonImmutable::parse('2026-11-09'), 'cancelled_at' => now()]);
+    // Bought ahead: it waits its turn, so she has no plan today.
+    PlanPurchase::factory()->for($this->studio)->create(['created_at' => CarbonImmutable::parse('2026-10-20'), 'starts_on' => '2026-11-20', 'expires_at' => CarbonImmutable::parse('2026-12-20', 'America/Santiago')->utc()]);
     $expired = PlanPurchase::factory()->for($this->studio)->expired()->create(['created_at' => CarbonImmutable::parse('2026-10-14'), 'credits_left' => 0]);
     CreditMovement::create(['plan_purchase_id' => $expired->id, 'delta' => -3, 'reason' => CreditMovementReason::Expired, 'created_at' => now()]);
 

@@ -7,6 +7,8 @@ export type PlanSummary = {
     classesLeft: number | null;
     lastDay: string;
     daysLeft: number;
-    /** From the studio's warning days before it expires. */
+    /** From the studio's warning days before it expires, unless she renewed. */
     expiresSoon: boolean;
+    /** The plan she already bought, waiting its turn. */
+    next: { name: string; startsOn: string } | null;
 };

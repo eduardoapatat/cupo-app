@@ -238,6 +238,8 @@ export default function StudioHome(props: Props) {
                             {props.planSummary.daysLeft === 1
                                 ? 'Hoy es su último día.'
                                 : `Quedan ${props.planSummary.daysLeft} días.`}
+                            {props.planSummary.next &&
+                                ` Después sigue ${props.planSummary.next.name}, desde el ${props.planSummary.next.startsOn}.`}
                             {props.planSummary.expiresSoon && (
                                 <>
                                     {' '}

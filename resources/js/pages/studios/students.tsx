@@ -69,6 +69,10 @@ type StudentPurchase = {
     credits: number | null;
     creditsLeft: number | null;
     isValid: boolean;
+    /** Bought ahead: it waits until her current plan ends. */
+    isQueued: boolean;
+    /** The day it starts, in words. */
+    startsOn: string;
     /** Its payment was voided, which voids the plan. */
     isCancelled: boolean;
     /** The classes it had left when it expired. */
@@ -489,6 +493,15 @@ function AppStatus({ slug, student }: { slug: string; student: Student }) {
     );
 }
 
+/** «8 clases», «1 clase» or «Clases ilimitadas». */
+function classesLabel(credits: number | null): string {
+    if (credits === null) {
+        return 'Clases ilimitadas';
+    }
+
+    return credits === 1 ? '1 clase' : `${credits} clases`;
+}
+
 function creditsLeftLabel(purchase: StudentPurchase): string {
     if (purchase.credits === null) {
         return 'Clases ilimitadas';
@@ -546,7 +559,9 @@ function StudentPlans({
                             key={purchase.id}
                             className={cn(
                                 'grid gap-1 p-4',
-                                !purchase.isValid && 'text-muted-foreground',
+                                !purchase.isValid &&
+                                    !purchase.isQueued &&
+                                    'text-muted-foreground',
                             )}
                         >
                             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -564,16 +579,28 @@ function StudentPlans({
                                         ? 'Anulado'
                                         : purchase.isValid
                                           ? 'Vigente'
-                                          : 'Vencido'}
+                                          : purchase.isQueued
+                                            ? 'En espera'
+                                            : 'Vencido'}
                                 </Badge>
                             </div>
-                            {!purchase.isCancelled && (
-                                <p className="text-sm">
-                                    {creditsLeftLabel(purchase)} ·{' '}
-                                    {purchase.isValid ? 'vale hasta' : 'venció'}{' '}
-                                    el {purchase.lastDay}
-                                </p>
-                            )}
+                            {!purchase.isCancelled &&
+                                (purchase.isQueued ? (
+                                    <p className="text-sm">
+                                        {classesLabel(purchase.credits)} · parte
+                                        el {purchase.startsOn}, cuando termine
+                                        su plan actual, y vale hasta el{' '}
+                                        {purchase.lastDay}
+                                    </p>
+                                ) : (
+                                    <p className="text-sm">
+                                        {creditsLeftLabel(purchase)} ·{' '}
+                                        {purchase.isValid
+                                            ? 'vale hasta'
+                                            : 'venció'}{' '}
+                                        el {purchase.lastDay}
+                                    </p>
+                                ))}
                             {purchase.listPrice !== null &&
                                 purchase.listPrice !== purchase.price && (
                                     <p className="text-sm text-muted-foreground">

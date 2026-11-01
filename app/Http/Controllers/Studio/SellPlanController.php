@@ -164,6 +164,9 @@ class SellPlanController extends Controller
      */
     private function presentStudent(Studio $studio, User $student): array
     {
+        $startsOn = app(SellPlan::class)->nextStartFor($studio->id, $student);
+        $today = now(config()->string('studio.timezone'))->startOfDay();
+
         return [
             'id' => $student->id,
             'name' => $student->name,
@@ -178,6 +181,17 @@ class SellPlanController extends Controller
                     'creditsLeft' => $purchase->credits_left,
                     'lastDay' => $purchase->lastDay()->translatedFormat('j \d\e F'),
                 ]),
+            'queued' => $student->planPurchases()
+                ->where('studio_id', $studio->id)
+                ->queued()
+                ->orderBy('starts_on')
+                ->get()
+                ->map(fn (PlanPurchase $purchase): array => [
+                    'name' => $purchase->name,
+                    'startsOn' => $purchase->starts_on->translatedFormat('j \d\e F'),
+                ]),
+            // A new plan would wait until her current one ends: null if it starts today.
+            'nextStartsOn' => $startsOn->greaterThan($today) ? $startsOn->toDateString() : null,
         ];
     }
 }

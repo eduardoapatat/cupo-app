@@ -129,6 +129,18 @@ it('sells only plans on sale to students of the studio', function () {
     expect(PlanPurchase::count())->toBe(0);
 });
 
+it('says when a new plan for her would start while her current one has classes', function () {
+    PlanPurchase::factory()->for($this->studio)->for($this->javiera)->create(['name' => '4 clases', 'credits' => 4, 'credits_left' => 2, 'expires_at' => CarbonImmutable::parse('2026-11-05', 'America/Santiago')->utc()]);
+    app(SellPlan::class)->newPurchase($this->plan, $this->javiera, null, $this->plan->price);
+
+    $this->actingAs($this->camila)
+        ->get(route('studios.sell.create', [$this->studio, 'alumna' => $this->javiera->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('student.plans.0.name', '4 clases')
+            ->where('student.queued', [['name' => '8 clases al mes', 'startsOn' => '5 de noviembre']])
+            ->where('student.nextStartsOn', '2026-12-05'));
+});
+
 it('keeps the sale for the front desk and the owner', function (StudioRole $role) {
     $this->actingAs(User::factory()->memberOf($this->studio, $role)->create())
         ->get(route('studios.sell.create', $this->studio))

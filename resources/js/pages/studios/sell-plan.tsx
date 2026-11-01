@@ -55,7 +55,31 @@ type SaleStudent = {
     name: string;
     phone: string | null;
     plans: StudentPlan[];
+    /** Plans she bought ahead, waiting their turn. */
+    queued: { name: string; startsOn: string }[];
+    /** «2026-12-01»: a new plan would wait until then; null if it starts today. */
+    nextStartsOn: string | null;
 };
+
+/** «2026-12-01» in words: «martes 1 de diciembre». */
+function longDate(date: string): string {
+    return new Intl.DateTimeFormat('es-CL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+    })
+        .format(new Date(`${date}T00:00:00Z`))
+        .replace(',', '');
+}
+
+/** «2026-12-01» plus some days, as a date string. */
+function addDays(date: string, days: number): string {
+    const next = new Date(`${date}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + days);
+
+    return next.toISOString().slice(0, 10);
+}
 
 type Props = {
     plans: SalePlan[];
@@ -587,6 +611,25 @@ export default function SellPlan({
                                                     <span className="truncate font-medium">
                                                         {student.name}
                                                     </span>
+                                                    {student.queued.map(
+                                                        (waiting) => (
+                                                            <span
+                                                                key={
+                                                                    waiting.name +
+                                                                    waiting.startsOn
+                                                                }
+                                                                className="text-sm text-muted-foreground"
+                                                            >
+                                                                En espera:{' '}
+                                                                {waiting.name},
+                                                                parte el{' '}
+                                                                {
+                                                                    waiting.startsOn
+                                                                }
+                                                                .
+                                                            </span>
+                                                        ),
+                                                    )}
                                                     {student.plans.length ===
                                                     0 ? (
                                                         <span className="text-sm text-muted-foreground">
@@ -849,10 +892,30 @@ export default function SellPlan({
                                                             null &&
                                                             `, hasta ${plan.dailyLimit} al día`}
                                                     </p>
-                                                    <p className="text-sm first-letter:uppercase">
-                                                        Vale hasta el{' '}
-                                                        {plan.lastDay}
-                                                    </p>
+                                                    {student?.nextStartsOn ? (
+                                                        <p className="text-sm">
+                                                            Parte el{' '}
+                                                            {longDate(
+                                                                student.nextStartsOn,
+                                                            )}
+                                                            , cuando termine su
+                                                            plan actual. Vale
+                                                            hasta el{' '}
+                                                            {longDate(
+                                                                addDays(
+                                                                    student.nextStartsOn,
+                                                                    plan.validityDays -
+                                                                        1,
+                                                                ),
+                                                            )}
+                                                            .
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-sm first-letter:uppercase">
+                                                            Vale hasta el{' '}
+                                                            {plan.lastDay}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
                                             <Separator />

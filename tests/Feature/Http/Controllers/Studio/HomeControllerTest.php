@@ -191,6 +191,7 @@ it('tells the student how many classes she has left and until when', function ()
             'lastDay' => 'martes 1 de diciembre',
             'daysLeft' => 30,
             'expiresSoon' => false,
+            'next' => null,
         ]));
 });
 

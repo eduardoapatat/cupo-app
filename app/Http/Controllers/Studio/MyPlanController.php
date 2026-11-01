@@ -77,7 +77,11 @@ class MyPlanController extends Controller
             'valid' => $purchases->filter(fn (PlanPurchase $purchase): bool => $purchase->isValid())
                 ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
                 ->values(),
-            'past' => $purchases->reject(fn (PlanPurchase $purchase): bool => $purchase->isValid())
+            'queued' => $purchases->filter(fn (PlanPurchase $purchase): bool => $purchase->isQueued())
+                ->sortBy('starts_on')
+                ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
+                ->values(),
+            'past' => $purchases->reject(fn (PlanPurchase $purchase): bool => $purchase->isValid() || $purchase->isQueued())
                 ->map(fn (PlanPurchase $purchase): array => $this->present($purchase))
                 ->values(),
             'movements' => $movements->map(fn (CreditMovement $movement): array => [
@@ -103,7 +107,8 @@ class MyPlanController extends Controller
             'credits' => $purchase->credits,
             'creditsLeft' => $purchase->credits_left,
             'dailyLimit' => $purchase->daily_limit,
-            'boughtOn' => $purchase->starts_on->translatedFormat('j \d\e F'),
+            'boughtOn' => $purchase->created_at?->timezone(config()->string('studio.timezone'))->translatedFormat('j \d\e F'),
+            'startsOn' => $purchase->starts_on->translatedFormat('l j \d\e F'),
             'lastDay' => $purchase->lastDay()->translatedFormat('l j \d\e F'),
             'isCancelled' => $purchase->isCancelled(),
             'expiredCredits' => $purchase->expiredCredits(),
