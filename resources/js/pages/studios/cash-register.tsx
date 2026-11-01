@@ -1,12 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import {
-    Check,
-    ChevronDown,
-    Clock,
-    TrendingDown,
-    TrendingUp,
-    Wallet,
-} from 'lucide-react';
+import { Check, Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -20,11 +13,7 @@ import PaymentStatusBadge from '@/components/payments/payment-status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -118,20 +107,25 @@ const DENOMINATIONS = {
 type Counts = Record<number, string>;
 
 /**
- * An amount of cash, typed as a total or counted bill by bill. Counting
- * fills the total; typing the total clears the count, so they never show
- * two different figures.
+ * An amount of cash, either typed as a total or counted bill by bill: one
+ * way or the other. While counting, the total is the sum and is not typed.
  */
 function useCashAmount() {
     const [digits, setDigits] = useState('');
     const [counts, setCounts] = useState<Counts>({});
+    const [byCount, setByCount] = useState(false);
 
     return {
         digits,
         counts,
+        byCount,
         type(text: string) {
             setDigits(clpDigits(text));
+        },
+        countByBill(next: boolean) {
+            setByCount(next);
             setCounts({});
+            setDigits('');
         },
         count(denomination: number, text: string) {
             const next = { ...counts, [denomination]: clpDigits(text) };
@@ -146,6 +140,7 @@ function useCashAmount() {
         reset() {
             setDigits('');
             setCounts({});
+            setByCount(false);
         },
     };
 }
@@ -174,7 +169,7 @@ function CashAmountField({
     return (
         <Field data-invalid={error ? true : undefined}>
             <FieldLabel htmlFor={id}>{label}</FieldLabel>
-            <InputGroup className="h-12">
+            <InputGroup className={cn('h-12', amount.byCount && 'bg-muted/50')}>
                 <InputGroupAddon>
                     <InputGroupText className="text-lg">$</InputGroupText>
                 </InputGroupAddon>
@@ -185,9 +180,10 @@ function CashAmountField({
                     autoComplete="off"
                     required
                     placeholder="0"
+                    readOnly={amount.byCount}
                     value={formatClpDigits(amount.digits)}
                     onChange={(event) => amount.type(event.target.value)}
-                    className="text-xl font-semibold tabular-nums md:text-xl"
+                    className="text-xl font-semibold tabular-nums read-only:cursor-default md:text-xl"
                 />
                 <InputGroupAddon align="inline-end">
                     <InputGroupText>CLP</InputGroupText>
@@ -200,7 +196,10 @@ function CashAmountField({
     );
 }
 
-/** Count the drawer bill by bill and coin by coin; the total adds itself. */
+/**
+ * Count the drawer bill by bill and coin by coin, once she ticks it; the
+ * total above then shows the sum and cannot be typed.
+ */
 function CashCount({
     idPrefix,
     amount,
@@ -214,70 +213,79 @@ function CashCount({
     ];
 
     return (
-        <Collapsible className="grid gap-3">
-            <CollapsibleTrigger asChild>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="group justify-self-start px-2"
+        <div className="grid gap-4">
+            <Field orientation="horizontal">
+                <Checkbox
+                    id={`${idPrefix}-by-bill`}
+                    checked={amount.byCount}
+                    onCheckedChange={(checked) =>
+                        amount.countByBill(checked === true)
+                    }
+                />
+                <FieldLabel
+                    htmlFor={`${idPrefix}-by-bill`}
+                    className="font-normal"
                 >
-                    <ChevronDown
-                        className="transition-transform group-data-[state=open]:rotate-180"
-                        aria-hidden="true"
-                    />
-                    Contar billetes y monedas
-                </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="grid gap-4">
-                {groups.map((group) => (
-                    <FieldSet key={group.legend} className="gap-2">
-                        <FieldLegend variant="label">
-                            {group.legend}
-                        </FieldLegend>
-                        <FieldGroup className="grid grid-cols-2 gap-2">
-                            {group.values.map((value) => {
-                                const id = `${idPrefix}-${value}`;
+                    Contar por billete y moneda
+                </FieldLabel>
+            </Field>
+            {amount.byCount && (
+                <div className="grid gap-4">
+                    {groups.map((group) => (
+                        <FieldSet key={group.legend} className="gap-2">
+                            <FieldLegend variant="label">
+                                {group.legend}
+                            </FieldLegend>
+                            <FieldGroup className="grid grid-cols-2 gap-2">
+                                {group.values.map((value) => {
+                                    const id = `${idPrefix}-${value}`;
 
-                                return (
-                                    <InputGroup key={value}>
-                                        <InputGroupAddon>
-                                            <label
-                                                htmlFor={id}
-                                                className="min-w-14 text-left tabular-nums"
-                                            >
-                                                {formatClp(value)}
-                                            </label>
-                                            <span aria-hidden="true">×</span>
-                                        </InputGroupAddon>
-                                        <InputGroupInput
-                                            id={id}
-                                            inputMode="numeric"
-                                            autoComplete="off"
-                                            placeholder="0"
-                                            value={amount.counts[value] ?? ''}
-                                            onChange={(event) =>
-                                                amount.count(
-                                                    value,
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="tabular-nums"
-                                        />
-                                    </InputGroup>
-                                );
-                            })}
-                        </FieldGroup>
-                    </FieldSet>
-                ))}
-                <p className="flex justify-between border-t pt-3 text-sm">
-                    <span className="text-muted-foreground">Total contado</span>
-                    <span className="font-medium tabular-nums">
-                        {formatClp(Number(amount.digits || 0))}
-                    </span>
-                </p>
-            </CollapsibleContent>
-        </Collapsible>
+                                    return (
+                                        <InputGroup key={value}>
+                                            <InputGroupAddon>
+                                                <label
+                                                    htmlFor={id}
+                                                    className="min-w-14 text-left tabular-nums"
+                                                >
+                                                    {formatClp(value)}
+                                                </label>
+                                                <span aria-hidden="true">
+                                                    ×
+                                                </span>
+                                            </InputGroupAddon>
+                                            <InputGroupInput
+                                                id={id}
+                                                inputMode="numeric"
+                                                autoComplete="off"
+                                                placeholder="0"
+                                                value={
+                                                    amount.counts[value] ?? ''
+                                                }
+                                                onChange={(event) =>
+                                                    amount.count(
+                                                        value,
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                className="tabular-nums"
+                                            />
+                                        </InputGroup>
+                                    );
+                                })}
+                            </FieldGroup>
+                        </FieldSet>
+                    ))}
+                    <p className="flex justify-between border-t pt-3 text-sm">
+                        <span className="text-muted-foreground">
+                            Total contado
+                        </span>
+                        <span className="font-medium tabular-nums">
+                            {formatClp(Number(amount.digits || 0))}
+                        </span>
+                    </p>
+                </div>
+            )}
+        </div>
     );
 }
 
