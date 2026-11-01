@@ -26,52 +26,62 @@ beforeEach(function () {
     $this->travelTo(CarbonImmutable::parse('2026-11-02 19:30', 'America/Santiago'));
 });
 
-function markAttendanceRoute(Studio $studio, ClassSession $session, Booking $booking): string
+/**
+ * The attendance of the whole class, saved at once.
+ */
+function attendanceRoute(Studio $studio, ClassSession $session): string
 {
-    return route('studios.attendance.update', [$studio, $session, $booking]);
+    return route('studios.attendance.update', [$studio, $session]);
 }
 
-it('lets the instructor of the class mark who came, and undo it', function () {
-    $route = markAttendanceRoute($this->studio, $this->session, $this->booking);
+it('saves who came to the class at once, and who did not', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-01 19:00', 'America/Santiago'));
+    $rosa = bookWithPlan($this->session, User::factory()->memberOf($this->studio, StudioRole::Student)->create());
+    $this->travelTo(CarbonImmutable::parse('2026-11-02 19:30', 'America/Santiago'));
+    $route = attendanceRoute($this->studio, $this->session);
 
     $this->actingAs($this->fernanda)
-        ->put($route, ['attended' => true])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales vino.']);
-    expect($this->booking->fresh()->status)->toBe(BookingStatus::Attended);
+        ->put($route, ['attended' => [$this->booking->id]])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Guardamos la asistencia: vinieron 1 de 2.']);
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::Attended)
+        ->and($rosa->fresh()->status)->toBe(BookingStatus::Confirmed);
 
     $this->actingAs($this->fernanda)
-        ->put($route, ['attended' => false])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales no vino.']);
-    expect($this->booking->fresh()->status)->toBe(BookingStatus::Confirmed);
+        ->put($route, ['attended' => [$rosa->id]])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Guardamos la asistencia: vinieron 1 de 2.']);
+    expect($this->booking->fresh()->status)->toBe(BookingStatus::Confirmed)
+        ->and($rosa->fresh()->status)->toBe(BookingStatus::Attended);
 });
 
-it('lets the front desk and the owner mark any class of the studio', function (StudioRole $role) {
+it('lets the front desk and the owner save any class of the studio', function (StudioRole $role) {
     $this->actingAs(User::factory()->memberOf($this->studio, $role)->create())
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['attended' => true])
+        ->put(attendanceRoute($this->studio, $this->session), ['attended' => [$this->booking->id]])
         ->assertRedirect();
 
     expect($this->booking->fresh()->status)->toBe(BookingStatus::Attended);
 })->with([StudioRole::FrontDesk, StudioRole::Owner]);
 
-it('does not let another instructor or a student mark it', function (StudioRole $role) {
+it('does not let another instructor or a student save it', function (StudioRole $role) {
     $this->actingAs(User::factory()->memberOf($this->studio, $role)->create())
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['attended' => true])
+        ->put(attendanceRoute($this->studio, $this->session), ['attended' => [$this->booking->id]])
         ->assertForbidden();
 
     expect($this->booking->fresh()->status)->toBe(BookingStatus::Confirmed);
 })->with([StudioRole::Instructor, StudioRole::Student]);
 
-it('hides the classes of other studios and the bookings of other classes', function () {
+it('hides the classes of other studios and refuses bookings of other classes', function () {
     $other = Studio::factory()->create();
     $this->fernanda->memberships()->create(['studio_id' => $other->id, 'role' => StudioRole::Instructor]);
     $otherBooking = Booking::factory()->for(ClassSession::factory()->for($this->studio)->create(['class_type_id' => $this->session->class_type_id]))->create();
 
     $this->actingAs($this->fernanda)
-        ->put(markAttendanceRoute($other, $this->session, $this->booking), ['attended' => true])
+        ->put(attendanceRoute($other, $this->session), ['attended' => [$this->booking->id]])
         ->assertNotFound();
     $this->actingAs($this->fernanda)
-        ->put(markAttendanceRoute($this->studio, $this->session, $otherBooking), ['attended' => true])
-        ->assertNotFound();
+        ->put(attendanceRoute($this->studio, $this->session), ['attended' => [$otherBooking->id]])
+        ->assertSessionHasErrors(['attended.0' => 'Alguien de la lista no está en esta clase.']);
+
+    expect($otherBooking->fresh()->status)->toBe(BookingStatus::Confirmed);
 });
 
 it('explains when the attendance is closed, except to the owner, who corrects it', function (StudioRole $role, bool $corrects) {
@@ -79,10 +89,10 @@ it('explains when the attendance is closed, except to the owner, who corrects it
     $person = $role === StudioRole::Instructor ? $this->fernanda : User::factory()->memberOf($this->studio, $role)->create();
 
     $response = $this->actingAs($person)
-        ->put(markAttendanceRoute($this->studio, $this->session, $this->booking), ['attended' => true]);
+        ->put(attendanceRoute($this->studio, $this->session), ['attended' => [$this->booking->id]]);
 
     if ($corrects) {
-        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marcamos que Javiera Morales vino.']);
+        $response->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Guardamos la asistencia: vinieron 1 de 1.']);
     } else {
         $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'La asistencia de esta clase no se puede marcar ahora.']);
     }

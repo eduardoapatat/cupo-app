@@ -153,7 +153,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::delete('agenda/clases/{classSession}/espera/{waitlistEntry}', [AgendaWaitlistController::class, 'destroy'])->name('agenda.waitlist.destroy');
 
                 Route::get('mis-clases', [MySessionsController::class, 'index'])->name('my-sessions.index');
-                Route::put('clases/{classSession}/asistencia/{booking}', [AttendanceController::class, 'update'])->name('attendance.update');
+                Route::put('clases/{classSession}/asistencia', [AttendanceController::class, 'update'])->name('attendance.update');
 
                 Route::get('reservar', [BookingController::class, 'index'])->name('book.index');
                 Route::post('reservar/{classSession}', [BookingController::class, 'store'])->name('book.store');

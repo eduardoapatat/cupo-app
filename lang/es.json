@@ -111,9 +111,7 @@
     ":name is on the waitlist, number :position.": "Anotamos a :name en la lista de espera, en el puesto :position.",
     "We took :name off the waitlist.": "Sacamos a :name de la lista de espera.",
     "The attendance of this class cannot be marked now.": "La asistencia de esta clase no se puede marcar ahora.",
-    "We marked :name as present.": "Marcamos que :name vino.",
     "today at :time": "hoy a las :time",
-    "We marked that :name did not come.": "Marcamos que :name no vino.",
     "Attendance not marked yet": "Asistencia por marcar",
     "The studio already sells a plan with that name.": "El estudio ya vende un plan con ese nombre.",
     "We added the plan :plan.": "Agregamos el plan :plan.",
@@ -177,5 +175,7 @@
     "You cancelled the payment at Webpay: nothing was charged.": "Anulaste el pago en Webpay: no se cobró nada.",
     "Webpay declined the payment: nothing was charged.": "Webpay rechazó el pago: no se cobró nada.",
     "It was paid with Webpay: only the owner can void it.": "Se pagó con Webpay: solo la dueña puede anularlo.",
-    "Transbank did not accept the refund, so nothing was voided.": "Transbank no aceptó la devolución, así que no se anuló nada."
+    "Transbank did not accept the refund, so nothing was voided.": "Transbank no aceptó la devolución, así que no se anuló nada.",
+    "We saved the attendance: :attended of :total came.": "Guardamos la asistencia: vinieron :attended de :total.",
+    "Someone in the list is not in this class.": "Alguien de la lista no está en esta clase."
 }

@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Actions\Bookings\BookingRejected;
-use App\Actions\Bookings\MarkAttendance;
+use App\Actions\Bookings\MarkSessionAttendance;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Studio\AttendanceRequest;
-use App\Models\Booking;
+use App\Http\Requests\Studio\SessionAttendanceRequest;
 use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Models\User;
@@ -16,22 +15,20 @@ use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Inertia\Inertia;
 
 /**
- * Mark who came to a class, from «Mis clases», the Inicio or the Agenda.
- * The owner (bookings.override) may also correct it after it closes.
+ * Save who came to a class, the whole list at once, from «Mis clases», the
+ * Inicio or the Agenda. The owner (bookings.override) may also correct it
+ * after it closes.
  */
 class AttendanceController extends Controller
 {
     #[Authorize('attendance.mark', 'studio')]
     #[Authorize('markAttendance', 'classSession')]
-    public function update(AttendanceRequest $request, Studio $studio, ClassSession $classSession, Booking $booking, #[CurrentUser] User $user, MarkAttendance $markAttendance): RedirectResponse
+    public function update(SessionAttendanceRequest $request, Studio $studio, ClassSession $classSession, #[CurrentUser] User $user, MarkSessionAttendance $markSessionAttendance): RedirectResponse
     {
         try {
-            $marked = $markAttendance->handle($booking, $request->attended(), afterClosing: $user->can('bookings.override', $studio));
+            $saved = $markSessionAttendance->handle($classSession, $request->attendedIds(), afterClosing: $user->can('bookings.override', $studio));
 
-            Inertia::flash('toast', ['type' => 'success', 'message' => $request->attended()
-                ? __('We marked :name as present.', ['name' => $marked->user->name])
-                : __('We marked that :name did not come.', ['name' => $marked->user->name]),
-            ]);
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('We saved the attendance: :attended of :total came.', $saved)]);
         } catch (BookingRejected $rejected) {
             Inertia::flash('toast', ['type' => 'error', 'message' => $rejected->getMessage()]);
         }

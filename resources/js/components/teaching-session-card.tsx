@@ -92,18 +92,25 @@ export default function TeachingSessionCard({
                             </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="grid gap-1 px-2">
-                            {marksAttendance && (
+                            {marksAttendance && !session.attendanceIsOpen && (
                                 <p className="text-sm text-muted-foreground">
-                                    {session.attendanceIsOpen
-                                        ? `${session.hasStarted ? 'Marca a quien vino' : `Empieza a las ${session.startsAt}: ya puedes marcar a quien llegó`}, hasta ${session.attendanceClosesLabel}. Quien no quede marcado, cuenta como que faltó.`
-                                        : 'La asistencia ya cerró.'}
+                                    La asistencia ya cerró.
                                 </p>
                             )}
+                            {marksAttendance &&
+                                session.attendanceIsOpen &&
+                                !session.hasStarted && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Empieza a las {session.startsAt}: ya
+                                        puedes marcar a quien llegó.
+                                    </p>
+                                )}
                             <AttendanceList
                                 slug={slug}
                                 sessionId={session.id}
                                 attendees={session.attendees}
                                 canMark={session.attendanceIsOpen}
+                                footnote={`Quien no quede marcada cuenta como que faltó. Puedes cambiarla hasta ${session.attendanceClosesLabel}.`}
                             />
                         </CollapsibleContent>
                     </>
