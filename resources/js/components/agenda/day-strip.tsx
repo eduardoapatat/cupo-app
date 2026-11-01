@@ -10,7 +10,8 @@ export default function DayStrip({
     focusDate,
     onSelect,
 }: {
-    days: CalendarDay[];
+    /** Each day with its classes; only how many matters here. */
+    days: (Omit<CalendarDay, 'sessions'> & { sessions: readonly unknown[] })[];
     focusDate: string;
     onSelect: (date: string) => void;
 }) {

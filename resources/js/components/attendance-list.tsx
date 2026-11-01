@@ -38,6 +38,7 @@ export default function AttendanceList({
     attendees,
     canMark,
     footnote,
+    needsSaving = false,
     onDirtyChange,
 }: {
     slug: string;
@@ -46,6 +47,8 @@ export default function AttendanceList({
     canMark: boolean;
     /** Shown next to «Guardar»: until when it can be changed. */
     footnote?: ReactNode;
+    /** Its list was never saved, so «Guardar» works even without changes. */
+    needsSaving?: boolean;
     /** Tells the page whether there are changes not saved yet. */
     onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -174,7 +177,7 @@ export default function AttendanceList({
                     <Button
                         type="button"
                         onClick={save}
-                        disabled={saving || !dirty}
+                        disabled={saving || (!dirty && !needsSaving)}
                     >
                         {saving && <Spinner />}
                         Guardar asistencia

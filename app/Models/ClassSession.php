@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $cancelled_at
  * @property int|null $cancelled_by_id
  * @property string|null $cancellation_reason
+ * @property CarbonImmutable|null $attendance_taken_at When whoever teaches last saved its attendance
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -52,6 +53,7 @@ class ClassSession extends Model
             'booked_count' => 'integer',
             'status' => ClassSessionStatus::class,
             'cancelled_at' => 'datetime',
+            'attendance_taken_at' => 'datetime',
         ];
     }
 

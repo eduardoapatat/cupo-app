@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Save the attendance of a whole class at once: whoever is in the list
- * came, and everyone else holding a place did not. Each booking goes
+ * came, and everyone else holding a place did not, and the class records
+ * that its list was taken (attendance_taken_at). Each booking goes
  * through MarkAttendance, with its rules on when it can be marked; if one
  * fails, none is saved.
  */
@@ -31,6 +32,9 @@ class MarkSessionAttendance
             foreach ($bookings as $booking) {
                 $this->markAttendance->handle($booking, in_array($booking->id, $attendedIds, true), $afterClosing);
             }
+
+            // The list was taken, even with people who missed it unmarked.
+            ClassSession::query()->whereKey($session->id)->update(['attendance_taken_at' => now()]);
 
             return [
                 'attended' => $bookings->filter(fn (Booking $booking): bool => in_array($booking->id, $attendedIds, true))->count(),
