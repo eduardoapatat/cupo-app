@@ -690,11 +690,9 @@ function RegistersTable({
 function MyRegister({
     slug,
     register,
-    history,
 }: {
     slug: string;
     register: Props['register'];
-    history: Register[];
 }) {
     return (
         <div className="grid gap-6">
@@ -758,18 +756,6 @@ function MyRegister({
                     </section>
                 </>
             )}
-
-            {history.length > 0 && (
-                <section
-                    aria-labelledby="register-history"
-                    className="grid gap-3"
-                >
-                    <h2 id="register-history" className="text-sm font-medium">
-                        Mis cajas anteriores
-                    </h2>
-                    <RegistersTable registers={history} showPerson={false} />
-                </section>
-            )}
         </div>
     );
 }
@@ -781,9 +767,11 @@ export default function CashRegister({ register, history, team }: Props) {
         return null;
     }
 
-    const mine = (
-        <MyRegister slug={studio.slug} register={register} history={history} />
-    );
+    const tabs = [
+        { value: 'mine', label: 'Mi caja' },
+        { value: 'history', label: 'Anteriores' },
+        ...(team === null ? [] : [{ value: 'team', label: 'Equipo' }]),
+    ];
 
     return (
         <>
@@ -800,25 +788,39 @@ export default function CashRegister({ register, history, team }: Props) {
                     </p>
                 </header>
 
-                {team === null ? (
-                    mine
-                ) : (
-                    <Tabs defaultValue="mine" className="gap-6">
-                        <TabsList variant="line">
+                {/* Today on its own; the past, and the team's, one tab away. */}
+                <Tabs defaultValue="mine" className="gap-6">
+                    <TabsList variant="line">
+                        {tabs.map((tab) => (
                             <TabsTrigger
-                                value="mine"
+                                key={tab.value}
+                                value={tab.value}
                                 className="after:bg-primary"
                             >
-                                Mi caja
+                                {tab.label}
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="team"
-                                className="after:bg-primary"
-                            >
-                                Equipo
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="mine">{mine}</TabsContent>
+                        ))}
+                    </TabsList>
+                    <TabsContent value="mine">
+                        <MyRegister slug={studio.slug} register={register} />
+                    </TabsContent>
+                    <TabsContent value="history" className="grid gap-3">
+                        <p className="text-sm text-muted-foreground">
+                            Tus últimas 10 cajas cerradas, con lo cobrado y si
+                            cuadraron.
+                        </p>
+                        {history.length === 0 ? (
+                            <p className="rounded-xl border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
+                                Todavía no cierras ninguna caja.
+                            </p>
+                        ) : (
+                            <RegistersTable
+                                registers={history}
+                                showPerson={false}
+                            />
+                        )}
+                    </TabsContent>
+                    {team !== null && (
                         <TabsContent value="team" className="grid gap-3">
                             <p className="text-sm text-muted-foreground">
                                 Las cajas de los últimos 14 días y las que
@@ -832,8 +834,8 @@ export default function CashRegister({ register, history, team }: Props) {
                                 <RegistersTable registers={team} showPerson />
                             )}
                         </TabsContent>
-                    </Tabs>
-                )}
+                    )}
+                </Tabs>
             </div>
         </>
     );
