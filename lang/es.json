@@ -176,5 +176,6 @@
     "We are still confirming your payment with Webpay. Check again in a few minutes.": "Todavía estamos confirmando tu pago con Webpay. Revisa de nuevo en unos minutos.",
     "You cancelled the payment at Webpay: nothing was charged.": "Anulaste el pago en Webpay: no se cobró nada.",
     "Webpay declined the payment: nothing was charged.": "Webpay rechazó el pago: no se cobró nada.",
-    "It was paid with Webpay: only the owner can void it.": "Se pagó con Webpay: solo la dueña puede anularlo."
+    "It was paid with Webpay: only the owner can void it.": "Se pagó con Webpay: solo la dueña puede anularlo.",
+    "Transbank did not accept the refund, so nothing was voided.": "Transbank no aceptó la devolución, así que no se anuló nada."
 }

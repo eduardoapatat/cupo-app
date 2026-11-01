@@ -3,12 +3,14 @@
 use App\Actions\Payments\ConfirmWebpayPayment;
 use App\Actions\Payments\PaymentRejected;
 use App\Actions\Payments\StartWebpayPayment;
+use App\Actions\Payments\VoidPayment;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -136,4 +138,59 @@ it('settles the payments left pending for 15 minutes, and not the newer ones', f
 
     expect($old->refresh()->status)->toBe(PaymentStatus::Approved)
         ->and($new->refresh()->status)->toBe(PaymentStatus::Pending);
+});
+
+/**
+ * Javiera's plan, paid with Webpay and approved.
+ */
+function approvedWebpayPayment(Plan $plan, User $student): Payment
+{
+    $payment = startedWebpayPayment($plan, $student);
+    Http::fake(['*/transactions/tok-123' => Http::response(webpayTransaction($payment))]);
+    app(ConfirmWebpayPayment::class)->handle($payment);
+    // A fresh HTTP client, so each test fakes Transbank's next answers.
+    Http::swap(new Factory);
+
+    return $payment->refresh();
+}
+
+it('gives the money back to her card when the owner voids it', function () {
+    $payment = approvedWebpayPayment($this->plan, $this->javiera);
+    Http::fake([
+        '*/transactions/tok-123/refunds' => Http::response(['type' => 'REVERSED']),
+        '*/transactions/tok-123' => Http::response(webpayTransaction($payment)),
+    ]);
+
+    app(VoidPayment::class)->handle($payment, User::factory()->create(), 'Compró el plan equivocado');
+
+    expect($payment->refresh())
+        ->status->toBe(PaymentStatus::Voided)
+        ->refunded_at->toEqual(now())
+        ->and($payment->planPurchase?->isCancelled())->toBeTrue();
+    Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/refunds') && $request['amount'] === 45000);
+});
+
+it('voids nothing when Transbank refuses the refund', function () {
+    $payment = approvedWebpayPayment($this->plan, $this->javiera);
+    Http::fake([
+        '*/transactions/tok-123/refunds' => Http::response(['error_message' => 'Invalid amount'], 422),
+        '*/transactions/tok-123' => Http::response(webpayTransaction($payment)),
+    ]);
+
+    expect(fn () => app(VoidPayment::class)->handle($payment, User::factory()->create(), 'Error'))
+        ->toThrow(PaymentRejected::class, 'Transbank no aceptó la devolución, así que no se anuló nada.');
+    expect($payment->refresh())
+        ->status->toBe(PaymentStatus::Approved)
+        ->refunded_at->toBeNull()
+        ->and($payment->planPurchase?->isCancelled())->toBeFalse();
+});
+
+it('does not ask for the refund twice when Transbank already gave it back', function () {
+    $payment = approvedWebpayPayment($this->plan, $this->javiera);
+    Http::fake(['*/transactions/tok-123' => Http::response(webpayTransaction($payment, ['status' => 'REVERSED']))]);
+
+    app(VoidPayment::class)->handle($payment, User::factory()->create(), 'Error');
+
+    expect($payment->refresh()->status)->toBe(PaymentStatus::Voided);
+    Http::assertNotSent(fn (Request $request) => str_ends_with($request->url(), '/refunds'));
 });

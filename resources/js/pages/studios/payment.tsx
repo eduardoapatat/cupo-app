@@ -48,7 +48,13 @@ type PaymentDetail = PaymentRow & {
         cardLastDigits: string | null;
         failureReason: string | null;
     } | null;
-    voided: { by: string | null; at: string; reason: string | null } | null;
+    voided: {
+        by: string | null;
+        at: string;
+        reason: string | null;
+        /** A Webpay payment, given back to her card. */
+        refundedAt: string | null;
+    } | null;
     plan: {
         name: string;
         listPrice: number | null;
@@ -91,7 +97,11 @@ function voidEffect(payment: PaymentDetail): string {
               ? ' y se cancela su reserva que viene, que libera su cupo'
               : ` y se cancelan sus ${plan.upcomingBookings} reservas que vienen, que liberan sus cupos`;
 
-    return `${classes}${bookings}. Las clases que ya tomó quedan en su historial.`;
+    const refund = payment.webpay
+        ? ` Se devuelven ${formatClp(payment.amount)} a su tarjeta${payment.webpay.cardLastDigits ? ` terminada en ${payment.webpay.cardLastDigits}` : ''}.`
+        : '';
+
+    return `${classes}${bookings}. Las clases que ya tomó quedan en su historial.${refund}`;
 }
 
 /** Approve it at once, or reject it saying why: she reads the reason. */
@@ -488,6 +498,12 @@ export default function Payment({
                                 {payment.voided.reason && (
                                     <p className="text-sm text-muted-foreground">
                                         «{payment.voided.reason}»
+                                    </p>
+                                )}
+                                {payment.voided.refundedAt && (
+                                    <p className="text-sm text-muted-foreground first-letter:uppercase">
+                                        Devuelto a la tarjeta el{' '}
+                                        {payment.voided.refundedAt}.
                                     </p>
                                 )}
                                 {payment.voidedAfterClosing && (

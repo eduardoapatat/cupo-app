@@ -35,6 +35,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $reviewed_at
  * @property int|null $voided_by_id
  * @property CarbonImmutable|null $voided_at
+ * @property CarbonImmutable|null $refunded_at When a voided Webpay payment went back to her card
  * @property string|null $status_reason Why it was rejected or voided
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
@@ -68,6 +69,7 @@ class Payment extends Model
             'paid_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'voided_at' => 'datetime',
+            'refunded_at' => 'datetime',
         ];
     }
 

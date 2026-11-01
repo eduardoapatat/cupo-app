@@ -32,6 +32,7 @@ it('voids a payment only with its date and reason', function (array $values) {
 })->with([
     'voided without a date' => [['status' => 'voided', 'status_reason' => 'Error']],
     'voided without a reason' => [['status' => 'voided', 'voided_at' => now()]],
+    'refunded without being a voided Webpay payment' => [['refunded_at' => now()]],
     'a date while approved' => [['voided_at' => now()]],
     'an unknown status' => [['status' => 'refunded']],
 ]);

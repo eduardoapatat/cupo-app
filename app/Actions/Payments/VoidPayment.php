@@ -4,6 +4,7 @@ namespace App\Actions\Payments;
 
 use App\Actions\Bookings\CancelBooking;
 use App\Enums\BookingStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Payment;
@@ -17,15 +18,19 @@ use Illuminate\Support\Facades\DB;
  * Void a payment taken by mistake, saying why. It voids the plan it paid
  * for: the classes left are gone, and its bookings of classes still to come
  * are cancelled, their spots going to the waitlist. Classes already taken
- * stay in her history. Who may void it (payments.void_open or
- * payments.void_closed) is checked by the caller.
+ * stay in her history. A Webpay payment gives the money back to her card
+ * first, and is not voided if Transbank refuses. Who may void it
+ * (payments.void_open or payments.void_closed) is checked by the caller.
  */
 class VoidPayment
 {
-    public function __construct(private CancelBooking $cancelBooking) {}
+    public function __construct(
+        private CancelBooking $cancelBooking,
+        private RefundWebpayPayment $refundWebpayPayment,
+    ) {}
 
     /**
-     * @throws PaymentRejected when it is no longer approved.
+     * @throws PaymentRejected when it is no longer approved, or Transbank does not give its money back.
      */
     public function handle(Payment $payment, User $by, string $reason): Payment
     {
@@ -46,6 +51,13 @@ class VoidPayment
 
             if ($voided === 0) {
                 throw new PaymentRejected(__('This payment was already voided.'));
+            }
+
+            // The payment's row stays locked by the update, so a second void
+            // waits here and then finds it voided: one refund.
+            if ($payment->method === PaymentMethod::Webpay) {
+                $this->refundWebpayPayment->handle($payment);
+                Payment::query()->whereKey($payment->id)->update(['refunded_at' => now()]);
             }
 
             // Locked, so no booking takes a class from it from now on.

@@ -111,6 +111,7 @@ class PaymentController extends Controller
                     'by' => $payment->voidedBy?->name,
                     'at' => $payment->voided_at->timezone($timezone)->translatedFormat('l j \d\e F, H:i'),
                     'reason' => $payment->status_reason,
+                    'refundedAt' => $payment->refunded_at?->timezone($timezone)->translatedFormat('l j \d\e F, H:i'),
                 ],
                 'plan' => $purchase === null ? null : [
                     'name' => $purchase->name,

@@ -16,6 +16,7 @@ use App\Models\Studio;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -137,6 +138,19 @@ it('leaves a Webpay payment to the owner, and shows what Transbank answered', fu
     $this->actingAs($this->camila)
         ->post(route('studios.payments.void.store', [$this->studio, $payment]), ['reason' => 'Error'])
         ->assertForbidden();
+
+    $payment->forceFill(['webpay_token' => 'tok-123'])->save();
+    Http::fake([
+        '*/transactions/tok-123/refunds' => Http::response(['type' => 'NULLIFIED', 'response_code' => 0]),
+        '*/transactions/tok-123' => Http::response(webpayTransaction($payment)),
+    ]);
+
+    $this->actingAs($this->carla)
+        ->post(route('studios.payments.void.store', [$this->studio, $payment]), ['reason' => 'Era otro plan'])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Anulamos el pago y su plan.']);
+    $this->actingAs($this->carla)
+        ->get(route('studios.payments.show', [$this->studio, $payment]))
+        ->assertInertia(fn (Assert $page) => $page->where('payment.voided.refundedAt', 'jueves 29 de octubre, 16:00'));
 });
 
 it('keeps payments for the front desk and the owner, and each studio its own', function (StudioRole $role) {

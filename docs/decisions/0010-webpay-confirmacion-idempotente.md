@@ -53,6 +53,7 @@ Elegimos la **opción 1**, con el cliente HTTP de Laravel contra la API REST v1.
     - **por `GET`** (`/webpay/retorno`): exige sesión y busca el pago por token u orden de compra, solo entre los de quien vuelve. Lo ajeno responde 404;
     - **por `POST`:** corre sin el grupo de middleware `web`, así que no abre sesión, no toca cookies ni revisa CSRF. Solo redirige (303) al mismo `GET`, que sí lleva la cookie.
 - **`webpay:reconcile`** corre cada 5 minutos. Les pasa `ConfirmWebpayPayment` a los pagos que llevan más de 15 minutos pendientes. Para entonces, el formulario de Webpay ya venció: 10 minutos en integración y 4 en producción.
+- **Anular** un pago de Webpay (solo la dueña) le pide la devolución a Transbank con la fila del pago bloqueada. Antes, consulta el estado: si ya está `NULLIFIED` o `REVERSED`, no la pide otra vez. Si Transbank no la acepta, no se anula nada.
 - **Las credenciales** por defecto en `config/services.php` son las públicas de integración que publica Transbank. En producción, cada estudio tendría su propio código de comercio; eso queda fuera de este proyecto.
 
 ### Consecuencias
