@@ -168,7 +168,7 @@ export default function Payments({
                                 className={cn(
                                     'shrink-0 border-b-2 border-transparent px-2 pb-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
                                     filters.status === tab.value &&
-                                        'border-foreground font-medium text-foreground',
+                                        'border-primary font-medium text-foreground',
                                 )}
                             >
                                 {tab.label}

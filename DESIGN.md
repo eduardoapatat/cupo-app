@@ -129,13 +129,12 @@ The base is **Studio Teal** (`#3bcbbd`). White text on it reads at only 2:1, so 
 
 ### Primary
 
-- **Deep Teal** in light mode and **Studio Teal** in dark mode: the primary button, primary badges and the current step. The logo tile is white on the light sidebar.
+- **Deep Teal** in light mode and **Studio Teal** in dark mode: the primary button, primary badges, the current step, and every selected or current state: today and the selected day in the Agenda, the now line, the selected card, the active tab and progress bars. The logo tile is white on the light sidebar.
 
 ### Neutral
 
 - **Paper**: page, card and popover background in light mode.
 - **Ink**: body and heading text; dark-mode background.
-- **Charcoal**: secondary emphasis, such as occupancy bars and selected cards.
 - **Chalk**: text on dark surfaces.
 - **Mist**: secondary buttons, hover fills, muted surfaces and the active navigation fill.
 - **Pencil Gray**: secondary text: descriptions, helper text and placeholders.

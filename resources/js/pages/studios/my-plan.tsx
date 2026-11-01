@@ -122,7 +122,7 @@ function ValidPlan({ purchase }: { purchase: Purchase }) {
                             aria-valuenow={used}
                         >
                             <div
-                                className="h-full rounded-full bg-foreground"
+                                className="h-full rounded-full bg-primary"
                                 style={{
                                     width: `${(used / purchase.credits) * 100}%`,
                                 }}

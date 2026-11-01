@@ -124,7 +124,7 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                                             'flex cursor-pointer items-start gap-3 rounded-xl border p-4 font-normal transition-colors hover:bg-muted/50',
                                                             String(item.id) ===
                                                                 planId &&
-                                                                'border-foreground bg-muted/40',
+                                                                'border-primary bg-muted/40',
                                                         )}
                                                     >
                                                         <RadioGroupItem
@@ -209,7 +209,7 @@ export default function BuyPlan({ plans, transferDetails }: Props) {
                                                             'flex cursor-pointer items-start gap-3 rounded-xl border p-4 font-normal transition-colors hover:bg-muted/50',
                                                             option.value ===
                                                                 method &&
-                                                                'border-foreground bg-muted/40',
+                                                                'border-primary bg-muted/40',
                                                         )}
                                                     >
                                                         <RadioGroupItem

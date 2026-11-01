@@ -37,7 +37,7 @@ export default function DayStrip({
                                 className={cn(
                                     'flex w-full min-w-12 flex-col items-center gap-0.5 rounded-lg border py-2 text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
                                     isSelected
-                                        ? 'border-foreground bg-foreground text-background'
+                                        ? 'border-primary bg-primary text-primary-foreground'
                                         : 'hover:bg-muted',
                                     !isSelected &&
                                         day.sessions.length === 0 &&

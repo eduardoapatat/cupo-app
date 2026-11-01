@@ -434,7 +434,7 @@ function PlanRow({
                 aria-current={selected ? 'true' : undefined}
                 className={cn(
                     'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 border-l-2 border-transparent px-4 py-3 transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset',
-                    selected && 'border-foreground bg-muted/60',
+                    selected && 'border-primary bg-muted/60',
                     plan.isArchived && 'text-muted-foreground',
                 )}
             >

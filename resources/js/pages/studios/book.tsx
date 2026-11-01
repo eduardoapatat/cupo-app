@@ -117,7 +117,7 @@ function DayStrip({
                                 className={cn(
                                     'flex w-14 flex-col items-center gap-0.5 rounded-lg border py-2 text-sm transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
                                     isSelected
-                                        ? 'border-foreground bg-foreground text-background'
+                                        ? 'border-primary bg-primary text-primary-foreground'
                                         : 'hover:bg-muted',
                                     !isSelected &&
                                         day.sessionCount === 0 &&
@@ -341,9 +341,9 @@ export default function Book({
                                     className={cn(
                                         'flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border p-4',
                                         session.state === 'booked' &&
-                                            'border-foreground',
+                                            'border-primary',
                                         session.state === 'waiting' &&
-                                            'border-dashed border-foreground',
+                                            'border-dashed border-primary',
                                     )}
                                 >
                                     <div className="grid min-w-0 gap-0.5">

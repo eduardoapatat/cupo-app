@@ -39,7 +39,7 @@ function SessionRow({
                 'flex items-baseline gap-1.5 rounded-md border px-1.5 py-0.5 text-xs transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
                 // Dashed until it has an instructor: it cannot be booked yet.
                 session.instructorName === null && 'border-dashed',
-                isOpen && 'border-foreground',
+                isOpen && 'border-primary',
                 (session.isCancelled || session.hasStarted) &&
                     'text-muted-foreground',
             )}
@@ -110,7 +110,7 @@ function DayCell({
                     'inline-flex size-7 items-center justify-center self-end rounded-full text-sm tabular-nums transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none md:self-start',
                     !day.inMonth && 'text-muted-foreground',
                     day.isToday &&
-                        'bg-foreground font-medium text-background hover:bg-foreground/90',
+                        'bg-primary font-medium text-primary-foreground hover:bg-primary/90',
                 )}
             >
                 {day.dayOfMonth}
@@ -125,7 +125,7 @@ function DayCell({
                     aria-hidden="true"
                     tabIndex={-1}
                 >
-                    <span className="size-1.5 rounded-full bg-foreground" />
+                    <span className="size-1.5 rounded-full bg-primary" />
                     {scheduled}
                 </button>
             )}

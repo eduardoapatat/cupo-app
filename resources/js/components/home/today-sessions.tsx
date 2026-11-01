@@ -81,7 +81,7 @@ export default function TodaySessions({
                                     aria-hidden="true"
                                 >
                                     <span
-                                        className="block h-full rounded-full bg-foreground"
+                                        className="block h-full rounded-full bg-primary"
                                         style={{
                                             width: `${Math.min(ratio, 1) * 100}%`,
                                         }}

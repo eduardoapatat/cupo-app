@@ -104,7 +104,7 @@ export default function AgendaHeader({
                     className="flex w-14 shrink-0 flex-col items-center overflow-hidden rounded-lg border text-center"
                     aria-label={`Hoy es ${today.weekday.toLowerCase()} ${today.dayOfMonth}`}
                 >
-                    <span className="w-full bg-foreground py-0.5 text-[0.625rem] font-semibold tracking-wide text-background">
+                    <span className="w-full bg-primary py-0.5 text-[0.625rem] font-semibold tracking-wide text-primary-foreground">
                         {today.weekday}
                     </span>
                     <span className="py-1 text-lg font-semibold tabular-nums">

@@ -114,7 +114,7 @@ function SessionBlock({
                 'absolute inset-x-1 h-auto flex-col items-stretch justify-start gap-0 overflow-hidden px-2 py-1 text-left text-xs font-normal whitespace-normal',
                 // Dashed until it has an instructor: it cannot be booked yet.
                 session.instructorName === null && 'border-dashed',
-                isOpen && 'z-10 border-foreground',
+                isOpen && 'z-10 border-primary',
                 (session.isCancelled || session.hasStarted) &&
                     'text-muted-foreground',
             )}
@@ -246,7 +246,8 @@ export default function TimeGrid({
                         <span
                             className={cn(
                                 'inline-flex size-7 items-center justify-center rounded-full font-medium tabular-nums',
-                                day.isToday && 'bg-foreground text-background',
+                                day.isToday &&
+                                    'bg-primary text-primary-foreground',
                             )}
                             aria-label={day.isToday ? 'hoy' : undefined}
                         >
@@ -318,13 +319,13 @@ export default function TimeGrid({
                             nowMinutes >= range.start &&
                             nowMinutes <= range.end && (
                                 <div
-                                    className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-foreground"
+                                    className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-primary"
                                     style={{
                                         top: `${toRem(nowMinutes - range.start)}rem`,
                                     }}
                                     aria-hidden="true"
                                 >
-                                    <span className="absolute -top-[5px] -left-1 size-2 rounded-full bg-foreground" />
+                                    <span className="absolute -top-[5px] -left-1 size-2 rounded-full bg-primary" />
                                 </div>
                             )}
                     </div>

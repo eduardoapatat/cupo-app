@@ -413,7 +413,7 @@ function StudentListItem({
                 aria-current={selected ? 'page' : undefined}
                 className={cn(
                     'flex items-center gap-3 border-l-2 border-transparent px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset',
-                    selected && 'border-foreground bg-muted hover:bg-muted',
+                    selected && 'border-primary bg-muted hover:bg-muted',
                 )}
             >
                 <InitialsAvatar name={student.name} />

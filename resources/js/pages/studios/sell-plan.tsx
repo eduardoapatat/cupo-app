@@ -306,8 +306,8 @@ function RegisterStatus({
             <span className="flex items-center gap-2">
                 <span
                     className={cn(
-                        'size-2 rounded-full border border-foreground',
-                        isOpen && 'bg-foreground',
+                        'size-2 rounded-full border border-primary',
+                        isOpen && 'bg-primary',
                     )}
                     aria-hidden="true"
                 />
@@ -651,7 +651,7 @@ export default function SellPlan({
                                                     className={cn(
                                                         'flex cursor-pointer items-start gap-3 rounded-xl border p-4 font-normal transition-colors hover:bg-muted/50',
                                                         selected &&
-                                                            'border-foreground bg-muted/40',
+                                                            'border-primary bg-muted/40',
                                                     )}
                                                 >
                                                     <RadioGroupItem
