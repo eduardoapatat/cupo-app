@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/dialog';
 import {
     Empty,
-    EmptyContent,
     EmptyDescription,
     EmptyHeader,
     EmptyMedia,
@@ -289,30 +288,42 @@ function todayLabel(): string {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-/** No register yet today: where the shift starts, with the cash she has. */
-function OpenRegisterCard({ slug }: { slug: string }) {
+/**
+ * Open today's register, in a dialog like closing it: the cash she starts
+ * with, typed or counted bill by bill.
+ */
+function OpenRegisterDialog({ slug }: { slug: string }) {
+    const [open, setOpen] = useState(false);
     const amount = useCashAmount();
 
+    function onOpenChange(next: boolean) {
+        if (next) {
+            amount.reset();
+        }
+
+        setOpen(next);
+    }
+
     return (
-        <Empty className="mx-auto w-full max-w-md border">
-            <EmptyHeader>
-                <EmptyMedia variant="icon">
-                    <Wallet />
-                </EmptyMedia>
-                <EmptyTitle>Abre tu caja de hoy</EmptyTitle>
-                <EmptyDescription>
-                    {todayLabel()}. Lo que vendas hoy entra en tu caja.
-                </EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent className="max-w-none text-left">
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogTrigger asChild>
+                <Button>Abrir caja</Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-md">
+                <DialogTitle>Abre tu caja de hoy</DialogTitle>
+                <DialogDescription>
+                    {todayLabel()}. Cuenta el efectivo con que partes: lo que
+                    vendas hoy entra en tu caja.
+                </DialogDescription>
                 <Form
                     {...openRegister.form(slug)}
+                    onSuccess={() => setOpen(false)}
                     onError={(errors) =>
                         focusFirstError(errors, {
                             opening_cash: 'opening-cash',
                         })
                     }
-                    className="grid w-full gap-4"
+                    className="grid gap-5"
                 >
                     {({ processing, errors }) => (
                         <>
@@ -328,19 +339,22 @@ function OpenRegisterCard({ slug }: { slug: string }) {
                                     amount={amount}
                                 />
                             </CashAmountField>
-                            <Button
-                                type="submit"
-                                size="lg"
-                                disabled={processing || amount.digits === ''}
-                            >
-                                {processing && <Spinner />}
-                                Abrir caja
-                            </Button>
+                            <DialogFooter>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        processing || amount.digits === ''
+                                    }
+                                >
+                                    {processing && <Spinner />}
+                                    Abrir caja
+                                </Button>
+                            </DialogFooter>
                         </>
                     )}
                 </Form>
-            </EmptyContent>
-        </Empty>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -485,12 +499,13 @@ function CloseRegisterDialog({
 }
 
 /** The strip of totals, as in a payments dashboard. */
-function TotalsStrip({ register }: { register: Register }) {
+function TotalsStrip({ register }: { register: Register | null }) {
+    // Before she opens it: no starting cash yet, and nothing taken.
     const tiles = [
-        { label: 'Efectivo inicial', value: register.openingCash },
-        { label: 'Efectivo', value: register.totals.cash },
-        { label: 'Tarjeta', value: register.totals.card },
-        { label: 'Transferencia', value: register.totals.transfer },
+        { label: 'Efectivo inicial', value: register?.openingCash ?? null },
+        { label: 'Efectivo', value: register?.totals.cash ?? 0 },
+        { label: 'Tarjeta', value: register?.totals.card ?? 0 },
+        { label: 'Transferencia', value: register?.totals.transfer ?? 0 },
     ];
 
     return (
@@ -508,8 +523,13 @@ function TotalsStrip({ register }: { register: Register }) {
                     <dt className="text-sm text-muted-foreground">
                         {tile.label}
                     </dt>
-                    <dd className="text-2xl font-semibold tabular-nums">
-                        {formatClp(tile.value)}
+                    <dd
+                        className={cn(
+                            'text-2xl font-semibold tabular-nums',
+                            register === null && 'text-muted-foreground',
+                        )}
+                    >
+                        {tile.value === null ? '—' : formatClp(tile.value)}
                     </dd>
                 </div>
             ))}
@@ -697,7 +717,44 @@ function MyRegister({
     return (
         <div className="grid gap-6">
             {register === null ? (
-                <OpenRegisterCard slug={slug} />
+                <>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                            <Badge variant="outline">Cerrada</Badge>
+                            <span>{todayLabel()}</span>
+                        </div>
+                        <OpenRegisterDialog slug={slug} />
+                    </div>
+
+                    <TotalsStrip register={null} />
+
+                    <section
+                        aria-labelledby="register-payments"
+                        className="grid gap-3"
+                    >
+                        <h2
+                            id="register-payments"
+                            className="text-sm font-medium"
+                        >
+                            Cobros
+                        </h2>
+                        <Empty className="border md:p-10">
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Wallet />
+                                </EmptyMedia>
+                                <EmptyTitle>
+                                    Todavía no abres tu caja
+                                </EmptyTitle>
+                                <EmptyDescription>
+                                    Ábrela con el efectivo con que partes para
+                                    empezar a cobrar. Lo que vendas hoy entra en
+                                    ella.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
+                    </section>
+                </>
             ) : (
                 <>
                     {!register.isClosed && !register.isToday && (
