@@ -561,13 +561,7 @@ export default function SellPlan({
                                     <StudentPicker
                                         slug={studio.slug}
                                         student={student}
-                                        onChange={(next) => {
-                                            setStudent(next);
-
-                                            if (next) {
-                                                setStep(2);
-                                            }
-                                        }}
+                                        onChange={setStudent}
                                         error={errors.user_id}
                                     />
                                 </section>
@@ -632,10 +626,7 @@ export default function SellPlan({
                                     <RadioGroup
                                         name="plan_id"
                                         value={planId}
-                                        onValueChange={(value) => {
-                                            setPlanId(value);
-                                            setStep(3);
-                                        }}
+                                        onValueChange={setPlanId}
                                         aria-label="Plan"
                                         className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
                                     >
@@ -904,8 +895,12 @@ export default function SellPlan({
                                                 Atrás
                                             </Button>
                                         )}
+                                        {/* Distinct keys: reusing one button and
+                                            turning it into submit mid-click
+                                            would sell on «Continuar». */}
                                         {step < 3 ? (
                                             <Button
+                                                key="continue"
                                                 type="button"
                                                 disabled={!canContinue}
                                                 onClick={() =>
@@ -917,6 +912,7 @@ export default function SellPlan({
                                             </Button>
                                         ) : (
                                             <Button
+                                                key="sell"
                                                 type="submit"
                                                 disabled={
                                                     processing ||
