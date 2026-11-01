@@ -54,7 +54,10 @@ export function StudioNav({ studio }: { studio: CurrentStudio }) {
 
     return (
         <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel className="truncate" title={studio.name}>
+            <SidebarGroupLabel
+                className="truncate text-sidebar-foreground"
+                title={studio.name}
+            >
                 {studio.name}
             </SidebarGroupLabel>
             <nav aria-label={`Menú de ${studio.name}`}>

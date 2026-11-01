@@ -362,7 +362,7 @@ function Steps({
                             className={cn(
                                 'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:gap-3 sm:p-4',
                                 isCurrent
-                                    ? 'border-foreground shadow-xs'
+                                    ? 'border-primary shadow-xs'
                                     : 'enabled:hover:bg-muted/50 disabled:cursor-default',
                             )}
                         >
@@ -370,7 +370,7 @@ function Steps({
                                 className={cn(
                                     'flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium tabular-nums',
                                     isCurrent &&
-                                        'border-foreground bg-foreground text-background',
+                                        'border-primary bg-primary text-primary-foreground',
                                     !isCurrent &&
                                         !isDone &&
                                         'text-muted-foreground',
