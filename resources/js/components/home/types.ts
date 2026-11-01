@@ -65,3 +65,10 @@ export type OwnerAlerts = {
         reason: string | null;
     }[];
 };
+
+/** The month's income so far, and the same stretch of the month before. */
+export type MonthIncomeSummary = {
+    total: number;
+    previous: number;
+    byMethod: { method: string; label: string; total: number }[];
+};

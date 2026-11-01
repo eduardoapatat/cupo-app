@@ -10,6 +10,7 @@ use App\Enums\StudioRole;
 use App\Models\CashRegister;
 use App\Models\ClassSession;
 use App\Models\ClassType;
+use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\PlanPurchase;
 use App\Models\Studio;
@@ -55,7 +56,7 @@ it('shows the studio home to every member', function (StudioRole $role) {
         ->assertInertia(fn (Assert $page) => $page->component('studios/home'));
 })->with(StudioRole::cases());
 
-it('gives each role its blocks in order, with the month\'s income still to come', function (StudioRole $role, array $blocks) {
+it('gives each role its blocks in order, all built', function (StudioRole $role, array $blocks) {
     $studio = Studio::factory()->create();
 
     $this->actingAs(User::factory()->memberOf($studio, $role)->create())
@@ -65,7 +66,7 @@ it('gives each role its blocks in order, with the month\'s income still to come'
     'owner' => [StudioRole::Owner, [
         ['key' => 'today-occupancy', 'isBuilt' => true],
         ['key' => 'alerts', 'isBuilt' => true],
-        ['key' => 'month-income', 'isBuilt' => false],
+        ['key' => 'month-income', 'isBuilt' => true],
     ]],
     'front desk' => [StudioRole::FrontDesk, [
         ['key' => 'today-sessions', 'isBuilt' => true],
@@ -244,6 +245,32 @@ it('alerts the owner of receipts, registers left open or short, and today\'s voi
             ->where('receiptsToReview', null));
 
     expect($forgotten->refresh()->isClosed())->toBeFalse();
+});
+
+it('shows the owner the month\'s income, against the same stretch of last month', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-15 14:00', 'America/Santiago'));
+    $studio = Studio::factory()->create();
+    $carla = User::factory()->memberOf($studio, StudioRole::Owner)->create();
+    $paid = fn (string $at, int $amount, PaymentMethod $method, array $attributes = []) => Payment::factory()->create([
+        'plan_purchase_id' => PlanPurchase::factory()->for($studio),
+        'amount' => $amount,
+        'method' => $method,
+        'paid_at' => CarbonImmutable::parse($at, 'America/Santiago')->utc(),
+        ...$attributes,
+    ]);
+    $paid('2026-11-03 10:00', 45000, PaymentMethod::Cash);
+    $paid('2026-11-10 18:00', 28000, PaymentMethod::Card);
+    $paid('2026-11-12 18:00', 10000, PaymentMethod::Cash, ['status' => 'voided', 'voided_at' => now(), 'status_reason' => 'Error']);
+    $paid('2026-10-05 10:00', 20000, PaymentMethod::Cash);
+    $paid('2026-10-20 10:00', 99000, PaymentMethod::Card);
+    Payment::factory()->create(['amount' => 50000]);
+
+    $this->actingAs($carla)
+        ->get(route('studios.home', $studio))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('monthIncome.total', 73000)
+            ->where('monthIncome.previous', 20000)
+            ->where('monthIncome.byMethod', fn ($methods) => collect($methods)->pluck('total', 'method')->all() === ['cash' => 45000, 'card' => 28000, 'transfer' => 0]));
 });
 
 it('answers 404 to people outside the studio', function () {

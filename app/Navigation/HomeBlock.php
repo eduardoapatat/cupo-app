@@ -41,11 +41,12 @@ enum HomeBlock: string
     }
 
     /**
-     * Whether the block shows real data already. The rest arrive with
-     * payments, the cash register and the reports (phase 3).
+     * Whether the block shows real data already. Every block of phase 3 is
+     * built; a block of a later phase starts here as not built, and the
+     * Inicio shows it with «Pronto».
      */
     public function isBuilt(): bool
     {
-        return $this !== self::MonthIncome;
+        return true;
     }
 }

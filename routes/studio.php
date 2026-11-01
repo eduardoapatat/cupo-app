@@ -24,6 +24,7 @@ use App\Http\Controllers\Studio\PaymentReviewController;
 use App\Http\Controllers\Studio\PaymentVoidController;
 use App\Http\Controllers\Studio\PlanArchiveController;
 use App\Http\Controllers\Studio\PlanController;
+use App\Http\Controllers\Studio\ReportController;
 use App\Http\Controllers\Studio\ScheduleSlotController;
 use App\Http\Controllers\Studio\SellPlanController;
 use App\Http\Controllers\Studio\SessionCancellationController;
@@ -118,6 +119,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('pagos/{payment}/aprobacion', [PaymentReviewController::class, 'approve'])->name('payments.approve');
                 Route::post('pagos/{payment}/rechazo', [PaymentReviewController::class, 'reject'])->name('payments.reject');
                 Route::get('pagos/{payment}/comprobante', [PaymentReceiptController::class, 'show'])->name('payments.receipt');
+
+                Route::get('reportes', ReportController::class)->name('reports.index');
 
                 Route::get('planes', [PlanController::class, 'index'])->name('plans.index');
                 Route::post('planes', [PlanController::class, 'store'])->name('plans.store');

@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
  * items already built (with a link); the rest show as «Pronto».
  */
 dataset('menus', [
-    'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Estudio']],
+    'Dueña' => [StudioRole::Owner, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio'], ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja', 'Clases', 'Planes', 'Equipo', 'Reportes', 'Estudio']],
     'Recepción' => [StudioRole::FrontDesk, ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja'], ['Inicio', 'Agenda', 'Alumnas', 'Vender plan', 'Pagos', 'Caja']],
     'Instructor' => [StudioRole::Instructor, ['Inicio', 'Mis clases'], ['Inicio', 'Mis clases']],
     'Alumna' => [StudioRole::Student, ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan'], ['Inicio', 'Reservar', 'Mis reservas', 'Mi plan']],

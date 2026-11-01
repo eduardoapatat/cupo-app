@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Studio;
 use App\Concerns\PresentsAttendees;
 use App\Concerns\PresentsPayments;
 use App\Concerns\PresentsPlanSummary;
+use App\Concerns\SumsIncome;
 use App\Enums\BookingStatus;
 use App\Enums\ClassSessionStatus;
 use App\Enums\PaymentStatus;
@@ -31,6 +32,7 @@ class HomeController extends Controller
     use PresentsAttendees;
     use PresentsPayments;
     use PresentsPlanSummary;
+    use SumsIncome;
 
     public function __invoke(Studio $studio, #[CurrentUser] User $user): Response
     {
@@ -53,6 +55,9 @@ class HomeController extends Controller
             'receiptsToReview' => $shows(HomeBlock::ReceiptsToReview) ? $this->receiptsToReview($studio) : null,
             'cashRegister' => $shows(HomeBlock::CashRegister) ? $this->cashRegister($studio, $user) : null,
             'alerts' => $shows(HomeBlock::Alerts) ? $this->alerts($studio) : null,
+            'monthIncome' => $shows(HomeBlock::MonthIncome)
+                ? $this->monthIncome($studio, now(config()->string('studio.timezone'))->startOfMonth())
+                : null,
         ]);
     }
 

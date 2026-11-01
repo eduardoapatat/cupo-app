@@ -6,6 +6,7 @@ import { index as mySessionsIndex } from '@/actions/App/Http/Controllers/Studio/
 import Heading from '@/components/heading';
 import Arrivals from '@/components/home/arrivals';
 import CashRegisterSummary from '@/components/home/cash-register-summary';
+import MonthIncome from '@/components/home/month-income';
 import NextBooking from '@/components/home/next-booking';
 import OwnerAlerts from '@/components/home/owner-alerts';
 import ReceiptsToReview from '@/components/home/receipts-to-review';
@@ -14,6 +15,7 @@ import type {
     Arrival,
     CashRegisterSummary as RegisterSummary,
     HomeSession,
+    MonthIncomeSummary,
     NextBookingSummary,
     OwnerAlerts as Alerts,
     ReceiptsToReviewSummary,
@@ -60,6 +62,7 @@ type Props = {
     receiptsToReview: ReceiptsToReviewSummary | null;
     cashRegister: RegisterSummary | null;
     alerts: Alerts | null;
+    monthIncome: MonthIncomeSummary | null;
 };
 
 /** For a student without a valid plan, where to see hers. */
@@ -161,6 +164,10 @@ export default function StudioHome(props: Props) {
                 );
             case 'arrivals':
                 return <Arrivals slug={slug} arrival={props.arrivals} />;
+            case 'month-income':
+                return props.monthIncome ? (
+                    <MonthIncome slug={slug} income={props.monthIncome} />
+                ) : null;
             case 'alerts':
                 return props.alerts ? (
                     <OwnerAlerts slug={slug} alerts={props.alerts} />

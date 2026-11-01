@@ -74,9 +74,9 @@ enum MenuItem: string
     }
 
     /**
-     * The name of the item's route, or null while its page is not built.
+     * The name of the item's route. Every item has its page since phase 3.
      */
-    public function routeName(): ?string
+    public function routeName(): string
     {
         return match ($this) {
             self::Home => 'studios.home',
@@ -88,28 +88,26 @@ enum MenuItem: string
             self::Classes => 'studios.classes.index',
             self::Plans => 'studios.plans.index',
             self::Team => 'studios.team.index',
+            self::Reports => 'studios.reports.index',
             self::StudioSettings => 'studios.settings.edit',
             self::MySessions => 'studios.my-sessions.index',
             self::Book => 'studios.book.index',
             self::MyBookings => 'studios.my-bookings.index',
             self::MyPlan => 'studios.my-plan.index',
-            default => null,
         };
     }
 
     /**
      * The item as the sidebar receives it, with its link in the studio.
      *
-     * @return array{key: string, label: string, href: string|null}
+     * @return array{key: string, label: string, href: string}
      */
     public function toNavigation(Studio $studio): array
     {
-        $routeName = $this->routeName();
-
         return [
             'key' => $this->value,
             'label' => $this->label(),
-            'href' => $routeName === null ? null : route($routeName, $studio, absolute: false),
+            'href' => route($this->routeName(), $studio, absolute: false),
         ];
     }
 }

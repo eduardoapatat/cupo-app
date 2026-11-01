@@ -31,14 +31,14 @@ Cada permiso sale de uno de estos principios:
 
 ### Qué ve al entrar
 
-Cada rol llega al **Inicio** de su estudio. Los bloques salen de `StudioRole::homeBlocks()`, y cada uno exige el permiso de sus datos. Los ingresos del mes se ven con «Pronto» hasta el punto 3.3.
+Cada rol llega al **Inicio** de su estudio. Los bloques salen de `StudioRole::homeBlocks()`, y cada uno exige el permiso de sus datos.
 
-| Rol        | Al entrar ve                                                                                                                                                                        |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dueña      | Ocupación de hoy, alertas (comprobantes por validar, cajas de otro día sin cerrar, cajas con diferencia de la última semana y anulaciones del día) e ingresos del mes _(punto 3.3)_ |
-| Recepción  | Clases de hoy, alumnas que llegan (a la clase en curso o a la próxima), comprobantes por validar (los tres más antiguos) y el estado de su caja, con lo cobrado por medio           |
-| Instructor | Sus clases de hoy, con quiénes vienen y la asistencia                                                                                                                               |
-| Alumna     | Su próxima clase (y si está en alguna lista de espera), cuántas clases le quedan y cuándo vence su plan                                                                             |
+| Rol        | Al entrar ve                                                                                                                                                                                                            |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dueña      | Ocupación de hoy, alertas (comprobantes por validar, cajas de otro día sin cerrar, cajas con diferencia de la última semana y anulaciones del día) e ingresos del mes (con el mismo tramo del mes anterior y por medio) |
+| Recepción  | Clases de hoy, alumnas que llegan (a la clase en curso o a la próxima), comprobantes por validar (los tres más antiguos) y el estado de su caja, con lo cobrado por medio                                               |
+| Instructor | Sus clases de hoy, con quiénes vienen y la asistencia                                                                                                                                                                   |
+| Alumna     | Su próxima clase (y si está en alguna lista de espera), cuántas clases le quedan y cuándo vence su plan (con «Renovar» desde los días de aviso del estudio)                                                             |
 
 ### Menú
 
