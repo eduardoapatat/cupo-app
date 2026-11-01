@@ -9,8 +9,8 @@ import { formatClp } from '@/lib/money';
 
 function differenceLabel(difference: number): string {
     return difference < 0
-        ? `faltaron ${formatClp(-difference)}`
-        : `sobraron ${formatClp(difference)}`;
+        ? `faltante de ${formatClp(-difference)}`
+        : `sobrante de ${formatClp(difference)}`;
 }
 
 /** Receipts waiting, registers left open or short, and today's voids. */

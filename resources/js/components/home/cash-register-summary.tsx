@@ -4,15 +4,15 @@ import type { CashRegisterSummary as Summary } from '@/components/home/types';
 import { Button } from '@/components/ui/button';
 import { formatClp } from '@/lib/money';
 
-/** «Cuadró», «Faltaron $5.000» or «Sobraron $2.000». */
+/** «Exacta», «Faltante de $5.000» or «Sobrante de $2.000». */
 function differenceLabel(difference: number): string {
     if (difference === 0) {
-        return 'Cuadró';
+        return 'Exacta';
     }
 
     return difference < 0
-        ? `Faltaron ${formatClp(-difference)}`
-        : `Sobraron ${formatClp(difference)}`;
+        ? `Faltante de ${formatClp(-difference)}`
+        : `Sobrante de ${formatClp(difference)}`;
 }
 
 /** Whether her register is open, and what it took in, per method. */

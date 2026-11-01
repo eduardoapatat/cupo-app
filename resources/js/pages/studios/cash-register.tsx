@@ -1,5 +1,12 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { ChevronDown, Wallet } from 'lucide-react';
+import {
+    Check,
+    ChevronDown,
+    Clock,
+    TrendingDown,
+    TrendingUp,
+    Wallet,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -91,15 +98,15 @@ type Props = {
     team: Register[] | null;
 };
 
-/** «Cuadra», «Falta $5.000» or «Sobra $2.000». */
+/** «Exacta, sin diferencia», «Faltante de $5.000» or «Sobrante de $2.000». */
 function differenceLabel(difference: number): string {
     if (difference === 0) {
-        return 'Cuadra';
+        return 'Exacta, sin diferencia';
     }
 
     return difference < 0
-        ? `Falta ${formatClp(-difference)}`
-        : `Sobra ${formatClp(difference)}`;
+        ? `Faltante de ${formatClp(-difference)}`
+        : `Sobrante de ${formatClp(difference)}`;
 }
 
 /** The bills and coins of Chile, to count the drawer. */
@@ -464,7 +471,7 @@ function CloseRegisterDialog({
                             {difference !== null && difference !== 0 && (
                                 <div className="grid gap-2">
                                     <Label htmlFor="closing-note">
-                                        Por qué no cuadra
+                                        Por qué hay diferencia
                                     </Label>
                                     <Input
                                         id="closing-note"
@@ -641,6 +648,58 @@ function PaymentsTable({
 }
 
 /** Closed registers, one per row, with what they took in and the difference. */
+/** The difference with its sign: «−$2.000», «+$1.000» or «$0». */
+function signedClp(difference: number): string {
+    if (difference === 0) {
+        return formatClp(0);
+    }
+
+    return difference < 0
+        ? `−${formatClp(-difference)}`
+        : `+${formatClp(difference)}`;
+}
+
+/**
+ * How a closed register came out, at a glance: exact (teal), short or
+ * over (outlined, with an arrow). Never red: it is a count, not an error.
+ */
+function ResultBadge({ difference }: { difference: number | null }) {
+    if (difference === null) {
+        return (
+            <Badge variant="outline">
+                <Clock aria-hidden="true" />
+                Abierta
+            </Badge>
+        );
+    }
+
+    if (difference === 0) {
+        return (
+            <Badge>
+                <Check aria-hidden="true" />
+                Exacta
+            </Badge>
+        );
+    }
+
+    return difference < 0 ? (
+        <Badge variant="outline" className="border-foreground/40">
+            <TrendingDown aria-hidden="true" />
+            Faltante
+        </Badge>
+    ) : (
+        <Badge variant="outline" className="border-foreground/40">
+            <TrendingUp aria-hidden="true" />
+            Sobrante
+        </Badge>
+    );
+}
+
+/**
+ * Closed registers, each with the figures of its close: what was taken,
+ * the cash there should have been, the cash counted, the difference and
+ * its result, with the note of whoever closed it.
+ */
 function RegistersTable({
     registers,
     showPerson,
@@ -654,50 +713,76 @@ function RegistersTable({
                 <TableHeader>
                     <TableRow>
                         <TableHead>Día</TableHead>
-                        {showPerson && <TableHead>Quién</TableHead>}
-                        <TableHead className="text-right">Cobrado</TableHead>
-                        <TableHead className="text-right">Al cerrar</TableHead>
+                        {showPerson && (
+                            <TableHead className="hidden sm:table-cell">
+                                Quién
+                            </TableHead>
+                        )}
+                        <TableHead className="hidden text-right sm:table-cell">
+                            Cobrado
+                        </TableHead>
+                        <TableHead className="hidden text-right md:table-cell">
+                            Efectivo esperado
+                        </TableHead>
+                        <TableHead className="hidden text-right md:table-cell">
+                            Contado
+                        </TableHead>
+                        <TableHead className="text-right">Diferencia</TableHead>
+                        <TableHead>Resultado</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {registers.map((register) => (
-                        <TableRow key={register.id}>
-                            <TableCell className="whitespace-normal first-letter:uppercase">
-                                {register.day}
+                        <TableRow key={register.id} className="align-top">
+                            <TableCell className="whitespace-normal">
+                                <span className="block first-letter:uppercase">
+                                    {register.day}
+                                </span>
+                                {showPerson && (
+                                    <span className="block text-muted-foreground sm:hidden">
+                                        {register.personName}
+                                    </span>
+                                )}
+                                {register.closingNote && (
+                                    <span className="mt-0.5 block max-w-72 text-muted-foreground">
+                                        Nota: «{register.closingNote}»
+                                    </span>
+                                )}
                             </TableCell>
                             {showPerson && (
-                                <TableCell>{register.personName}</TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                    {register.personName}
+                                </TableCell>
                             )}
-                            <TableCell className="text-right tabular-nums">
+                            <TableCell className="hidden text-right tabular-nums sm:table-cell">
                                 {formatClp(
                                     register.totals.cash +
                                         register.totals.card +
                                         register.totals.transfer,
                                 )}
                             </TableCell>
-                            <TableCell className="text-right whitespace-normal">
-                                {register.difference === null ? (
-                                    <Badge variant="outline">Abierta</Badge>
-                                ) : (
-                                    <>
-                                        <span
-                                            className={cn(
-                                                'block tabular-nums',
-                                                register.difference !== 0 &&
-                                                    'font-medium',
-                                            )}
-                                        >
-                                            {differenceLabel(
-                                                register.difference,
-                                            )}
-                                        </span>
-                                        {register.closingNote && (
-                                            <span className="block text-muted-foreground">
-                                                «{register.closingNote}»
-                                            </span>
-                                        )}
-                                    </>
+                            <TableCell className="hidden text-right tabular-nums md:table-cell">
+                                {formatClp(register.expectedCash)}
+                            </TableCell>
+                            <TableCell className="hidden text-right tabular-nums md:table-cell">
+                                {register.countedCash === null
+                                    ? '—'
+                                    : formatClp(register.countedCash)}
+                            </TableCell>
+                            <TableCell
+                                className={cn(
+                                    'text-right tabular-nums',
+                                    register.difference !== null &&
+                                        register.difference !== 0 &&
+                                        'font-semibold',
                                 )}
+                            >
+                                {register.difference === null
+                                    ? '—'
+                                    : signedClp(register.difference)}
+                            </TableCell>
+                            <TableCell>
+                                <ResultBadge difference={register.difference} />
                             </TableCell>
                         </TableRow>
                     ))}
@@ -841,7 +926,7 @@ export default function CashRegister({ register, history, team }: Props) {
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         Lo que cobras en el mesón, por medio de pago. Al cerrar,
-                        cuentas el efectivo y ves si cuadra.
+                        cuentas el efectivo y ves la diferencia.
                     </p>
                 </header>
 
@@ -863,8 +948,8 @@ export default function CashRegister({ register, history, team }: Props) {
                     </TabsContent>
                     <TabsContent value="history" className="grid gap-3">
                         <p className="text-sm text-muted-foreground">
-                            Tus últimas 10 cajas cerradas, con lo cobrado y si
-                            cuadraron.
+                            Tus últimas 10 cajas cerradas, con lo cobrado y su
+                            resultado.
                         </p>
                         {history.length === 0 ? (
                             <p className="rounded-xl border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
